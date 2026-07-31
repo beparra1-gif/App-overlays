@@ -625,8 +625,8 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
               </span>
             )}
             <span className="mv-topbar-separador" />
-            <button className="mv-pill" onClick={reiniciarPartido}>↺ Reiniciar Partido</button>
-            <button className="mv-pill mv-pill-peligro" onClick={finalizarPartido}>⏹ Finalizar Partido</button>
+            <button className="mv-pill" title="Vuelve el marcador a 0-0 para empezar otro partido — el enlace de OBS no cambia" onClick={reiniciarPartido}>↺ Reiniciar Partido</button>
+            <button className="mv-pill mv-pill-peligro" title="El enlace de OBS sigue funcionando después de finalizar" onClick={finalizarPartido}>⏹ Finalizar Partido</button>
           </div>
 
           {jugadoresDescalificadosEnCancha.length > 0 && (

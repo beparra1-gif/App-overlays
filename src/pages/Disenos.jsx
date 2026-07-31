@@ -536,7 +536,16 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
             {guardando ? 'Guardando…' : guardadoOk ? 'Guardado ✓' : ''}
           </span>
           <button type="button" className="btn-link" onClick={onCancelar}>← Volver al catálogo</button>
-          {inicial?.id && <button type="button" className="btn-link" onClick={eliminarDesdeAqui}>🗑️ Eliminar diseño</button>}
+          {inicial?.id && (
+            <button
+              type="button"
+              className="btn-link"
+              title="Borra este diseño para siempre — si querés solo volver a los colores originales, usá Restablecer más abajo"
+              onClick={eliminarDesdeAqui}
+            >
+              🗑️ Eliminar definitivamente
+            </button>
+          )}
           <button type="button" className="btn-secundario" title="Deshacer (Ctrl+Z)" disabled={historialRef.current.length === 0} onClick={deshacer}>↶ Deshacer</button>
           <button type="button" className="btn-secundario" title="Rehacer (Ctrl+Shift+Z)" disabled={futuroRef.current.length === 0} onClick={rehacer}>↷ Rehacer</button>
         </div>
@@ -1121,8 +1130,14 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
           )}
         </div>
 
-        <button type="button" className="btn-secundario" style={{ alignSelf: 'flex-start' }} onClick={restablecerPreferencias}>
-          ↺ Restablecer todo a los valores originales
+        <button
+          type="button"
+          className="btn-secundario"
+          style={{ alignSelf: 'flex-start' }}
+          title="Vuelve todos los colores, tamaños y opciones a los valores por defecto de la plantilla — el enlace de OBS no cambia"
+          onClick={restablecerPreferencias}
+        >
+          ↺ Restablecer todo a los valores originales (mismo enlace de OBS)
         </button>
         </div>
       </div>
@@ -1238,12 +1253,12 @@ export default function Disenos() {
                     <button
                       type="button"
                       className="btn-link"
-                      title="Borrar este diseño guardado (la plantilla sigue disponible, en blanco)"
+                      title="Elimina definitivamente este diseño guardado — si solo querés cambiarle algo, entrá con 'Usar este diseño'"
                       onClick={() => {
                         if (window.confirm(mensajeConfirmarEliminar(guardado))) eliminar(guardado.id);
                       }}
                     >
-                      🗑️
+                      🗑️ Eliminar definitivamente
                     </button>
                   )}
                 </div>
