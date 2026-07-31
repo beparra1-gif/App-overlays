@@ -141,6 +141,18 @@ export function registrarSocketPartidos(io) {
           return;
         }
 
+        // Interruptor manual de "mostrar/ocultar marcador" — a diferencia de
+        // NOMINA_REPRODUCIR/ESTADISTICAS_MOSTRAR (que ocultan el marcador
+        // solo MIENTRAS esa capa está en pantalla, y por un rato limitado),
+        // esto lo prende o apaga a criterio de quien maneja la Mesa, sin
+        // límite de tiempo — no toca el estado del partido en la base,
+        // mismo criterio que los pulsos de arriba (es un control en vivo de
+        // la transmisión, no una regla de juego).
+        if (tipo === 'MARCADOR_VISIBILIDAD') {
+          io.to(roomPartido(publicToken)).emit('marcador_visibilidad', { oculto: !!payload.oculto });
+          return;
+        }
+
         // Igual que NOMINA_REPRODUCIR: no toca el estado del partido, solo le
         // avisa a quien esté mirando la escena que muestre estadísticas un
         // rato — así queda "a demanda" (se dispara cuando hace falta) en vez

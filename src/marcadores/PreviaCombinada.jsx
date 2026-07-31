@@ -105,6 +105,11 @@ export default function PreviaCombinada({ plantillaId, config, equipoLocalPrevie
   const conNomina = modo === 'general' ? config?.mostrarNomina : modo === 'nomina';
   const conEstadisticas = modo === 'general' ? config?.mostrarEstadisticas : modo === 'estadisticas';
   const conAnuncios = modo === 'general' ? config?.anunciarJugadas : modo === 'anuncios';
+  // En la vista previa el aviso demo está siempre visible (no se apaga
+  // solo), así que en modo 'general' con "reemplaza el título" elegido, el
+  // título se ve siempre suprimido — igual que se vería en la transmisión
+  // real mientras un aviso está en pantalla.
+  const suprimirTitulo = conMarcador && conAnuncios && config?.anunciosTituloModo === 'reemplaza-titulo';
 
   return (
     <div className="mini-preview-marco mini-preview-grande">
@@ -115,7 +120,7 @@ export default function PreviaCombinada({ plantillaId, config, equipoLocalPrevie
               <LogoMarcaAgua equipoLocal={partido.equipoLocal} equipoVisita={partido.equipoVisita} config={config} />
               <Marcador partido={partido} config={config} />
               <LogoFlotante equipoLocal={partido.equipoLocal} equipoVisita={partido.equipoVisita} config={config} plantillaId={plantillaId} caja={caja} />
-              <TituloMarcador config={config} plantillaId={plantillaId} caja={caja} />
+              <TituloMarcador config={config} plantillaId={plantillaId} caja={caja} suprimir={suprimirTitulo} />
             </>
           )}
           {conNomina && <VistaNomina partido={partido} modo="ambos" config={config} plantillaId={plantillaId} />}
@@ -130,6 +135,7 @@ export default function PreviaCombinada({ plantillaId, config, equipoLocalPrevie
               plantillaId={plantillaId}
               colorLocal={partido.equipoLocal.color}
               colorVisita={partido.equipoVisita.color}
+              caja={caja}
               demo
             />
           )}

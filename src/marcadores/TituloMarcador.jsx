@@ -14,9 +14,12 @@ import './titulo.css';
 // plantillas más altas que el promedio. Mientras no haya medida todavía
 // (primer render) no se dibuja nada — mejor no mostrarlo un instante que
 // mostrarlo mal ubicado y que se "salte" a su lugar correcto después.
-export default function TituloMarcador({ config, plantillaId, caja }) {
+// `suprimir`: modo "reemplaza el título" de Anuncios (config.anunciosTituloModo)
+// — mientras hay un aviso de jugada en pantalla, el título se apaga del
+// todo y el aviso ocupa ese mismo lugar, en vez de mostrar los dos juntos.
+export default function TituloMarcador({ config, plantillaId, caja, suprimir = false }) {
   const texto = (config?.tituloTexto || '').trim();
-  if (!config?.mostrarTitulo || !texto || !caja) return null;
+  if (!config?.mostrarTitulo || !texto || !caja || suprimir) return null;
   const estilo = {
     position: 'fixed',
     inset: 0,

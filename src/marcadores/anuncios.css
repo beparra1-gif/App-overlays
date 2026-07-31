@@ -28,6 +28,10 @@ html:has(.anuncios-overlay) {
 .modo-costado.lado-derecha .anuncios-ancla { transform: translate(0%, -50%); }
 .modo-superpone .anuncios-ancla { transform: translate(-50%, -50%); }
 .modo-arriba .anuncios-ancla { transform: translate(-50%, -100%); }
+/* Cuando el título está activo y el aviso va "debajo del marcador"
+   (config.anunciosTituloModo) — cuelga hacia ABAJO desde el borde inferior
+   de la caja, al revés de "arriba" (que cuelga hacia arriba). */
+.modo-abajo-caja .anuncios-ancla { transform: translate(-50%, 0%); }
 
 .anuncios-toast {
   background: var(--pm-tablero, rgba(8, 10, 16, 0.92));
@@ -66,6 +70,20 @@ html:has(.anuncios-overlay) {
   border-radius: 10px 10px 0 0;
   border-left: none;
   border-bottom: 5px solid var(--anuncio-color-equipo, var(--pm-banner, #ffb703));
+}
+.modo-abajo-caja .anuncios-toast {
+  border-radius: 0 0 10px 10px;
+  border-left: none;
+  border-top: 5px solid var(--anuncio-color-equipo, var(--pm-banner, #ffb703));
+}
+
+/* Modo "arriba del título" (config.anunciosTituloModo === 'arriba-titulo'):
+   se apila justo encima del título, así que se achica un poco para no
+   competir en tamaño con él — sigue siendo notorio, pero se lee como parte
+   del mismo conjunto en vez de un cartel más grande tapando todo. */
+.anuncios-compacto .anuncios-toast {
+  font-size: 16px;
+  padding: 10px 20px;
 }
 
 /* El desvanecido de salida lo dispara React (VistaAnuncios) agregando esta

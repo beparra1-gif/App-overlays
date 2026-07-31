@@ -22,11 +22,20 @@
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-/* Pantalla completa real (Fullscreen API) sobre la propia Mesa — el tablero
-   de acciones, no el marcador de transmisión (ese vive en su enlace aparte
-   para OBS). Sin bordes redondeados y con scroll propio si el contenido no
-   entra entero en el alto de la pantalla. */
-.mv-wrap:fullscreen {
+/* "Pantalla completa" de la Mesa — el tablero de acciones, no el marcador
+   de transmisión (ese vive en su enlace aparte para OBS). La fuente de
+   verdad es la clase `.mv-pantalla-completa` (controlada desde React), NO
+   la pseudo-clase `:fullscreen` de la Fullscreen API nativa: en tablets
+   (sobre todo iOS Safari) esa API suele fallar o directamente no existir,
+   así que confiar solo en ella dejaba el botón sin hacer nada. Con
+   position:fixed cubriendo TODO el viewport, "solo la mesa" queda
+   garantizado (tapa el header/nav de la página) sea cual sea el navegador,
+   aunque la barra de direcciones del dispositivo siga mostrándose (eso sí
+   depende del sistema operativo, ninguna web puede evitarlo del todo). */
+.mv-wrap.mv-pantalla-completa {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
   width: 100vw;
   height: 100vh;
   max-width: none;
@@ -35,6 +44,10 @@
 }
 
 .mv-topbar { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; align-items: center; }
+.mv-topbar-separador { flex: 1; min-width: 0; }
+@media (max-width: 720px) {
+  .mv-topbar-separador { display: none; }
+}
 
 /* Avisa si el enlace de OBS realmente tiene a alguien mirándolo del otro
    lado (ver 'escena_viewers' por socket) — antes no había forma de saber
@@ -73,6 +86,15 @@
 }
 .mv-pill:hover { background: linear-gradient(180deg, rgba(0,122,255,.16) 0%, rgba(0,122,255,.10) 100%); }
 .mv-pill.activa { background: rgba(52,199,89,.16); border-color: var(--mv-verde); color: var(--mv-verde); }
+/* Interruptor de marcador visible/oculto: mismo verde "activa" cuando está
+   visible (estado normal); rojo cuando está apagado a propósito, para que
+   no pase desapercibido que la transmisión no está mostrando el marcador. */
+.mv-pill-alerta { background: rgba(255,59,48,.14); border-color: var(--mv-rojo); color: var(--mv-rojo); }
+.mv-pill-alerta:hover { background: rgba(255,59,48,.2); }
+/* Finalizar partido: mismo tratamiento "peligro" en cualquier estado, para
+   que se distinga a simple vista de las acciones reversibles de al lado. */
+.mv-pill-peligro { background: rgba(255,59,48,.08); border-color: rgba(255,59,48,.35); color: var(--mv-rojo); }
+.mv-pill-peligro:hover { background: rgba(255,59,48,.16); }
 
 /* Barra de marcador */
 .mv-scorebar {
@@ -314,6 +336,24 @@
 .btn-fiba:disabled { opacity: .3; box-shadow: none; cursor: not-allowed; }
 .btn-fiba.pt { background: linear-gradient(135deg, #007aff, #0044b3); }
 .btn-fiba.st { background: linear-gradient(135deg, #ff9500, #e65100); }
+
+/* Modo compacto de pantalla completa: el objetivo es que el tablero entero
+   (roster + control + disparos de acciones) entre en la pantalla de una
+   tablet/celular sin tener que scrollear de más — achica lo que en tamaño
+   normal está pensado para mirar de lejos en un monitor de mesa. */
+.mv-pantalla-completa .mv-scorebar { padding: 8px; margin-bottom: 8px; }
+.mv-pantalla-completa .mv-cancha-grid { gap: 6px; }
+.mv-pantalla-completa .mv-banco-grid { gap: 5px; }
+.mv-pantalla-completa .mv-oncourt-btn { min-height: 54px; padding: 6px 4px; border-radius: 12px; }
+.mv-pantalla-completa .mv-oncourt-dorsal { font-size: 1.05rem; }
+.mv-pantalla-completa .mv-banco-btn { min-height: 34px; padding: 4px; border-radius: 10px; }
+.mv-pantalla-completa .mv-banco-dorsal { font-size: .85rem; }
+.mv-pantalla-completa .mv-control-card { padding: 8px; margin-bottom: 8px; }
+.mv-pantalla-completa .fiba-botones-grid { gap: 6px; margin-top: 6px; }
+.mv-pantalla-completa .btn-fiba { min-height: 40px; padding: 8px 4px; font-size: 11px; border-radius: 12px; }
+.mv-pantalla-completa .mv-layout-grid { gap: 8px; }
+.mv-pantalla-completa .mv-jugadas,
+.mv-pantalla-completa .mv-disparadores { padding: 8px; margin-top: 8px; }
 .btn-fiba.err { background: linear-gradient(135deg, #ff3b30, #b31c14); }
 
 .mv-btn-cambio {

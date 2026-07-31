@@ -305,6 +305,12 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
   const [jugadas, setJugadas] = useState([]);
   const [mostrarResumen, setMostrarResumen] = useState(false);
   const [enPantallaCompleta, setEnPantallaCompleta] = useState(false);
+  // Interruptor manual, independiente de Nómina/Estadísticas — decide si el
+  // marcador se ve o no en la transmisión AHORA MISMO, a criterio de quien
+  // maneja la Mesa (por ejemplo, apagarlo en un corte publicitario). No se
+  // guarda en la base (como nomina_pulso/stats_pulso, es un estado en vivo,
+  // no una regla del partido) — se emite por socket a quien esté mirando.
+  const [marcadorOculto, setMarcadorOculto] = useState(false);
   const [mostrarGestionEscenas, setMostrarGestionEscenas] = useState(false);
   const [escenas, setEscenas] = useState([]);
   const [disenos, setDisenos] = useState([]);
@@ -335,20 +341,47 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
   };
 
   // "Pantalla completa" agranda la Mesa de control (el tablero de acciones)
-  // con la Fullscreen API del navegador — el marcador con animaciones para
-  // OBS vive únicamente en su propio enlace de escena, nunca acá.
+  // — el marcador con animaciones para OBS vive únicamente en su propio
+  // enlace de escena, nunca acá. La fuente de verdad es ESTE estado propio,
+  // no la Fullscreen API nativa del navegador: en tablets (sobre todo iOS
+  // Safari) esa API suele fallar, no existir, o simplemente no cubrir toda
+  // la pantalla — así que el CSS (.mv-pantalla-completa, ver mesa.css) hace
+  // el trabajo de verdad con position:fixed, y la API nativa se intenta
+  // solo como beneficio extra donde esté disponible.
   useEffect(() => {
-    const alCambiar = () => setEnPantallaCompleta(Boolean(document.fullscreenElement));
+    const alCambiar = () => {
+      // Si se sale de la pantalla completa NATIVA desde afuera (Esc,
+      // gesto del sistema), se apaga también el modo propio — pero si la
+      // nativa nunca llegó a activarse (no soportada), este evento no
+      // dispara nunca, así que no interfiere con el estado propio.
+      if (!document.fullscreenElement) setEnPantallaCompleta(false);
+    };
     document.addEventListener('fullscreenchange', alCambiar);
     return () => document.removeEventListener('fullscreenchange', alCambiar);
   }, []);
 
   const alternarPantallaCompleta = () => {
-    if (document.fullscreenElement) {
-      document.exitFullscreen?.();
-    } else {
-      mesaEnVivoRef.current?.requestFullscreen?.();
+    const activar = !enPantallaCompleta;
+    setEnPantallaCompleta(activar);
+    try {
+      if (activar) mesaEnVivoRef.current?.requestFullscreen?.().catch(() => {});
+      else if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+    } catch {
+      // Fullscreen API no disponible — no importa, el modo propio (CSS) ya
+      // se activó arriba y es el que de verdad hace que "quede solo la
+      // mesa" en pantalla.
     }
+  };
+
+  const alternarVisibilidadMarcador = () => {
+    const nuevoOculto = !marcadorOculto;
+    setMarcadorOculto(nuevoOculto);
+    emitirAccion('MARCADOR_VISIBILIDAD', { oculto: nuevoOculto });
+  };
+
+  const finalizarPartido = () => {
+    if (!window.confirm('¿Finalizar el partido? Podés reiniciarlo después si hace falta jugar otro con el mismo enlace.')) return;
+    emitirAccion('ESTADO_PARTIDO', { estado: 'finalizado' });
   };
 
   useEffect(() => {
@@ -565,10 +598,13 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
           "en_curso" directo a la mesa en vivo. */}
 
       {partido.estado === 'en_curso' && (
-        <div className="mv-wrap" ref={mesaEnVivoRef}>
+        <div className={`mv-wrap ${enPantallaCompleta ? 'mv-pantalla-completa' : ''}`} ref={mesaEnVivoRef}>
           <div className="mv-topbar">
             <button className="mv-pill" onClick={alternarPantallaCompleta}>
-              {enPantallaCompleta ? '✕ Salir de Pantalla Completa' : '⛶ Forzar Pantalla Completa'}
+              {enPantallaCompleta ? '✕ Salir de Pantalla Completa' : '⛶ Pantalla Completa'}
+            </button>
+            <button className={`mv-pill ${!marcadorOculto ? 'activa' : 'mv-pill-alerta'}`} onClick={alternarVisibilidadMarcador}>
+              {marcadorOculto ? '🚫 Marcador Oculto' : '🟢 Marcador Visible'}
             </button>
             {escenaMarcadorActual && (
               <button className="mv-pill" onClick={() => copiarLinkFooter(escenaMarcadorActual.public_token)}>
@@ -587,6 +623,9 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
                     : '🔴 Nadie está mirando el enlace'}
               </span>
             )}
+            <span className="mv-topbar-separador" />
+            <button className="mv-pill" onClick={reiniciarPartido}>↺ Reiniciar Partido</button>
+            <button className="mv-pill mv-pill-peligro" onClick={finalizarPartido}>⏹ Finalizar Partido</button>
           </div>
 
           {jugadoresDescalificadosEnCancha.length > 0 && (
@@ -838,12 +877,6 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
             </p>
           </div>
 
-          <div className="fila-form">
-            <button className="btn-link" onClick={reiniciarPartido}>🔄 Reiniciar partido (mismo enlace)</button>
-            <button className="btn-link" onClick={() => emitirAccion('ESTADO_PARTIDO', { estado: 'finalizado' })}>
-              Finalizar partido
-            </button>
-          </div>
         </div>
       )}
 

@@ -1,4 +1,4 @@
-import { estiloTema, estiloUbicacion, familiaDePlantilla, fuenteDePlantilla } from '../utils';
+import { estiloTema, familiaDePlantilla, fuenteDePlantilla } from '../utils';
 import LogoEquipo from '../LogoEquipo';
 import '../nomina.css';
 
@@ -35,12 +35,19 @@ export default function VistaNomina({ partido, modo = 'ambos', claveAnimacion = 
   // OTRO equipo y los dos escudos quedaban superpuestos. Con esto, cada uno
   // queda confinado a su propia mitad de la pantalla como mucho.
   const maxAnchoLogoFondo = '32vw';
-  // Igual que en Estadísticas: si se dispara SOLO un equipo, la nómina sale
-  // pegada a SU lado de la pantalla (local ⇒ izquierda, visita ⇒ derecha) en
-  // vez del lugar fijo del diseño. Si se dispara "ambos", se respeta la
-  // ubicación configurada, como ya estaba.
-  const ubicacion = modo === 'local' ? 'izquierda' : modo === 'visita' ? 'derecha' : config?.nominaPosicion;
-  const estilo = { ...estiloTema(config), ...estiloUbicacion(ubicacion), '--pm-fuente': fuenteDePlantilla(plantillaId) };
+  // La nómina SIEMPRE arranca pegada arriba, sea cual sea la cantidad de
+  // jugadores (3 o 12) o el modo (un equipo o los dos juntos) — antes el
+  // disparo de un solo equipo usaba la ubicación "izquierda"/"derecha", que
+  // además de mover el bloque al costado lo CENTRA verticalmente
+  // (alignItems:center); con un plantel corto eso lo dejaba flotando a
+  // mitad de pantalla en vez de arrancar desde el mismo lugar que cuando se
+  // disparan los dos equipos juntos. Acá el alto NUNCA se toca (siempre
+  // flex-start) — lo único configurable es el costado (config.nominaPosicion:
+  // izquierda/centro/derecha), y si se dispara un solo equipo, ESE equipo
+  // manda sobre el configurado (local ⇒ izquierda, visita ⇒ derecha).
+  const horizontal = modo === 'local' ? 'izquierda' : modo === 'visita' ? 'derecha' : config?.nominaPosicion;
+  const justifyContent = horizontal === 'izquierda' ? 'flex-start' : horizontal === 'derecha' ? 'flex-end' : 'center';
+  const estilo = { ...estiloTema(config), alignItems: 'flex-start', justifyContent, '--pm-fuente': fuenteDePlantilla(plantillaId) };
 
   // El delay del "entra deslizando" se achica con listas más largas (plantel
   // completo, hasta 12) para que no tarde años en aparecer el último — antes

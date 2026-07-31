@@ -81,6 +81,15 @@ const OPCIONES_UBICACION = [
   { id: 'derecha', etiqueta: 'Derecha' },
 ];
 
+// La nómina siempre arranca pegada arriba (ver VistaNomina.jsx) — el alto
+// no es configurable a propósito, así que acá solo se ofrece el costado,
+// para no mostrar un control "Arriba/Abajo" que no haría nada.
+const OPCIONES_UBICACION_NOMINA = [
+  { id: 'izquierda', etiqueta: 'Izquierda' },
+  { id: 'centro', etiqueta: 'Centro' },
+  { id: 'derecha', etiqueta: 'Derecha' },
+];
+
 const OPCIONES_ANIMACION_ANUNCIO = [
   { id: '', etiqueta: 'Automático según el diseño' },
   { id: 'clasico', etiqueta: 'Clásica (aparece con un zoom suave)' },
@@ -99,12 +108,12 @@ function Toggle({ etiqueta, checked, onChange }) {
   );
 }
 
-function SelectorUbicacion({ etiqueta, valor, onChange }) {
+function SelectorUbicacion({ etiqueta, valor, onChange, opciones = OPCIONES_UBICACION }) {
   return (
     <label>
       {etiqueta}
       <select value={valor || 'centro'} onChange={(e) => onChange(e.target.value)}>
-        {OPCIONES_UBICACION.map((o) => <option key={o.id} value={o.id}>{o.etiqueta}</option>)}
+        {opciones.map((o) => <option key={o.id} value={o.id}>{o.etiqueta}</option>)}
       </select>
     </label>
   );
@@ -859,7 +868,8 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
           <Toggle etiqueta="Mostrar nómina" checked={config.mostrarNomina} onChange={(v) => cambiarConfig('mostrarNomina', v)} />
           {config.mostrarNomina && (
             <div className="subgrupo">
-              <SelectorUbicacion etiqueta="Ubicación en pantalla" valor={config.nominaPosicion} onChange={(v) => cambiarConfig('nominaPosicion', v)} />
+              <SelectorUbicacion etiqueta="Costado en pantalla" valor={config.nominaPosicion} onChange={(v) => cambiarConfig('nominaPosicion', v)} opciones={OPCIONES_UBICACION_NOMINA} />
+              <p className="texto-tenue" style={{ margin: '-4px 0 0' }}>Siempre pegada arriba — acá solo se elige el costado.</p>
               <Toggle etiqueta="Logo del equipo" checked={config.logoEnNomina} onChange={(v) => cambiarConfig('logoEnNomina', v)} />
               {config.logoEnNomina && (
                 <div className="subgrupo">
@@ -942,6 +952,16 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
                   <option value="superpone">Superpuesto, justo sobre el marcador</option>
                 </select>
               </label>
+              {config.mostrarTitulo && (config.alertaPosicion || '') !== 'costado' && (config.alertaPosicion || '') !== 'superpone' && (
+                <label>
+                  Cómo convive con el título
+                  <select value={config.anunciosTituloModo || 'arriba-titulo'} onChange={(e) => cambiarConfig('anunciosTituloModo', e.target.value)}>
+                    <option value="arriba-titulo">Apilado arriba del título (más chico, sin taparlo)</option>
+                    <option value="reemplaza-titulo">Reemplaza el título mientras dura el aviso</option>
+                    <option value="debajo-marcador">Debajo del marcador, en vez de arriba</option>
+                  </select>
+                </label>
+              )}
               <label>
                 Animación del aviso
                 <select value={config.alertaAnimacion || ''} onChange={(e) => cambiarConfig('alertaAnimacion', e.target.value)}>

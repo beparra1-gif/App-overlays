@@ -14,7 +14,7 @@ import { useCajaMarcador } from '../utils';
 // aparte — poner un transform en un ANCESTRO de un position:fixed le
 // cambia el "containing block" a ese ancestro en vez del viewport, así que
 // hacerlo acá, sobre el propio elemento fixed, evita ese problema.
-export default function VistaMarcador({ partido, diseno, oculto = false }) {
+export default function VistaMarcador({ partido, diseno, oculto = false, suprimirTitulo = false }) {
   const plantillaId = diseno?.plantilla_base || 'clasico';
   const config = diseno?.config || {};
   const { Componente } = obtenerPlantilla(plantillaId);
@@ -43,7 +43,7 @@ export default function VistaMarcador({ partido, diseno, oculto = false }) {
       <Componente partido={partido} config={config} />
       <LogoFlotante equipoLocal={partido.equipoLocal} equipoVisita={partido.equipoVisita} config={config} plantillaId={plantillaId} caja={caja} />
       <PopSumaPuntos partido={partido} config={config} />
-      <TituloMarcador config={config} plantillaId={plantillaId} caja={caja} />
+      <TituloMarcador config={config} plantillaId={plantillaId} caja={caja} suprimir={suprimirTitulo} />
     </div>
   );
 }

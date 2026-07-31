@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '../api/client';
 import { crearSocket } from '../socket';
@@ -6,6 +6,7 @@ import VistaMarcador from '../marcadores/vistas/VistaMarcador';
 import VistaNomina from '../marcadores/vistas/VistaNomina';
 import VistaEstadisticas from '../marcadores/vistas/VistaEstadisticas';
 import VistaAnuncios from '../marcadores/vistas/VistaAnuncios';
+import { useCajaMarcador } from '../marcadores/utils';
 
 // El payload que viaja por socket (stats_pulso) trae solo lo mínimo; acá se
 // arma la config completa que espera VistaEstadisticas para cada uno de los
@@ -23,6 +24,38 @@ export default function EscenaPublica() {
   const [nomina, setNomina] = useState(null);
   const [jugadas, setJugadas] = useState([]);
   const [stats, setStats] = useState(null);
+  // Interruptor manual desde la Mesa (independiente de Nómina/Estadísticas)
+  // — se queda así hasta que alguien lo vuelva a prender, sin temporizador.
+  const [marcadorOculto, setMarcadorOculto] = useState(false);
+
+  // Medida real de la caja del marcador, para que Anuncios pueda apilarse
+  // sin pisar el título cuando los dos están activos (ver
+  // config.anunciosTituloModo, más abajo). Se mide siempre (hook
+  // incondicional, como pide React) sobre el contenedor de la escena
+  // 'marcador' — en las otras 3 escenas dedicadas (nomina/estadisticas/
+  // anuncios sueltas) el ref nunca se cuelga de nada, así que el hook
+  // simplemente no mide nada, sin costo.
+  const contenedorRef = useRef(null);
+  const caja = useCajaMarcador(contenedorRef, [datos?.diseno?.plantilla_base, datos?.diseno?.config]);
+
+  // Fondo transparente de verdad, sin depender de que el reproductor
+  // soporte el selector CSS :has() (las reglas `html:has(...) {background:
+  // transparent}` de cada plantilla dependen de eso) — muchas apps de
+  // streaming para celular usan un WebView más viejo/limitado donde ese
+  // selector simplemente no aplica, y como el <body> global (index.css)
+  // siempre pinta su propio fondo (`background: var(--fondo)`), ese fondo
+  // opaco gana y tapa la transparencia. Un estilo inline por JS (la
+  // especificidad más alta que existe) funciona sea cual sea el motor.
+  useEffect(() => {
+    const raiz = document.documentElement;
+    const cuerpo = document.body;
+    raiz.style.background = 'transparent';
+    cuerpo.style.background = 'transparent';
+    return () => {
+      raiz.style.background = '';
+      cuerpo.style.background = '';
+    };
+  }, []);
 
   useEffect(() => {
     let activo = true;
@@ -41,6 +74,7 @@ export default function EscenaPublica() {
     // usuario puede seguir ajustando el diseño con el partido ya en curso.
     socket.on('diseno_actualizado', (disenoNuevo) => activo && setDatos((prev) => (prev ? { ...prev, diseno: disenoNuevo } : prev)));
     socket.on('nomina_pulso', ({ modo, ocultarMarcador }) => activo && setNomina({ modo, ocultarMarcador, ts: Date.now() }));
+    socket.on('marcador_visibilidad', ({ oculto }) => activo && setMarcadorOculto(!!oculto));
     socket.on('jugada', (jugada) => activo && setJugadas((prev) => [jugada, ...prev].slice(0, 5)));
     socket.on('stats_pulso', (payload) => activo && setStats({ ...payload, ts: Date.now() }));
     socket.on('error_marcador', (payload) => activo && setError(payload.error));
@@ -69,6 +103,21 @@ export default function EscenaPublica() {
     return () => clearTimeout(temporizador);
   }, [stats?.ts, duracionStatsMs]);
 
+  // Solo hace falta saber "hay un aviso en pantalla ahora mismo" para el
+  // modo 'reemplaza-titulo' (ver más abajo) — mismo patrón que
+  // nómina/estadísticas de arriba, aproximado (no filtra por
+  // anunciarFaltas como VistaAnuncios internamente sí hace) pero alcanza
+  // para saber cuándo tapar el título.
+  const ultimaJugada = jugadas[0];
+  const duracionAnunciosMs = (Number(datos?.diseno?.config?.anunciosDuracionSeg) || 3.8) * 1000;
+  const [anuncioVisible, setAnuncioVisible] = useState(false);
+  useEffect(() => {
+    if (!ultimaJugada) return undefined;
+    setAnuncioVisible(true);
+    const temporizador = setTimeout(() => setAnuncioVisible(false), duracionAnunciosMs);
+    return () => clearTimeout(temporizador);
+  }, [ultimaJugada?.ts, duracionAnunciosMs]);
+
   if (error || !datos?.partido || !datos?.escena) return null;
   if (datos.escena.eliminada || datos.escena.activo === false) return null;
 
@@ -85,15 +134,24 @@ export default function EscenaPublica() {
       // Al disparar nómina/estadísticas desde la Mesa, el que dispara elige
       // (checkbox "Ocultar el marcador mientras se muestra") si el marcador
       // base se tapa mientras esa capa está en pantalla o se queda visible
-      // debajo — antes siempre quedaba visible, sin poder elegir.
-      const ocultarMarcadorAhora = Boolean((nomina && nomina.ocultarMarcador) || (stats && stats.ocultarMarcador));
+      // debajo — antes siempre quedaba visible, sin poder elegir. Se suma el
+      // interruptor manual (`marcadorOculto`, botón "Marcador Visible/
+      // Oculto" en la Mesa) — cualquiera de los tres motivos alcanza para
+      // tapar el marcador.
+      const ocultarMarcadorAhora = Boolean((nomina && nomina.ocultarMarcador) || (stats && stats.ocultarMarcador) || marcadorOculto);
+      // Modo "reemplazar el título por el anuncio" (Personalizar diseño →
+      // Anuncios → Cómo convive con el título): mientras hay un aviso en
+      // pantalla, el título se apaga del todo y el aviso ocupa exactamente
+      // su lugar — ver TituloMarcador (prop `suprimir`) y VistaAnuncios
+      // (modo 'reemplaza-titulo').
+      const suprimirTitulo = cfg.anunciosTituloModo === 'reemplaza-titulo' && cfg.anunciarJugadas && anuncioVisible;
       return (
-        <>
+        <div ref={contenedorRef} style={{ position: 'fixed', inset: 0, pointerEvents: 'none' }}>
           {/* Siempre montado (nunca se saca del DOM) — la animación de
               salida/entrada la hace VistaMarcador con opacity/scale según
               `oculto`; sacarlo de golpe con un `&&` condicional no dejaba
               lugar para ninguna transición. */}
-          <VistaMarcador partido={datos.partido} diseno={datos.diseno} oculto={ocultarMarcadorAhora} />
+          <VistaMarcador partido={datos.partido} diseno={datos.diseno} oculto={ocultarMarcadorAhora} suprimirTitulo={suprimirTitulo} />
           {cfg.mostrarNomina && nomina && (
             <VistaNomina key={nomina.ts} partido={datos.partido} modo={nomina.modo} claveAnimacion={nomina.ts} config={cfg} plantillaId={plantillaId} />
           )}
@@ -114,9 +172,10 @@ export default function EscenaPublica() {
               plantillaId={plantillaId}
               colorLocal={datos.partido.equipoLocal?.color}
               colorVisita={datos.partido.equipoVisita?.color}
+              caja={caja}
             />
           )}
-        </>
+        </div>
       );
     }
     case 'nomina':
