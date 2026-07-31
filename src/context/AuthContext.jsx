@@ -33,13 +33,21 @@ export function AuthProvider({ children }) {
   const loginGoogle = async (credential) => establecerSesion(await api.loginGoogle(credential));
   const resetearPassword = async (token, password) => establecerSesion(await api.resetearPassword(token, password));
 
+  // Editar el perfil no devuelve un token nuevo (la sesión sigue siendo la
+  // misma) — solo hace falta refrescar los datos del usuario ya logueado.
+  const actualizarPerfil = async (payload) => {
+    const { usuario: actualizado } = await api.actualizarPerfil(payload);
+    setUsuario(actualizado);
+    return actualizado;
+  };
+
   const logout = () => {
     setToken(null);
     setUsuario(null);
   };
 
   return (
-    <AuthContext.Provider value={{ usuario, cargando, login, registro, loginGoogle, resetearPassword, logout }}>
+    <AuthContext.Provider value={{ usuario, cargando, login, registro, loginGoogle, resetearPassword, actualizarPerfil, logout }}>
       {children}
     </AuthContext.Provider>
   );

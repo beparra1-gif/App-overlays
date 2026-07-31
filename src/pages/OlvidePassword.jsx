@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api/client';
+import AuthMarca from '../components/AuthMarca';
 
 export default function OlvidePassword() {
   const [email, setEmail] = useState('');
@@ -28,6 +29,7 @@ export default function OlvidePassword() {
     return (
       <div className="pagina-centrada">
         <div className="tarjeta-form">
+          <AuthMarca />
           <h1>Revisá tu email</h1>
           <p>Si <strong>{email}</strong> tiene una cuenta, te mandamos un enlace para elegir una contraseña nueva. Vale por 1 hora.</p>
           <p><Link to="/login">← Volver a iniciar sesión</Link></p>
@@ -39,6 +41,7 @@ export default function OlvidePassword() {
   return (
     <div className="pagina-centrada">
       <form className="tarjeta-form" onSubmit={enviar}>
+        <AuthMarca />
         <h1>Recuperar contraseña</h1>
         {error && <p className="mensaje-error">{error}</p>}
         <label>

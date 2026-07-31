@@ -19,7 +19,7 @@ export default function NavBar() {
       <button className="btn-secundario" onClick={alternarTema} title="Cambiar tema">
         {tema === 'oscuro' ? '☀️ Claro' : '🌙 Oscuro'}
       </button>
-      <span className="navbar-usuario">{usuario.nombre || usuario.email}</span>
+      <NavLink to="/perfil" className="navbar-usuario navbar-usuario-link" title="Mi perfil">{usuario.nombre || usuario.email}</NavLink>
       <button className="btn-secundario" onClick={logout}>Salir</button>
     </nav>
   );

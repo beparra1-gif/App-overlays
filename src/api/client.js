@@ -59,6 +59,8 @@ export const api = {
   olvidePassword: (email) => solicitud('/auth/olvide-password', { method: 'POST', body: { email }, autenticado: false }),
   resetearPassword: (token, password) => solicitud('/auth/resetear-password', { method: 'POST', body: { token, password }, autenticado: false }),
   me: () => solicitud('/auth/me'),
+  actualizarPerfil: (payload) => solicitud('/auth/perfil', { method: 'PUT', body: payload }),
+  cambiarPassword: (payload) => solicitud('/auth/password', { method: 'PUT', body: payload }),
 
   listarEquipos: () => solicitud('/equipos'),
   crearEquipo: (payload) => solicitud('/equipos', { method: 'POST', body: payload }),

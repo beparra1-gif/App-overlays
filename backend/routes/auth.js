@@ -45,7 +45,8 @@ router.post('/registro', limiteLogin, async (req, res) => {
 
     const passwordHash = await bcrypt.hash(password, 10);
     const resultado = await pool.query(
-      'INSERT INTO usuarios (email, password_hash, nombre) VALUES ($1, $2, $3) RETURNING id, email, nombre, es_admin',
+      `INSERT INTO usuarios (email, password_hash, nombre) VALUES ($1, $2, $3)
+       RETURNING id, email, nombre, es_admin, creado_en, true AS tiene_password, false AS tiene_google`,
       [email, passwordHash, nombre || null]
     );
     const usuario = resultado.rows[0];
@@ -67,7 +68,7 @@ router.post('/login', limiteLogin, async (req, res) => {
   }
 
   try {
-    const resultado = await pool.query('SELECT id, email, nombre, password_hash, es_admin FROM usuarios WHERE email = $1', [email]);
+    const resultado = await pool.query('SELECT id, email, nombre, password_hash, google_id, es_admin, creado_en FROM usuarios WHERE email = $1', [email]);
     const usuario = resultado.rows[0];
     if (!usuario) return res.status(401).json({ error: 'Credenciales inválidas' });
     // Cuenta creada con Google: nunca tuvo contraseña propia — avisar en vez
@@ -79,7 +80,13 @@ router.post('/login', limiteLogin, async (req, res) => {
 
     await tocarUltimoUso(usuario.id);
     const token = firmarToken(usuario.id);
-    res.json({ token, usuario: { id: usuario.id, email: usuario.email, nombre: usuario.nombre, es_admin: usuario.es_admin } });
+    res.json({
+      token,
+      usuario: {
+        id: usuario.id, email: usuario.email, nombre: usuario.nombre, es_admin: usuario.es_admin, creado_en: usuario.creado_en,
+        tiene_password: true, tiene_google: Boolean(usuario.google_id),
+      },
+    });
   } catch (error) {
     console.error('[POST /auth/login]', error);
     res.status(500).json({ error: 'No se pudo iniciar sesión' });
@@ -139,7 +146,11 @@ router.post('/resetear-password', limiteRecuperacion, async (req, res) => {
     // veces) siga siendo válido después de ya haber cambiado la contraseña.
     await pool.query('UPDATE password_reset_tokens SET usado_en = now() WHERE user_id = $1 AND usado_en IS NULL', [fila.user_id]);
 
-    const usuarioResultado = await pool.query('SELECT id, email, nombre, es_admin FROM usuarios WHERE id = $1', [fila.user_id]);
+    const usuarioResultado = await pool.query(
+      `SELECT id, email, nombre, es_admin, creado_en, true AS tiene_password, (google_id IS NOT NULL) AS tiene_google
+       FROM usuarios WHERE id = $1`,
+      [fila.user_id]
+    );
     const usuario = usuarioResultado.rows[0];
     await tocarUltimoUso(usuario.id);
     const token = firmarToken(usuario.id);
@@ -168,18 +179,20 @@ router.post('/google', limiteLogin, async (req, res) => {
     const googleId = payload.sub;
     const nombre = payload.name || null;
 
-    let usuario = (await pool.query('SELECT id, email, nombre, es_admin FROM usuarios WHERE google_id = $1', [googleId])).rows[0];
+    const SELECT_USUARIO = 'SELECT id, email, nombre, es_admin, creado_en, password_hash, google_id FROM usuarios';
+    let usuario = (await pool.query(`${SELECT_USUARIO} WHERE google_id = $1`, [googleId])).rows[0];
 
     if (!usuario) {
-      usuario = (await pool.query('SELECT id, email, nombre, es_admin FROM usuarios WHERE email = $1', [email])).rows[0];
+      usuario = (await pool.query(`${SELECT_USUARIO} WHERE email = $1`, [email])).rows[0];
       if (usuario) {
         // Ya había una cuenta con este email (creada con contraseña) — se
         // vincula Google a ESA cuenta en vez de crear una duplicada; Google
         // ya verificó que el email es suyo, así que vincular es seguro.
         await pool.query('UPDATE usuarios SET google_id = $1 WHERE id = $2', [googleId, usuario.id]);
+        usuario.google_id = googleId;
       } else {
         usuario = (await pool.query(
-          'INSERT INTO usuarios (email, nombre, google_id) VALUES ($1, $2, $3) RETURNING id, email, nombre, es_admin',
+          'INSERT INTO usuarios (email, nombre, google_id) VALUES ($1, $2, $3) RETURNING id, email, nombre, es_admin, creado_en, password_hash, google_id',
           [email, nombre, googleId]
         )).rows[0];
       }
@@ -187,7 +200,13 @@ router.post('/google', limiteLogin, async (req, res) => {
 
     await tocarUltimoUso(usuario.id);
     const token = firmarToken(usuario.id);
-    res.json({ token, usuario });
+    res.json({
+      token,
+      usuario: {
+        id: usuario.id, email: usuario.email, nombre: usuario.nombre, es_admin: usuario.es_admin, creado_en: usuario.creado_en,
+        tiene_password: Boolean(usuario.password_hash), tiene_google: true,
+      },
+    });
   } catch (error) {
     console.error('[POST /auth/google]', error);
     res.status(401).json({ error: 'No se pudo verificar la sesión de Google' });
@@ -196,13 +215,73 @@ router.post('/google', limiteLogin, async (req, res) => {
 
 router.get('/me', authenticate, async (req, res) => {
   try {
-    const resultado = await pool.query('SELECT id, email, nombre, es_admin FROM usuarios WHERE id = $1', [req.userId]);
+    const resultado = await pool.query(
+      `SELECT id, email, nombre, es_admin, creado_en, (password_hash IS NOT NULL) AS tiene_password, (google_id IS NOT NULL) AS tiene_google
+       FROM usuarios WHERE id = $1`,
+      [req.userId]
+    );
     if (resultado.rows.length === 0) return res.status(404).json({ error: 'Usuario no encontrado' });
     tocarUltimoUso(req.userId); // sin await a propósito: no vale la pena demorar la respuesta por esto
     res.json({ usuario: resultado.rows[0] });
   } catch (error) {
     console.error('[GET /auth/me]', error);
     res.status(500).json({ error: 'No se pudo obtener el usuario' });
+  }
+});
+
+// Editar nombre/email desde "Mi perfil" — el email se valida único (case
+// insensitive) porque sigue siendo la clave de login; cambiarlo es seguro
+// incluso para una cuenta vinculada a Google, ya que ese ingreso matchea
+// primero por google_id (ver POST /google) y solo cae a email para
+// detectar una cuenta previa la primerísima vez que se vincula.
+router.put('/perfil', authenticate, async (req, res) => {
+  const nombre = String(req.body?.nombre || '').trim();
+  const email = String(req.body?.email || '').trim().toLowerCase();
+  if (!email) return res.status(400).json({ error: 'El email es obligatorio' });
+
+  try {
+    const enUso = await pool.query('SELECT id FROM usuarios WHERE email = $1 AND id <> $2', [email, req.userId]);
+    if (enUso.rows.length > 0) return res.status(409).json({ error: 'Ya hay otra cuenta con ese email' });
+
+    const resultado = await pool.query(
+      `UPDATE usuarios SET nombre = $1, email = $2 WHERE id = $3
+       RETURNING id, email, nombre, es_admin, creado_en, (password_hash IS NOT NULL) AS tiene_password, (google_id IS NOT NULL) AS tiene_google`,
+      [nombre || null, email, req.userId]
+    );
+    res.json({ usuario: resultado.rows[0] });
+  } catch (error) {
+    console.error('[PUT /auth/perfil]', error);
+    res.status(500).json({ error: 'No se pudo actualizar el perfil' });
+  }
+});
+
+// Cambiar (o, para una cuenta que entró siempre con Google, agregar por
+// primera vez) una contraseña — si ya tenía una, pide la actual para
+// confirmar que es realmente el dueño de la cuenta antes de reemplazarla.
+router.put('/password', authenticate, async (req, res) => {
+  const passwordActual = String(req.body?.passwordActual || '');
+  const passwordNueva = String(req.body?.passwordNueva || '');
+  if (!passwordNueva || passwordNueva.length < 6) {
+    return res.status(400).json({ error: 'La contraseña nueva debe tener al menos 6 caracteres' });
+  }
+
+  try {
+    const resultado = await pool.query('SELECT password_hash FROM usuarios WHERE id = $1', [req.userId]);
+    const usuario = resultado.rows[0];
+    if (!usuario) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+    if (usuario.password_hash) {
+      if (!passwordActual) return res.status(400).json({ error: 'Ingresá tu contraseña actual' });
+      const coincide = await bcrypt.compare(passwordActual, usuario.password_hash);
+      if (!coincide) return res.status(401).json({ error: 'La contraseña actual no es correcta' });
+    }
+
+    const passwordHash = await bcrypt.hash(passwordNueva, 10);
+    await pool.query('UPDATE usuarios SET password_hash = $1 WHERE id = $2', [passwordHash, req.userId]);
+    res.json({ ok: true });
+  } catch (error) {
+    console.error('[PUT /auth/password]', error);
+    res.status(500).json({ error: 'No se pudo actualizar la contraseña' });
   }
 });
 

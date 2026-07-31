@@ -105,6 +105,19 @@ a {
   font-size: 14px;
 }
 
+.navbar-usuario-link {
+  text-decoration: none;
+  padding: 4px 10px;
+  border-radius: 999px;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.navbar-usuario-link:hover,
+.navbar-usuario-link.active {
+  background: color-mix(in srgb, var(--primario) 12%, transparent);
+  color: var(--primario);
+}
+
 /* Formularios */
 .tarjeta-form {
   display: flex;
@@ -775,6 +788,157 @@ select {
 .jugador-live-botones .btn-falta {
   color: var(--peligro);
   border-color: var(--peligro);
+}
+
+/* Mi perfil */
+.perfil-pagina {
+  max-width: 480px;
+}
+
+.perfil-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 22px;
+}
+
+.perfil-avatar {
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 20px;
+  color: #fff;
+  background: linear-gradient(135deg, var(--primario), #5ac8fa);
+}
+
+.perfil-seccion {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.perfil-seccion h3 {
+  margin: 0;
+}
+
+.perfil-seccion label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 14px;
+  text-align: left;
+}
+
+.perfil-seccion .btn-primario {
+  align-self: flex-start;
+}
+
+.perfil-mensaje-ok {
+  color: #34c759;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* Pantallas de acceso (Login/Registro/Recuperar contraseña): misma lógica
+   visual que las hojas de ingreso de iOS — fondo con un degradé sutil hacia
+   el color de acento, tarjeta flotante bien redondeada con sombra suave, y
+   una marca centrada arriba en vez de un <h1> a secas. */
+.pagina-centrada {
+  background:
+    radial-gradient(ellipse 900px 560px at 50% -10%, color-mix(in srgb, var(--primario) 16%, transparent), transparent),
+    var(--fondo);
+}
+
+.auth-marca {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 22px;
+}
+
+.auth-marca-icono {
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+  background: linear-gradient(135deg, var(--primario), #5ac8fa);
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--primario) 35%, transparent);
+}
+
+.auth-marca-nombre {
+  font-weight: 800;
+  font-size: 15px;
+  letter-spacing: 0.2px;
+  color: var(--texto-tenue);
+}
+
+.tarjeta-form {
+  width: 360px;
+  padding: 32px 28px;
+  gap: 14px;
+  border-radius: 20px;
+  box-shadow: 0 24px 60px rgba(15, 20, 30, 0.14), 0 2px 8px rgba(15, 20, 30, 0.06);
+}
+
+:root[data-tema='oscuro'] .tarjeta-form {
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.tarjeta-form h1 {
+  font-size: 22px;
+  text-align: center;
+  margin: 0 0 4px;
+}
+
+.tarjeta-form label {
+  font-weight: 500;
+}
+
+.tarjeta-form input {
+  min-height: 44px;
+  border-radius: 11px;
+  font-size: 15px;
+  padding: 0 14px;
+}
+
+.tarjeta-form input:focus {
+  outline: none;
+  border-color: var(--primario);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primario) 22%, transparent);
+}
+
+.tarjeta-form .btn-primario {
+  min-height: 46px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 700;
+  margin-top: 4px;
+  transition: opacity 0.15s ease, transform 0.05s ease;
+}
+
+.tarjeta-form .btn-primario:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.tarjeta-form p {
+  text-align: center;
+  font-size: 13px;
+  color: var(--texto-tenue);
+}
+
+.tarjeta-form p a {
+  font-weight: 600;
+  text-decoration: none;
 }
 
 /* El marcador público y sus plantillas viven en src/marcadores/plantillas.css */

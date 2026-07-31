@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import BotonGoogle from '../components/BotonGoogle';
+import AuthMarca from '../components/AuthMarca';
 
 export default function Login() {
   const { login, loginGoogle } = useAuth();
@@ -38,6 +39,7 @@ export default function Login() {
   return (
     <div className="pagina-centrada">
       <form className="tarjeta-form" onSubmit={enviar}>
+        <AuthMarca />
         <h1>Iniciar sesión</h1>
         {error && <p className="mensaje-error">{error}</p>}
         <label>

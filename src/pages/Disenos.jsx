@@ -1132,6 +1132,18 @@ export default function Disenos() {
                 <strong>{p.nombre}</strong>
                 <div className="tarjeta-acciones">
                   <button className="btn-primario" onClick={() => usarPlantilla(p.id)}>Usar este diseño</button>
+                  {guardado && (
+                    <button
+                      type="button"
+                      className="btn-link"
+                      title="Borrar este diseño guardado (la plantilla sigue disponible, en blanco)"
+                      onClick={() => {
+                        if (window.confirm(`¿Eliminar "${guardado.nombre}"? Esta acción no se puede deshacer.`)) eliminar(guardado.id);
+                      }}
+                    >
+                      🗑️
+                    </button>
+                  )}
                 </div>
               </div>
             );

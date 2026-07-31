@@ -15,6 +15,7 @@ import EscenaPublica from './pages/EscenaPublica';
 import Publicidad from './pages/Publicidad';
 import Logos from './pages/Logos';
 import Admin from './pages/Admin';
+import Perfil from './pages/Perfil';
 
 export default function App() {
   return (
@@ -40,6 +41,7 @@ export default function App() {
                   <Route path="/publicidad" element={<ProtectedRoute><Publicidad /></ProtectedRoute>} />
                   <Route path="/logos" element={<ProtectedRoute><Logos /></ProtectedRoute>} />
                   <Route path="/admin" element={<ProtectedRoute soloAdmin><Admin /></ProtectedRoute>} />
+                  <Route path="/perfil" element={<ProtectedRoute><Perfil /></ProtectedRoute>} />
                   <Route path="/" element={<Navigate to="/disenos" replace />} />
                   <Route path="*" element={<Navigate to="/disenos" replace />} />
                 </Routes>

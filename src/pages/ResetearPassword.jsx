@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import AuthMarca from '../components/AuthMarca';
 
 export default function ResetearPassword() {
   const [params] = useSearchParams();
@@ -34,6 +35,7 @@ export default function ResetearPassword() {
     return (
       <div className="pagina-centrada">
         <div className="tarjeta-form">
+          <AuthMarca />
           <h1>Enlace inválido</h1>
           <p>Este enlace no trae el código de recuperación. Pedí uno nuevo.</p>
           <p><Link to="/olvide-password">Pedir un enlace nuevo</Link></p>
@@ -45,6 +47,7 @@ export default function ResetearPassword() {
   return (
     <div className="pagina-centrada">
       <form className="tarjeta-form" onSubmit={enviar}>
+        <AuthMarca />
         <h1>Elegí una contraseña nueva</h1>
         {error && <p className="mensaje-error">{error}</p>}
         <label>
