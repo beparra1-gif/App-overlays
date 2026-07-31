@@ -66,17 +66,17 @@ export default function LogoFlotante({ equipoLocal, equipoVisita, config, planti
       const anchoBurbuja = diametroAncho * 0.85;
       const centroVerticalAlto = caja.topAlto + caja.heightAlto / 2;
       const topBurbuja = centroVerticalAlto - diametroAlto / 2;
-      // Solape chico hacia ADENTRO de la caja, con la burbuja pintada
-      // ENCIMA de la caja (nunca detrás): antes tenía z-index NEGATIVO — la
-      // intención era "esconder" el solape detrás del fondo opaco de la
-      // caja, pero eso dependía de que el solape fuera siempre chiquito. En
-      // cuanto la burbuja crecía (logo real más grande, plantilla con caja
-      // angosta, o el nuevo control de tamaño de acá arriba) una parte real
-      // del logo quedaba tapada por la caja — se veía "como si estuviera
-      // detrás del marcador", justo lo que se reportó. Pintándola ENCIMA
-      // (mismo color de fondo que la caja, así el empalme no se nota) el
-      // logo nunca se recorta, sea cual sea el tamaño.
-      const solape = 0.6;
+      // Solape MÍNIMO hacia ADENTRO de la caja, con la burbuja pintada
+      // ENCIMA (nunca detrás, ver más abajo): antes tenía z-index NEGATIVO
+      // pensado para "esconder" el solape detrás del fondo opaco de la
+      // caja, pero eso tapaba el logo de verdad en cuanto la burbuja crecía.
+      // Pintarla encima resolvió eso, pero un solape grande (0.6%, ~11px)
+      // ahora se notaba PARA EL OTRO LADO: la burbuja quedaba pisando el
+      // borde/contorno de la caja, como "superpuesta" en vez de pegada al
+      // borde. Un solape apenas de un par de píxeles (menos de un décimo de
+      // punto porcentual) alcanza de sobra contra el redondeo de sub-píxel
+      // de la medición, sin comerse el borde de la caja.
+      const solape = 0.08;
       const burbuja = (equipo, ladoIzquierdo) => {
         if (!equipo?.logo_url) return null;
         const bordeCaja = ladoIzquierdo ? caja.left : caja.left + caja.width;
