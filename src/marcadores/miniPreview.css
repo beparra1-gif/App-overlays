@@ -1,0 +1,67 @@
+.mini-preview-marco {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: 8px;
+  background: repeating-conic-gradient(#20222b 0% 25%, #16171d 0% 50%) 0 0 / 24px 24px;
+  position: relative;
+}
+
+/* Wrapper de zoom (PreviaCombinada, modo 'marcador'): un transform EXTRA,
+   afuera del lienzo, que centra y agranda la caja del marcador ya medida —
+   separado del scale(0.25) fijo de `.mini-preview-lienzo` (que sigue
+   haciendo falta tal cual para que nómina/estadísticas/anuncios, pantalla
+   completa, midan bien) para no tener que recalcular ese 0.25 cada vez.
+   `inset:0` porque el translate en % que calcula PreviaCombinada asume que
+   este wrapper mide exactamente lo mismo que `.mini-preview-marco`. */
+.mini-preview-zoom {
+  position: absolute;
+  inset: 0;
+  transform-origin: 0 0;
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Las plantillas usan position:fixed + inset:0 para llenar el "viewport" del
+   overlay real. Un `transform` en este contenedor crea un containing block
+   nuevo para esos hijos fixed (comportamiento estándar de CSS), así que la
+   plantilla completa queda encerrada y escalada dentro del marco chico en
+   vez de escapar hacia la ventana real del navegador. */
+.mini-preview-lienzo {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 400%;
+  height: 400%;
+  transform: scale(0.25);
+  transform-origin: top left;
+}
+
+/* Previa combinada del panel de personalización: más grande que las
+   miniaturas de tarjeta, para que se lean varias capas superpuestas a la
+   vez (marcador + nómina + estadísticas + anuncios), con marco propio para
+   que se distinga del resto del formulario y sea cómoda de mirar mientras
+   se edita. */
+.mini-preview-grande {
+  max-width: 900px;
+  margin: 0 auto;
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: 12px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .35);
+}
+
+/* Encabezado de la vista previa: qué se está mostrando (sigue a la pestaña
+   abierta) + el interruptor manual para pasar a las 4 capas juntas. */
+.previa-cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 auto 8px;
+  max-width: 900px;
+}
+.previa-etiqueta {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--texto-tenue);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}

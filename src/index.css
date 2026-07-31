@@ -1,0 +1,775 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&display=swap');
+
+:root {
+  --texto: #1f2430;
+  --texto-tenue: #6b7280;
+  --fondo: #f5f6f8;
+  --tarjeta: #ffffff;
+  --borde: #e2e4e9;
+  --primario: #0a84ff;
+  --primario-texto: #ffffff;
+  --peligro: #ff3b30;
+  color-scheme: light dark;
+}
+
+:root[data-tema='oscuro'] {
+  --texto: #e5e7eb;
+  --texto-tenue: #9ca3af;
+  --fondo: #14161c;
+  --tarjeta: #1c1f27;
+  --borde: #30333d;
+  color-scheme: dark;
+}
+
+:root[data-tema='claro'] {
+  --texto: #1f2430;
+  --texto-tenue: #6b7280;
+  --fondo: #f5f6f8;
+  --tarjeta: #ffffff;
+  --borde: #e2e4e9;
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+  color: var(--texto);
+  background: var(--fondo);
+}
+
+h1 {
+  font-size: 28px;
+  margin: 0 0 16px;
+}
+
+a {
+  color: var(--primario);
+}
+
+.pagina {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.pagina-centrada {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+/* Navegación */
+.navbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 24px;
+  background: var(--tarjeta);
+  border-bottom: 1px solid var(--borde);
+  flex-wrap: wrap;
+}
+
+@media (max-width: 720px) {
+  .navbar { padding: 10px 14px; gap: 10px; }
+  .navbar-usuario { display: none; }
+  .pagina { padding: 14px; }
+  .modal-caja { width: min(92vw, 420px); }
+}
+
+.navbar-marca {
+  font-weight: 900;
+}
+
+.navbar-link {
+  color: var(--texto-tenue);
+  text-decoration: none;
+}
+
+.navbar-link.active {
+  color: var(--primario);
+  font-weight: 600;
+}
+
+.navbar-spacer {
+  flex: 1;
+}
+
+.navbar-usuario {
+  color: var(--texto-tenue);
+  font-size: 14px;
+}
+
+/* Formularios */
+.tarjeta-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 320px;
+  padding: 24px;
+  background: var(--tarjeta);
+  border: 1px solid var(--borde);
+  border-radius: 12px;
+}
+
+.tarjeta-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 14px;
+  text-align: left;
+}
+
+/* Divisor "o" entre el formulario de email/contraseña y el botón de Google
+   — mismo patrón que cualquier pantalla de login con dos formas de entrar. */
+.separador-o {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--texto-tenue);
+  font-size: 12px;
+  text-transform: uppercase;
+  margin: 4px 0;
+}
+.separador-o::before,
+.separador-o::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--borde);
+}
+
+.fila-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+input,
+select {
+  padding: 8px 10px;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.btn-primario,
+.btn-secundario,
+.btn-link {
+  cursor: pointer;
+  border-radius: 8px;
+  font-size: 14px;
+  padding: 8px 14px;
+  border: 1px solid transparent;
+}
+
+.btn-primario {
+  background: var(--primario);
+  color: var(--primario-texto);
+  border: none;
+}
+
+.btn-primario:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-secundario {
+  background: transparent;
+  border: 1px solid var(--borde);
+  color: var(--texto);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+
+.btn-chico {
+  padding: 5px 10px;
+  font-size: 12px;
+  border-radius: 8px;
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  color: var(--peligro);
+  text-decoration: underline;
+  padding: 4px;
+}
+
+.mensaje-error {
+  color: var(--peligro);
+  font-size: 14px;
+}
+
+.texto-tenue {
+  color: var(--texto-tenue);
+  font-size: 14px;
+}
+
+/* Tarjetas / grillas */
+.grilla-tarjetas {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.grilla-dos-columnas {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 720px) {
+  .grilla-dos-columnas {
+    grid-template-columns: 1fr;
+  }
+}
+
+.tarjeta {
+  background: var(--tarjeta);
+  border: 1px solid var(--borde);
+  border-radius: 12px;
+  padding: 16px;
+  border-left-width: 4px;
+}
+
+.tarjeta-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tarjeta-acciones {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.chip-color {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.chip-en-uso {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--primario);
+  background: color-mix(in srgb, var(--primario) 14%, transparent);
+  border: 1px solid var(--primario);
+  border-radius: 999px;
+  padding: 2px 8px;
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.dorsal-chip {
+  display: inline-block;
+  min-width: 22px;
+  padding: 1px 5px;
+  border-radius: 6px;
+  background: var(--fondo);
+  border: 1px solid var(--borde);
+  font-weight: 700;
+  font-size: 12px;
+  text-align: center;
+}
+
+.lista-jugadores,
+.lista-seleccion {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+}
+
+.lista-jugadores li,
+.lista-seleccion li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lista-seleccion label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.panel-jugadores {
+  margin-top: 20px;
+  padding: 16px;
+  background: var(--tarjeta);
+  border: 1px solid var(--borde);
+  border-radius: 12px;
+}
+
+.panel-jugadores-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-fondo {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+/* Los únicos modales de la app son los de la Mesa de control (Falta, Tiro
+   libre, Cambio, Resumen, Nómina/Quinteto), que solo se ven con el partido
+   ya en curso — o sea siempre sobre el fondo oscuro fijo de la Mesa (.mv-wrap),
+   nunca sobre el resto de la app. Antes esta caja no traía fondo propio (o,
+   combinada con `.tarjeta`, traía el fondo CLARO del tema por defecto), así
+   que quedaba como una tarjeta blanca flotando en la Mesa oscura, con el
+   botón "Cerrar" directamente sobre el overlay semitransparente (sin tarjeta
+   debajo) — se veía como un contorno fantasma. Acá se fuerza un look oscuro
+   fijo, igual de siempre sin importar el tema claro/oscuro del sistema,
+   coherente con el resto de la Mesa.
+   No se usan las variables --mv-* de mesa.css porque estos modales son
+   hermanos de .mv-wrap en el DOM (se renderizan fuera de la Mesa para poder
+   taparla entera), así que no las heredan — van con los mismos colores
+   escritos directo. */
+.modal-caja {
+  width: min(420px, 90vw);
+  max-height: 80vh;
+  overflow-y: auto;
+  background: #1c1c1e;
+  border: 1px solid rgba(255, 255, 255, .16);
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, .55);
+  color: #f2f3f5;
+}
+
+.modal-caja h3 { color: #f2f3f5; margin-top: 0; }
+.modal-caja .texto-tenue { color: #9aa0ab; }
+.modal-caja .mensaje-error { color: #ff6961; }
+.modal-caja .dorsal-chip { background: #2c2c2e; border-color: rgba(255, 255, 255, .16); color: #f2f3f5; }
+.modal-caja .btn-secundario { border-color: rgba(255, 255, 255, .24); color: #f2f3f5; background: transparent; }
+.modal-caja .btn-secundario:hover { background: rgba(255, 255, 255, .08); }
+.modal-caja .btn-link { color: #4da3ff; }
+.modal-caja input,
+.modal-caja select {
+  background: #2c2c2e;
+  border: 1px solid rgba(255, 255, 255, .2);
+  color: #f2f3f5;
+}
+
+/* EquipoRoster (nómina/quinteto) trae su propia `.tarjeta` porque también
+   se usa suelto en "Personalizar tablero → Equipos" — adentro de un modal
+   ya oscuro esa segunda tarjeta blanca queda de más (una tarjeta clara dentro
+   de la oscura), así que se aplana: mismo texto, sin su propio fondo/borde. */
+.modal-caja .tarjeta {
+  background: none;
+  border: none;
+  padding: 0;
+  border-left-width: 0;
+}
+
+/* Fila tipo "Ajustes" de iOS: etiqueta a la izquierda, switch a la derecha,
+   ancho completo con un divisor fino abajo — así una pila de Toggle uno
+   debajo del otro lee como una sola lista prolija, no controles sueltos. */
+.toggle-switch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 9px 0;
+  width: 100%;
+  border-bottom: 1px solid var(--borde);
+}
+.toggle-switch:last-child {
+  border-bottom: none;
+}
+
+.toggle-switch input {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 40px;
+  height: 22px;
+  background: var(--borde);
+  border-radius: 999px;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+.toggle-switch input:checked {
+  background: var(--primario);
+}
+
+.toggle-switch input::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 0.2s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.toggle-switch input:checked::before {
+  transform: translateX(18px);
+}
+
+.seccion-titulo {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--texto-tenue);
+  margin: 14px 0 6px;
+  font-weight: 700;
+}
+
+/* Grupo tipo "Ajustes" de iOS: cada elemento de la transmisión (Marcador,
+   Nómina, Estadísticas, Anuncios) vive en su propia tarjeta redondeada,
+   separada de las demás — para que quede claro que cada personalización es
+   independiente, en vez de una sola lista larga de controles mezclados. */
+.grupo-personalizacion {
+  background: var(--fondo);
+  border: 1px solid var(--borde);
+  border-radius: 14px;
+  padding: 14px 16px 16px;
+  margin-bottom: 14px;
+}
+.grupo-personalizacion .grupo-titulo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  font-size: 15px;
+  font-weight: 700;
+}
+.grupo-personalizacion .subgrupo {
+  border-left: 2px solid var(--borde);
+  padding-left: 12px;
+  margin: 4px 0 10px 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Pestañas de los apartados (Marcador/Nómina/Estadísticas/Anuncios): un
+   botón por apartado, se abre uno solo a la vez en vez de apilar los 4. */
+.pestanas-personalizacion {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.pestana-btn {
+  flex: 1;
+  min-width: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--borde);
+  background: var(--tarjeta);
+  color: var(--texto-tenue);
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+}
+.pestana-btn.activa {
+  background: var(--primario);
+  border-color: var(--primario);
+  color: var(--primario-texto);
+}
+
+/* Selector de color con swatch grande + hex + transparencia propia — para
+   que se vea claramente QUÉ color es y qué tan transparente queda, en vez
+   de solo el cuadradito nativo del input[type=color]. */
+.selector-color {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--tarjeta);
+  border: 1px solid var(--borde);
+  border-radius: 12px;
+  padding: 10px 12px;
+  min-width: 160px;
+  flex: 1;
+}
+.selector-color-fila {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.selector-color-fila input[type='color'] {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  border: 1px solid var(--borde);
+  padding: 0;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.selector-color-nombres {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.selector-color-etiqueta {
+  font-size: 12px;
+  font-weight: 700;
+}
+.selector-color-hex {
+  font-size: 11px;
+  color: var(--texto-tenue);
+  font-family: 'Courier New', monospace;
+  text-transform: uppercase;
+}
+.selector-color-alpha {
+  font-size: 11px;
+  color: var(--texto-tenue);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Color del equipo (EquipoFicha, "Personalizar tablero → Equipos"): a
+   diferencia de SelectorColor (colores del diseño, con su código hex a la
+   vista), acá alcanza con elegir un tono — no tiene sentido mostrar/tipear
+   un código para el color de una camiseta. Paleta acotada + una rueda
+   nativa para "otro tono" sin exponer el código en ningún lado. */
+.selector-color-equipo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 8px 0;
+}
+.selector-color-equipo-actual {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 2px solid var(--borde);
+  flex-shrink: 0;
+}
+.selector-color-equipo-paleta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.selector-color-equipo-swatch {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+  transition: transform .1s ease;
+}
+.selector-color-equipo-swatch:hover {
+  transform: scale(1.15);
+}
+.selector-color-equipo-swatch.activo {
+  border-color: var(--texto);
+  box-shadow: 0 0 0 2px var(--tarjeta);
+}
+.selector-color-equipo-mas {
+  position: relative;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px dashed var(--borde);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.selector-color-equipo-mas input[type='color'] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  border: none;
+  padding: 0;
+}
+
+/* Buscador de logo (SelectorLogo): campo de texto que filtra por nombre en
+   vez de un <select> con todos en orden alfabético — la lista de
+   coincidencias se despliega debajo, con miniatura de cada logo. */
+.buscador-logo {
+  position: relative;
+  flex: 1;
+  min-width: 180px;
+}
+.buscador-logo-caja {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  background: var(--tarjeta);
+  padding: 0 8px;
+}
+.buscador-logo-caja input {
+  background: transparent;
+  color: var(--texto);
+}
+.buscador-logo-preview {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+.buscador-logo-lista {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 240px;
+  overflow-y: auto;
+  background: var(--tarjeta);
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.buscador-logo-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border: none;
+  background: none;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  color: var(--texto);
+  font-size: 14px;
+}
+.buscador-logo-item:hover {
+  background: var(--fondo);
+}
+.buscador-logo-item img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+/* Resumen del marcador en la Mesa de control */
+.marcador-resumen {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  text-align: center;
+  gap: 16px;
+  margin-bottom: 16px;
+  border-left-width: 1px;
+}
+
+.marcador-resumen-pts {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 40px;
+  font-weight: 900;
+  display: block;
+}
+
+.marcador-resumen-centro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-family: 'Orbitron', sans-serif;
+}
+
+.marcador-resumen-reloj {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.grilla-jugadores-live {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.jugador-live {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--borde);
+  flex-wrap: wrap;
+}
+
+.jugador-live-nombre {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+}
+
+.badge-faltas {
+  background: var(--peligro);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 6px;
+  padding: 1px 6px;
+}
+
+.jugador-live-botones {
+  display: flex;
+  gap: 4px;
+}
+
+.jugador-live-botones button {
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--borde);
+  background: var(--fondo);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.jugador-live-botones .btn-falta {
+  color: var(--peligro);
+  border-color: var(--peligro);
+}
+
+/* El marcador público y sus plantillas viven en src/marcadores/plantillas.css */

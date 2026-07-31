@@ -1,0 +1,155 @@
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Cinzel:wght@600;700&family=Barlow+Condensed:wght@600;700&family=Orbitron:wght@700;900&family=Bungee&family=Poppins:wght@600;700&display=swap');
+
+html:has(.nomina-overlay) {
+  background: transparent;
+}
+
+.nomina-overlay {
+  position: fixed;
+  inset: 0;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--pm-fuente, 'Oswald', sans-serif);
+  color: var(--pm-texto, #fff);
+  padding: 40px;
+}
+
+/* Fila que junta las dos columnas (local/visita) — separada a propósito de
+   .nomina-overlay: ahí arriba, alignItems/justifyContent deciden DÓNDE va
+   todo el bloque en la pantalla (config.nominaPosicion); acá, siempre
+   flex-start, para que las dos columnas arranquen SIEMPRE parejas arriba,
+   sea cual sea la cantidad de jugadores de cada plantel (antes, al vivir
+   los dos en el mismo nivel de flex, un plantel más corto quedaba centrado/
+   más abajo que el otro). */
+.nomina-fila {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: flex-start;
+  gap: 60px;
+}
+
+.nomina-equipo {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.nomina-encabezado-equipo {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+  padding-bottom: 6px;
+  width: 320px;
+  border-bottom: 3px solid currentColor;
+}
+
+.nomina-logo {
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+/* Logo "de fondo" (config.nominaLogoPosicion === 'fondo'): grande, centrado
+   detrás de toda la nómina de ese equipo — como mínimo tan alto como la
+   nómina misma (altura fija en %, ancho proporcional), con su propia
+   transparencia. Va DETRÁS del encabezado/filas (z-index) — las filas
+   siguen teniendo su propio fondo opaco encima, así que el logo se nota
+   sobre todo asomando por los costados y en el encabezado. */
+.nomina-logo-fondo {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: auto;
+  max-width: none;
+  object-fit: contain;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.nomina-titulo {
+  font-size: 20px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+/* Grilla fija por fila — mismo ancho de columna (dorsal/nombre/stats) en
+   cada jugador, para que la lista quede prolijamente alineada en vez de que
+   cada nombre corra el resto de la fila según su largo. */
+.nomina-jugador {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 40px 1fr auto auto;
+  align-items: center;
+  gap: 6px 10px;
+  background: var(--pm-tablero, rgba(10, 12, 20, 0.85));
+  border-radius: 10px;
+  padding: 8px 18px;
+  width: 320px;
+  opacity: 0;
+  transform: translateX(-40px);
+  animation: nomina-entrada 0.5s ease forwards;
+}
+
+/* Insignia de "está en cancha" — la nómina ahora muestra el plantel
+   completo (antes solo el quinteto), así que quien arranca en cancha se
+   distingue con esto en vez de ser la única fila visible. */
+.nomina-insignia {
+  color: var(--pm-banner, #ffd60a);
+  font-size: 14px;
+  line-height: 1;
+}
+.nomina-jugador.en-cancha {
+  box-shadow: inset 0 0 0 2px var(--pm-banner, #ffd60a);
+}
+
+.nomina-equipo.nomina-visita .nomina-jugador {
+  transform: translateX(40px);
+}
+
+@keyframes nomina-entrada {
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.nomina-dorsal {
+  font-size: 26px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.nomina-nombre {
+  font-size: 18px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nomina-stats {
+  font-size: 11px;
+  color: #cfd3dc;
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Cada familia visual varía forma y ritmo de animación — coherente con la
+   plantilla de marcador enlazada al diseño. La tipografía NO se define acá:
+   la fija `--pm-fuente` (misma que usa el marcador) para que todo el diseño
+   comparta un solo tipo de letra. */
+.fam-clasico .nomina-jugador { border: 1px solid var(--pm-banner, #d4af37); animation-duration: .7s; }
+.fam-broadcast .nomina-jugador { border-left: 6px solid var(--pm-banner, #ff8200); text-transform: uppercase; letter-spacing: .5px; animation-duration: .3s; animation-timing-function: ease-out; }
+.fam-neon .nomina-jugador { border: 1px solid var(--pm-banner, #0ff); animation: nomina-entrada .5s ease forwards, nm-neon-pulso 1.8s ease-in-out .7s infinite; }
+.fam-streetball .nomina-jugador { clip-path: polygon(4% 0, 100% 0, 96% 100%, 0% 100%); text-transform: uppercase; animation-duration: .4s; animation-timing-function: cubic-bezier(.34, 1.56, .64, 1); }
+.fam-cristal .nomina-jugador { background: rgba(255, 255, 255, .12); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, .3); border-radius: 16px; animation: nomina-entrada .6s ease forwards, nm-cristal-brillo 2.4s ease-in-out 1.2s infinite; }
+
+@keyframes nm-neon-pulso { 0%, 100% { box-shadow: 0 0 8px var(--pm-banner, #0ff); } 50% { box-shadow: 0 0 22px var(--pm-banner, #0ff); } }
+@keyframes nm-cristal-brillo { 0%, 100% { background: rgba(255, 255, 255, .10); } 50% { background: rgba(255, 255, 255, .2); } }

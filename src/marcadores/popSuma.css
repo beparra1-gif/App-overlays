@@ -1,0 +1,19 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@900&display=swap');
+
+@keyframes pm-pop-suma-anim {
+  0% { opacity: 0; transform: scale(.4) translateY(14px) rotate(-6deg); }
+  22% { opacity: 1; transform: scale(1.35) translateY(0) rotate(3deg); }
+  45% { transform: scale(1) rotate(0deg); }
+  78% { opacity: 1; }
+  100% { opacity: 0; transform: scale(1) translateY(-28px) rotate(0deg); }
+}
+
+.pm-pop-suma {
+  font-family: 'Orbitron', sans-serif;
+  font-size: calc(34px * var(--pm-pop-escala, 1));
+  font-weight: 900;
+  color: var(--pm-banner, #ffd60a);
+  text-shadow: 0 2px 10px rgba(0, 0, 0, .6), 0 0 16px rgba(255, 214, 10, .7);
+  animation: pm-pop-suma-anim .9s cubic-bezier(.22, .9, .3, 1.1) forwards;
+  white-space: nowrap;
+}

@@ -1,0 +1,21 @@
+/* Ancla estática: centrada sobre el punto que calculó estiloAnclaTitulo (el
+   borde superior de la caja) y colgando hacia arriba, mismo criterio que
+   .anuncios-ancla en anuncios.css. */
+.pm-titulo-ancla {
+  display: inline-block;
+  transform: translate(-50%, -100%);
+}
+
+.pm-titulo-texto {
+  background: var(--pm-banner, #ffb703);
+  color: var(--pm-tablero, #0a0c12);
+  font-family: var(--pm-fuente, 'Oswald', sans-serif);
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  font-size: 20px;
+  padding: 8px 24px;
+  border-radius: 8px 8px 0 0;
+  white-space: nowrap;
+  box-shadow: 0 -6px 18px rgba(0, 0, 0, 0.35);
+}

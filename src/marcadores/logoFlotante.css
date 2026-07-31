@@ -1,0 +1,62 @@
+/* "Dentro de la caja": franja pegada al marcador, con el color del tablero
+   del diseño, para que se lea como si el marcador se hubiera hecho más alto
+   en vez de un logo flotando aparte. Esquina cuadrada del lado que toca el
+   marcador, redondeada del lado que queda al aire. */
+.lf-dentro {
+  display: inline-block;
+  background: var(--pm-tablero, rgba(8, 10, 16, 0.92));
+  padding: 8px 20px;
+  box-shadow: 0 0 16px rgba(0, 0, 0, 0.3);
+}
+.lf-dentro-arriba {
+  transform: translate(-50%, -100%);
+  border-radius: 12px 12px 0 0;
+}
+.lf-dentro-abajo {
+  transform: translate(-50%, 0%);
+  border-radius: 0 0 12px 12px;
+}
+.lf-logos {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* Logo a los costados, modo 'fuera' (config.logoPosicion === 'costados',
+   logoCajaModo === 'fuera'): el escudo flota cerca del borde real de la
+   caja (ver useCajaMarcador — nada de aproximar), sin fondo ni caja propia.
+   `.lf-costado` centra el logo dentro de su panel (mismo alto que la caja). */
+.lf-costado {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+/* Logo a los costados, modo 'dentro': media luna que sale del borde
+   izquierdo/derecho real de la caja — mismo fondo del tablero, así que se
+   lee como un bulto redondeado DEL PROPIO marcador, no un objeto aparte.
+   Clave para que se vea como una sola silueta (no dos círculos tocándose):
+   SIN borde ni sombra del lado que toca la caja (ese lado ni siquiera se
+   dibuja redondeado — solo las dos esquinas de afuera) — el contorno de la
+   caja (var(--pm-banner)) sigue derecho ahí mismo, así que el ojo lee un
+   solo contorno continuo que se abulta hacia el logo, en vez de dos formas
+   separadas apenas tocándose. 9999px de radio en las esquinas de afuera
+   fuerza un semicírculo perfecto sea cual sea el tamaño real (el navegador
+   lo recorta solo al máximo que entra en la caja). */
+.lf-burbuja {
+  background: var(--pm-tablero, rgba(8, 10, 16, 0.92));
+  border-top: 2px solid var(--pm-banner, rgba(255, 255, 255, .18));
+  border-bottom: 2px solid var(--pm-banner, rgba(255, 255, 255, .18));
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+  box-sizing: border-box;
+}
+.lf-burbuja-izquierda {
+  border-left: 2px solid var(--pm-banner, rgba(255, 255, 255, .18));
+  border-radius: 9999px 0 0 9999px;
+}
+.lf-burbuja-derecha {
+  border-right: 2px solid var(--pm-banner, rgba(255, 255, 255, .18));
+  border-radius: 0 9999px 9999px 0;
+}

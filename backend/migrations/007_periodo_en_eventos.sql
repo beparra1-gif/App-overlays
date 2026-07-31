@@ -1,0 +1,2 @@
+ALTER TABLE eventos_partido
+  ADD COLUMN IF NOT EXISTS periodo INTEGER;

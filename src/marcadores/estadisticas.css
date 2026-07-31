@@ -1,0 +1,196 @@
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Cinzel:wght@600;700&family=Anton&family=Orbitron:wght@700;900&family=Bungee&family=Poppins:wght@600;700&display=swap');
+
+html:has(.stats-overlay) {
+  background: transparent;
+}
+
+.stats-overlay {
+  position: fixed;
+  inset: 0;
+  background: transparent;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 40px;
+  font-family: var(--pm-fuente, 'Oswald', sans-serif);
+  color: var(--pm-texto, #fff);
+}
+
+.stats-caja {
+  background: var(--pm-tablero, rgba(8, 10, 16, 0.9));
+  border-radius: 14px;
+  padding: 18px 30px;
+  min-width: 320px;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.4);
+  animation: stats-entrada 0.4s ease;
+}
+
+/* Los dos escudos siempre centrados arriba de la caja — el que corresponde
+   a las estadísticas mostradas abajo queda resaltado con un aro. */
+.stats-logos-ambos {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+.stats-logo {
+  height: 56px;
+  width: auto;
+  max-width: 84px;
+  object-fit: contain;
+  border-radius: 8px;
+  transition: box-shadow .2s ease, transform .2s ease;
+}
+.stats-logo-activo {
+  box-shadow: 0 0 0 3px var(--pm-banner, #ffb703);
+  transform: scale(1.12);
+}
+.stats-vs {
+  font-size: 11px;
+  font-weight: 700;
+  opacity: .5;
+  letter-spacing: 1px;
+}
+
+.stats-caja-equipo {
+  min-width: 380px;
+}
+
+/* Modo "ambos": las dos cajas de equipo lado a lado, cada una angosta (si
+   no, sumadas serían más anchas que la pantalla) — se apilan solas en
+   pantallas chicas. */
+.stats-caja-ambos {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.stats-caja-equipo.stats-caja-ambos-item {
+  min-width: 260px;
+}
+
+/* Puntos por cuarto — el cuarto en el que este equipo anotó más que el
+   rival queda resaltado (borde + fondo del color del diseño), el resto
+   queda neutro. */
+.stats-por-periodo {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+}
+.stats-periodo-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 38px;
+  padding: 5px 4px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid transparent;
+}
+.stats-periodo-etiqueta {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  opacity: .6;
+}
+.stats-periodo-valor {
+  font-size: 16px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.stats-periodo-superior {
+  background: rgba(255, 183, 3, 0.18);
+  background: color-mix(in srgb, var(--pm-banner, #ffb703) 22%, transparent);
+  border-color: var(--pm-banner, #ffb703);
+}
+.stats-periodo-superior .stats-periodo-valor {
+  color: var(--pm-banner, #ffb703);
+}
+
+.stats-detalle {
+  margin-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  padding-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.stats-fila-jugador {
+  display: grid;
+  grid-template-columns: 24px 1fr 32px 32px 32px 32px 44px;
+  gap: 6px;
+  align-items: center;
+  font-size: 12px;
+}
+.stats-fila-encabezado {
+  color: #9aa0ac;
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: .5px;
+}
+.stats-fila-dorsal { font-weight: 700; text-align: center; }
+.stats-fila-nombre { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stats-fila-num { text-align: center; color: var(--pm-marcador, #fff); font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* Cada familia visual varía borde/forma y animación de entrada — coherente
+   con la plantilla de marcador enlazada al diseño. La tipografía NO se
+   define acá: la fija `--pm-fuente` (misma que usa el marcador) para que
+   todo el diseño comparta un solo tipo de letra. */
+.fam-clasico .stats-caja { border: 1px solid var(--pm-banner, #d4af37); animation: st-clasico-in .6s ease forwards; }
+.fam-broadcast .stats-caja { border-top: 5px solid var(--pm-banner, #ff8200); border-radius: 4px; animation: st-broadcast-in .4s ease forwards; }
+.fam-neon .stats-caja { border: 1px solid var(--pm-banner, #0ff); box-shadow: 0 0 18px var(--pm-banner, #0ff); animation: st-neon-in .5s steps(4) forwards; }
+.fam-streetball .stats-caja { clip-path: polygon(0 0, 100% 0, 98% 100%, 0% 100%); animation: st-streetball-in .45s ease forwards; }
+.fam-cristal .stats-caja { background: rgba(255, 255, 255, .14); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, .3); animation: st-cristal-in .6s ease forwards; }
+
+@keyframes st-clasico-in { from { opacity: 0; transform: scale(.85); } to { opacity: 1; transform: scale(1); } }
+@keyframes st-broadcast-in { from { opacity: 0; transform: translateX(60px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes st-neon-in { 0% { opacity: 0; } 35% { opacity: .5; } 55% { opacity: .1; } 100% { opacity: 1; } }
+@keyframes st-streetball-in { from { opacity: 0; transform: translateX(-50px) skewX(-6deg); } to { opacity: 1; transform: translateX(0) skewX(0); } }
+@keyframes st-cristal-in { from { opacity: 0; filter: blur(6px); transform: translateY(-12px); } to { opacity: 1; filter: blur(0); transform: translateY(0); } }
+
+@keyframes stats-entrada {
+  from { opacity: 0; transform: translateY(-16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.stats-titulo {
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: #9aa0ac;
+  margin-bottom: 10px;
+}
+
+.stats-nombre {
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 14px;
+}
+
+.stats-grilla {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.stats-item {
+  text-align: center;
+}
+
+.stats-valor {
+  font-size: 30px;
+  font-weight: 700;
+  color: var(--pm-marcador, #fff);
+}
+
+.stats-etiqueta {
+  font-size: 11px;
+  color: #9aa0ac;
+  text-transform: uppercase;
+}

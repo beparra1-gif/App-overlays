@@ -1,0 +1,49 @@
+import { Navigate, Route, Routes } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
+import ProtectedRoute from './components/ProtectedRoute';
+import NavBar from './components/NavBar';
+import Login from './pages/Login';
+import Registro from './pages/Registro';
+import OlvidePassword from './pages/OlvidePassword';
+import ResetearPassword from './pages/ResetearPassword';
+import Equipos from './pages/Equipos';
+import Disenos from './pages/Disenos';
+import Mesa from './pages/Mesa';
+import EscenaPublica from './pages/EscenaPublica';
+import Publicidad from './pages/Publicidad';
+import Logos from './pages/Logos';
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <ThemeProvider>
+        <Routes>
+          <Route path="/escena/:token" element={<EscenaPublica />} />
+
+          <Route
+            path="*"
+            element={
+              <>
+                <NavBar />
+                <Routes>
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/registro" element={<Registro />} />
+                  <Route path="/olvide-password" element={<OlvidePassword />} />
+                  <Route path="/resetear-password" element={<ResetearPassword />} />
+                  <Route path="/equipos" element={<ProtectedRoute><Equipos /></ProtectedRoute>} />
+                  <Route path="/disenos" element={<ProtectedRoute><Disenos /></ProtectedRoute>} />
+                  <Route path="/mesa/:id" element={<ProtectedRoute><Mesa /></ProtectedRoute>} />
+                  <Route path="/publicidad" element={<ProtectedRoute><Publicidad /></ProtectedRoute>} />
+                  <Route path="/logos" element={<ProtectedRoute><Logos /></ProtectedRoute>} />
+                  <Route path="/" element={<Navigate to="/disenos" replace />} />
+                  <Route path="*" element={<Navigate to="/disenos" replace />} />
+                </Routes>
+              </>
+            }
+          />
+        </Routes>
+      </ThemeProvider>
+    </AuthProvider>
+  );
+}
