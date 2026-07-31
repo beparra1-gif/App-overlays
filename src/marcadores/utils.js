@@ -117,12 +117,29 @@ export function estiloPersonalizado(config = {}) {
   if (config?.fuenteMarcador) estilo['--pm-fuente'] = config.fuenteMarcador;
 
   const tienePosicion = Number.isFinite(config?.posX) && Number.isFinite(config?.posY);
+  const transformas = [];
+
   if (tienePosicion) {
-    const mitad = mitadCajaProporcional(config);
-    estilo.justifyContent = 'flex-start';
-    estilo.alignItems = 'flex-start';
-    estilo.paddingLeft = `${Math.max(0, Math.min(100, config.posX - mitad.x))}%`;
-    estilo.paddingTop = paddingTopDesdeY(Math.min(100, config.posY - mitad.y));
+    // Centrado EXACTO en cualquier plantilla: antes se adivinaba el ancho y
+    // el alto de la caja (mitadCajaProporcional, una CONSTANTE fija — 13%/8%
+    // del lienzo — igual para las 25 plantillas) y se restaba del
+    // padding-left/padding-top para "simular" que el punto arrastrado era el
+    // centro de la caja. Como cada plantilla mide distinto de verdad, esa
+    // resta quedaba mal por una cantidad distinta en cada una — "Centro" (o
+    // cualquier otra posición) terminaba corrido hacia un lado según cuánto
+    // más ancha/angosta fuera la caja real contra el 13% supuesto. Acá en
+    // cambio se deja que flexbox centre la caja DE VERDAD (align-items /
+    // justify-content: center — exacto, lo calcula el navegador con el
+    // tamaño real ya renderizado, sin que este archivo tenga que adivinar
+    // nada) y recién después se la desplaza con un transform relativo al
+    // tamaño de LA PANTALLA (no al de la caja): mover posX un punto mueve la
+    // caja exactamente ese 1% del ancho de pantalla, sin importar qué tan
+    // grande sea la caja de esa plantilla en particular. De paso evita el
+    // quirk de padding-top (siempre relativo al ANCHO, nunca al alto, ver
+    // paddingTopDesdeY) — translateY en % sí es relativo al alto real.
+    estilo.justifyContent = 'center';
+    estilo.alignItems = 'center';
+    transformas.push(`translate(${config.posX - 50}%, ${config.posY - 50}%)`);
   }
 
   const escala = Number(config?.escala) || 1;
@@ -133,23 +150,22 @@ export function estiloPersonalizado(config = {}) {
   const scaleX = escala * estiramientoAncho;
   const scaleY = escala * estiramientoAlto;
   if (scaleX !== 1 || scaleY !== 1) {
-    estilo.transform = `scale(${scaleX}, ${scaleY})`;
-    // El transform se aplica al contenedor de PANTALLA COMPLETA (position:
-    // fixed;inset:0), no a la cajita en sí — con origen 'top left' (la
-    // esquina de la pantalla) agrandar el marcador lo alejaba de esa
-    // esquina cada vez más, y como la caja suele estar cerca del borde
-    // inferior, visualmente "se bajaba" con cada aumento de tamaño. Anclando
-    // el origen al mismo punto posX/posY que usa el resto del archivo para
-    // "dónde está la caja" (con el mismo respaldo 50/88 cuando todavía no se
-    // tocó la posición a mano — la mayoría de las plantillas nacen abajo al
-    // centro, no en el centro de la pantalla), la caja crece/achica sobre su
-    // propio lugar en vez de desplazarse. transform-origin en % ya es
-    // relativo al alto real (a diferencia de padding-top), así que acá no
-    // hace falta la corrección de aspect-ratio.
-    const origenX = Number.isFinite(config?.posX) ? config.posX : 50;
-    const origenY = Number.isFinite(config?.posY) ? config.posY : 88;
-    estilo.transformOrigin = `${origenX}% ${origenY}%`;
+    transformas.push(`scale(${scaleX}, ${scaleY})`);
+    if (!tienePosicion) {
+      // Sin posición tocada a mano, la caja sigue en el lugar por defecto de
+      // CADA plantilla (su propio CSS — la mayoría "abajo al centro", no el
+      // centro de la pantalla) — para que agrandar/achicar no la corra de
+      // ahí, el origen del escalado apunta aproximadamente a ese lugar
+      // (mismo respaldo de siempre). Con posición sí tocada no hace falta
+      // nada de esto: la caja ya quedó centrada por flexbox ANTES del
+      // transform, así que el origen por defecto (50% 50% del contenedor de
+      // pantalla completa) ya coincide exactamente con el centro real de la
+      // caja.
+      estilo.transformOrigin = '50% 88%';
+    }
   }
+
+  if (transformas.length > 0) estilo.transform = transformas.join(' ');
 
   return estilo;
 }
