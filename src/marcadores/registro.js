@@ -23,6 +23,7 @@ import BroadcastBonus from './plantillas/BroadcastBonus';
 import CompactoTOFO from './plantillas/CompactoTOFO';
 import RecordBlock from './plantillas/RecordBlock';
 import PildoraDoble from './plantillas/PildoraDoble';
+import Personalizado from './plantillas/Personalizado';
 
 // Para agregar una plantilla nueva: crear el componente en ./plantillas
 // (recibe `{ partido, config }`, aplica estiloPersonalizado(config) en su
@@ -55,6 +56,7 @@ export const PLANTILLAS_MARCADOR = [
   { id: 'compacto-tofo', nombre: 'Compacto TO/FO', Componente: CompactoTOFO },
   { id: 'record-block', nombre: 'Record Block', Componente: RecordBlock },
   { id: 'pildora-doble', nombre: 'Píldora Doble', Componente: PildoraDoble },
+  { id: 'personalizado', nombre: 'Personalizado (armá el tuyo)', Componente: Personalizado },
 ];
 
 export const obtenerPlantilla = (id) => PLANTILLAS_MARCADOR.find((p) => p.id === id) || PLANTILLAS_MARCADOR[0];

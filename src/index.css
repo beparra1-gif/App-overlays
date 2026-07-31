@@ -222,6 +222,15 @@ select {
   font-size: 14px;
 }
 
+/* Confirmación breve tras crear/guardar/eliminar — mismo verde que ya usaba
+   Perfil, ahora compartido por Equipos/Logos/Publicidad, que antes cambiaban
+   la lista en silencio sin avisar que la acción realmente pasó. */
+.mensaje-exito {
+  color: #34c759;
+  font-size: 14px;
+  font-weight: 600;
+}
+
 .texto-tenue {
   color: var(--texto-tenue);
   font-size: 14px;

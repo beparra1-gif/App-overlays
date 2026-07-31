@@ -319,3 +319,25 @@ html:has(.plantilla-marcador) {
 .pd-faltas { font-size: 11px; color: #ff453a; font-weight: 700; }
 .pd-posesion { color: var(--pd-color); font-size: 10px; }
 .pd-pts { min-width: 34px; text-align: center; font-size: calc(18px * var(--pm-escala-pts, 1)); font-weight: 700; color: #fff; background: var(--pd-color); border-radius: 999px; padding: 2px 10px; }
+
+/* 26. Personalizado (forma/borde elegidos en Personalizar diseño → Marcador → Forma) */
+.pz-wrap {
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+  height: 100%; padding: 40px; font-family: var(--pm-fuente, 'Orbitron', sans-serif);
+}
+.pz-caja {
+  display: flex; align-items: center; gap: 32px;
+  background: var(--pm-tablero, rgba(10, 12, 20, 0.88));
+  padding: 18px 36px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+}
+.pz-logo { display: block; margin: 0 auto 6px; object-fit: contain; opacity: var(--pm-logo-opacidad, 1); }
+.pz-equipo { display: flex; flex-direction: column; align-items: center; min-width: 120px; }
+.pz-nombre { font-size: calc(16px * var(--pm-escala-nombre, 1)); font-weight: 700; letter-spacing: .4px; text-transform: uppercase; }
+.pz-pts { font-size: calc(56px * var(--pm-escala-pts, 1)); font-weight: 900; line-height: 1.1; color: var(--pm-marcador, #fff); }
+.pz-faltas { color: #ff453a; font-size: 12px; font-weight: 700; }
+.pz-centro { display: flex; flex-direction: column; align-items: center; }
+.pz-reloj { background: rgba(255, 255, 255, .08); padding: 6px 16px; border-radius: 10px; font-size: 26px; font-weight: 900; }
+.pz-periodo { margin-top: 4px; font-size: 14px; color: #cfd3dc; }
+.pz-patrocinador { margin-top: 14px; background: rgba(10, 12, 20, .8); border-radius: 12px; padding: 8px 16px; }
+.pz-patrocinador img { max-height: 60px; max-width: 320px; }

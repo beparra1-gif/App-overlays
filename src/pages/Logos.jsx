@@ -4,6 +4,7 @@ import { api, urlLogo } from '../api/client';
 export default function Logos() {
   const [logos, setLogos] = useState([]);
   const [error, setError] = useState('');
+  const [exito, setExito] = useState('');
   const [subiendo, setSubiendo] = useState(false);
   const [copiado, setCopiado] = useState(null);
   const [titulo, setTitulo] = useState('');
@@ -16,6 +17,11 @@ export default function Logos() {
 
   useEffect(() => { cargar(); }, []);
 
+  const avisar = (mensaje) => {
+    setExito(mensaje);
+    setTimeout(() => setExito(''), 2000);
+  };
+
   const subir = async (e) => {
     e.preventDefault();
     const archivo = inputRef.current?.files?.[0];
@@ -27,6 +33,7 @@ export default function Logos() {
       inputRef.current.value = '';
       setTitulo('');
       cargar();
+      avisar('Logo subido ✓');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -37,6 +44,7 @@ export default function Logos() {
   const eliminar = async (id) => {
     await api.eliminarLogo(id);
     cargar();
+    avisar('Logo eliminado ✓');
   };
 
   const copiarUrl = (filename) => {
@@ -56,6 +64,7 @@ export default function Logos() {
       await api.actualizarLogo(id, { nombre: tituloEditado.trim() });
       setEditandoId(null);
       cargar();
+      avisar('Título actualizado ✓');
     } catch (err) {
       setError(err.message);
     }
@@ -72,6 +81,7 @@ export default function Logos() {
         producción de esa app — no son accesibles desde acá, así que hay que resubirlos.
       </p>
       {error && <p className="mensaje-error">{error}</p>}
+      {exito && <p className="mensaje-exito">{exito}</p>}
 
       <form className="fila-form" onSubmit={subir}>
         <input ref={inputRef} type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" required />

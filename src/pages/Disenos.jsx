@@ -35,6 +35,8 @@ const CONFIG_INICIAL = {
   fuenteMarcador: '',
   tamanoTextoMarcador: 100,
   tamanoTextoNombre: 100,
+  personalizadoForma: 'redondeada',
+  personalizadoBorde: 'fino',
   mostrarLogo: true,
   logoPosicion: 'costado',
   logoCajaModo: 'dentro',
@@ -681,6 +683,34 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
             {/* ───────── MARCADOR ───────── */}
         <div className="grupo-personalizacion" hidden={seccionAbierta !== 'marcador'}>
           <div className="grupo-titulo">🏀 Marcador</div>
+
+          {plantillaBase === 'personalizado' && (
+            <>
+              <p className="seccion-titulo">Forma</p>
+              <div className="subgrupo">
+                <label>
+                  Forma de la caja
+                  <select value={config.personalizadoForma || 'redondeada'} onChange={(e) => cambiarConfig('personalizadoForma', e.target.value)}>
+                    <option value="redondeada">Redondeada</option>
+                    <option value="cuadrada">Cuadrada</option>
+                    <option value="pildora">Píldora (bien redondeada en los extremos)</option>
+                  </select>
+                </label>
+                <label>
+                  Borde
+                  <select value={config.personalizadoBorde || 'fino'} onChange={(e) => cambiarConfig('personalizadoBorde', e.target.value)}>
+                    <option value="ninguno">Sin borde</option>
+                    <option value="fino">Fino</option>
+                    <option value="grueso">Grueso</option>
+                    <option value="glow">Con brillo (glow)</option>
+                  </select>
+                </label>
+                <p className="texto-tenue" style={{ margin: 0, fontSize: 12 }}>
+                  El resto (colores, fuente, tamaños, logo, posición) se ajusta igual que en cualquier otra plantilla, más abajo.
+                </p>
+              </div>
+            </>
+          )}
 
           <p className="seccion-titulo">Colores</p>
           <div className="fila-form" style={{ alignItems: 'stretch' }}>

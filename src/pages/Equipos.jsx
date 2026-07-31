@@ -91,6 +91,7 @@ export default function Equipos() {
   const [color, setColor] = useState('#0a84ff');
   const [logoUrl, setLogoUrl] = useState('');
   const [error, setError] = useState('');
+  const [exito, setExito] = useState('');
   const [equipoAbierto, setEquipoAbierto] = useState(null);
   const [editandoId, setEditandoId] = useState(null);
 
@@ -101,6 +102,11 @@ export default function Equipos() {
 
   useEffect(() => { cargar(); }, []);
 
+  const avisar = (mensaje) => {
+    setExito(mensaje);
+    setTimeout(() => setExito(''), 2000);
+  };
+
   const crear = async (e) => {
     e.preventDefault();
     setError('');
@@ -109,6 +115,7 @@ export default function Equipos() {
       setNombre('');
       setLogoUrl('');
       cargar();
+      avisar('Equipo creado ✓');
     } catch (err) {
       setError(err.message);
     }
@@ -118,6 +125,7 @@ export default function Equipos() {
     await api.actualizarEquipo(id, payload);
     setEditandoId(null);
     cargar();
+    avisar('Equipo actualizado ✓');
   };
 
   // Un equipo "en uso" (el que algún diseño tiene puesto como su partido
@@ -128,6 +136,7 @@ export default function Equipos() {
     try {
       await api.eliminarEquipo(equipo.id);
       cargar();
+      avisar('Equipo eliminado ✓');
     } catch (err) {
       setError(err.message);
     }
@@ -139,6 +148,7 @@ export default function Equipos() {
     <div className="pagina">
       <h1>Equipos</h1>
       {error && <p className="mensaje-error">{error}</p>}
+      {exito && <p className="mensaje-exito">{exito}</p>}
       <form className="fila-form" onSubmit={crear}>
         <input placeholder="Nombre del equipo" value={nombre} onChange={(e) => setNombre(e.target.value)} required />
         <input type="color" value={color} onChange={(e) => setColor(e.target.value)} />

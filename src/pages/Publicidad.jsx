@@ -7,10 +7,16 @@ export default function Publicidad() {
   const [imagenUrl, setImagenUrl] = useState('');
   const [duracionSegundos, setDuracionSegundos] = useState(8);
   const [error, setError] = useState('');
+  const [exito, setExito] = useState('');
 
   const cargar = () => api.listarPatrocinadores().then((d) => setPatrocinadores(d.patrocinadores));
 
   useEffect(() => { cargar(); }, []);
+
+  const avisar = (mensaje) => {
+    setExito(mensaje);
+    setTimeout(() => setExito(''), 2000);
+  };
 
   const crear = async (e) => {
     e.preventDefault();
@@ -21,6 +27,7 @@ export default function Publicidad() {
       setImagenUrl('');
       setDuracionSegundos(8);
       cargar();
+      avisar('Patrocinador agregado ✓');
     } catch (err) {
       setError(err.message);
     }
@@ -29,11 +36,13 @@ export default function Publicidad() {
   const alternarActivo = async (p) => {
     await api.actualizarPatrocinador(p.id, { activo: !p.activo });
     cargar();
+    avisar(p.activo ? 'Patrocinador desactivado ✓' : 'Patrocinador activado ✓');
   };
 
   const eliminar = async (id) => {
     await api.eliminarPatrocinador(id);
     cargar();
+    avisar('Patrocinador eliminado ✓');
   };
 
   return (
@@ -41,6 +50,7 @@ export default function Publicidad() {
       <h1>Publicidad</h1>
       <p className="texto-tenue">Los patrocinadores activos rotan en la franja inferior del marcador público, según el orden y duración configurados.</p>
       {error && <p className="mensaje-error">{error}</p>}
+      {exito && <p className="mensaje-exito">{exito}</p>}
 
       <form className="fila-form" onSubmit={crear}>
         <input placeholder="Nombre del patrocinador" value={nombre} onChange={(e) => setNombre(e.target.value)} required />
