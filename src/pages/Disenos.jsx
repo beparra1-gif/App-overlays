@@ -194,6 +194,20 @@ function SelectorColor({ etiqueta, valor, alpha, porDefecto, onCambiarColor, onC
   );
 }
 
+// Mensaje de confirmación antes de borrar un diseño — distinto según si ese
+// diseño tiene un partido activo (con su propio enlace de OBS ya en uso):
+// borrar el diseño NUNCA borra ese enlace (la escena solo pierde el diseño,
+// ver ON DELETE SET NULL en la base), pero el marcador de ESE enlace vuelve
+// a verse en blanco al toque, y la próxima vez que se use esta plantilla se
+// arma un diseño (y eventualmente un partido/enlace) nuevo de cero — nada de
+// esto debe ser una sorpresa después de apretar Eliminar.
+function mensajeConfirmarEliminar(diseno) {
+  if (diseno?.partido_activo_id) {
+    return `"${diseno.nombre}" tiene un partido en curso con su propio enlace de OBS. Si lo eliminás, ese enlace deja de mostrar este diseño (el marcador vuelve a verse en blanco) y la próxima vez que uses esta plantilla vas a armar un diseño y un enlace nuevos. Esta acción no se puede deshacer. ¿Eliminar igual?`;
+  }
+  return `¿Eliminar "${diseno.nombre}"? Esta acción no se puede deshacer.`;
+}
+
 function nombreAutomatico(plantillaBase) {
   const nombrePlantilla = PLANTILLAS_MARCADOR.find((p) => p.id === plantillaBase)?.nombre || 'Diseño';
   const fecha = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
@@ -446,7 +460,7 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
 
   const eliminarDesdeAqui = async () => {
     if (!inicial?.id) return;
-    if (!window.confirm(`¿Eliminar "${inicial.nombre}"? Esta acción no se puede deshacer.`)) return;
+    if (!window.confirm(mensajeConfirmarEliminar(inicial))) return;
     setError('');
     try {
       await onEliminar(inicial.id);
@@ -1226,7 +1240,7 @@ export default function Disenos() {
                       className="btn-link"
                       title="Borrar este diseño guardado (la plantilla sigue disponible, en blanco)"
                       onClick={() => {
-                        if (window.confirm(`¿Eliminar "${guardado.nombre}"? Esta acción no se puede deshacer.`)) eliminar(guardado.id);
+                        if (window.confirm(mensajeConfirmarEliminar(guardado))) eliminar(guardado.id);
                       }}
                     >
                       🗑️
