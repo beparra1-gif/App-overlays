@@ -4,6 +4,7 @@ import LogoMarcaAgua from '../LogoMarcaAgua';
 import LogoFlotante from '../LogoFlotante';
 import PopSumaPuntos from '../PopSumaPuntos';
 import TituloMarcador from '../TituloMarcador';
+import LogosLibres from '../LogosLibres';
 import { useCajaMarcador } from '../utils';
 
 // `oculto` (config.ocultarMarcador desde un disparo de Nómina/Estadísticas):
@@ -44,6 +45,7 @@ export default function VistaMarcador({ partido, diseno, oculto = false, suprimi
       <LogoFlotante equipoLocal={partido.equipoLocal} equipoVisita={partido.equipoVisita} config={config} plantillaId={plantillaId} caja={caja} />
       <PopSumaPuntos partido={partido} config={config} />
       <TituloMarcador config={config} plantillaId={plantillaId} caja={caja} suprimir={suprimirTitulo} />
+      <LogosLibres config={config} />
     </div>
   );
 }

@@ -6,6 +6,7 @@ import VistaAnuncios from './vistas/VistaAnuncios';
 import LogoMarcaAgua from './LogoMarcaAgua';
 import LogoFlotante from './LogoFlotante';
 import TituloMarcador from './TituloMarcador';
+import LogosLibres from './LogosLibres';
 import { PARTIDO_DEMO, JUGADAS_DEMO } from './datosDemo';
 import { useCajaMarcador, useMedidaElemento } from './utils';
 import './miniPreview.css';
@@ -51,7 +52,10 @@ const SELECTOR_CONTENIDO = { nomina: '.nomina-fila', estadisticas: '.stats-caja'
 //   (sin importar si su interruptor "Mostrar..." está apagado — se está
 //   editando esa sección, tiene que verse mientras se ajusta) a tamaño
 //   normal, porque esas ya ocupan toda la pantalla por diseño.
-export default function PreviaCombinada({ plantillaId, config, equipoLocalPreview, equipoVisitaPreview, partidoReal, modo = 'general' }) {
+export default function PreviaCombinada({
+  plantillaId, config, equipoLocalPreview, equipoVisitaPreview, partidoReal, modo = 'general',
+  logosLibresEditable = false, onArrastrarLogoLibre,
+}) {
   const { Componente: Marcador } = obtenerPlantilla(plantillaId);
   // Mismo criterio que VistaMarcador (la escena pública real): el título y
   // los logos "a los costados" se anclan a la caja YA RENDERIZADA, medida de
@@ -139,6 +143,7 @@ export default function PreviaCombinada({ plantillaId, config, equipoLocalPrevie
               demo
             />
           )}
+          <LogosLibres config={config} editable={logosLibresEditable} onArrastrar={onArrastrarLogoLibre} contenedorRef={lienzoRef} />
         </div>
       </div>
     </div>

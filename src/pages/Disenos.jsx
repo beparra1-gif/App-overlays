@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import { api } from '../api/client';
+import { api, urlLogo } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { PLANTILLAS_MARCADOR } from '../marcadores/registro';
 import { PRESETS_POSICION, mostrar, FUENTES_DISPONIBLES } from '../marcadores/utils';
 import MiniPreviewMarcador from '../marcadores/MiniPreviewMarcador';
 import PreviaCombinada from '../marcadores/PreviaCombinada';
 import EquipoFicha from '../components/EquipoFicha';
+import SelectorLogo from '../components/SelectorLogo';
 import Mesa from './Mesa';
 import MesaSimple from './MesaSimple';
 
@@ -76,6 +77,10 @@ const CONFIG_INICIAL = {
   alertaAnimacion: '',
   anunciarFaltas: true,
   anunciosDuracionSeg: 4,
+
+  // Logos libres (competencia/torneo/liga): posición y tamaño propios,
+  // libres, sin atarse a ningún otro elemento del marcador.
+  logosLibres: [],
 };
 
 const REF_ANCHO = 1920;
@@ -147,13 +152,18 @@ const PESTANAS_PERSONALIZACION = [
   { id: 'nomina', etiqueta: 'Nómina', icono: '👥' },
   { id: 'estadisticas', etiqueta: 'Estadísticas', icono: '📊' },
   { id: 'anuncios', etiqueta: 'Anuncios', icono: '📣' },
+  { id: 'logos', etiqueta: 'Logos libres', icono: '🖼️' },
 ];
 
 // La ficha de "Equipos" no tiene capa propia en pantalla — lo que se
 // configura ahí (nombre, título, reloj) se ve todo DENTRO del marcador, así
-// que la vista previa de esa pestaña es la misma que la de "Marcador".
-const PREVIA_MODO_POR_SECCION = { equipos: 'marcador', marcador: 'marcador', nomina: 'nomina', estadisticas: 'estadisticas', anuncios: 'anuncios' };
-const PREVIA_ETIQUETA = { marcador: 'Marcador', nomina: 'Nómina', estadisticas: 'Estadísticas', anuncios: 'Anuncios' };
+// que la vista previa de esa pestaña es la misma que la de "Marcador". Los
+// logos libres pueden ir en CUALQUIER zona de la pantalla (no solo cerca del
+// tablero), así que su vista previa es siempre el lienzo completo ('general'),
+// para poder ver y arrastrar sin que el zoom automático del marcador tape el
+// resto del encuadre.
+const PREVIA_MODO_POR_SECCION = { equipos: 'marcador', marcador: 'marcador', nomina: 'nomina', estadisticas: 'estadisticas', anuncios: 'anuncios', logos: 'general' };
+const PREVIA_ETIQUETA = { general: 'Vista general', marcador: 'Marcador', nomina: 'Nómina', estadisticas: 'Estadísticas', anuncios: 'Anuncios' };
 
 // Selector de color "que se entienda": swatch grande (clickeable, abre el
 // picker nativo), el valor hex a la vista y una transparencia PROPIA de ese
@@ -298,6 +308,20 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
   }, []);
 
   const cambiarConfig = (clave, valor) => setConfig((c) => ({ ...c, [clave]: valor }));
+
+  // Logos libres: se guardan y se leen siempre desde config.logosLibres —
+  // agregar/editar/borrar son todo variaciones de "reemplazar el array
+  // entero", así que no hace falta un estado aparte.
+  const logosLibres = Array.isArray(config.logosLibres) ? config.logosLibres : [];
+  const agregarLogoLibre = (logoUrl) => {
+    if (!logoUrl) return;
+    const nuevo = { id: `logo-${Date.now()}-${Math.random().toString(36).slice(2)}`, logoUrl, xPercent: 50, yPercent: 50, anchoPercent: 15, opacidad: 100 };
+    cambiarConfig('logosLibres', [...logosLibres, nuevo]);
+  };
+  const actualizarLogoLibre = (id, cambios) => {
+    cambiarConfig('logosLibres', logosLibres.map((l) => (l.id === id ? { ...l, ...cambios } : l)));
+  };
+  const eliminarLogoLibre = (id) => cambiarConfig('logosLibres', logosLibres.filter((l) => l.id !== id));
 
   const posX = Number.isFinite(config.posX) ? config.posX : 50;
   const posY = Number.isFinite(config.posY) ? config.posY : 88;
@@ -563,6 +587,8 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
             equipoVisitaPreview={equipoVisitaVivo}
             partidoReal={partidoEnVivo}
             modo={previaGeneral ? 'general' : PREVIA_MODO_POR_SECCION[seccionAbierta]}
+            logosLibresEditable={seccionAbierta === 'logos'}
+            onArrastrarLogoLibre={(id, x, y) => actualizarLogoLibre(id, { xPercent: x, yPercent: y })}
           />
         </div>
 
@@ -1033,6 +1059,50 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
               </label>
               <Toggle etiqueta="Anunciar faltas" checked={config.anunciarFaltas} onChange={(v) => cambiarConfig('anunciarFaltas', v)} />
               <SelectorDuracion etiqueta="Segundos visible cada aviso" valor={config.anunciosDuracionSeg} porDefecto={4} onChange={(v) => cambiarConfig('anunciosDuracionSeg', v)} />
+            </div>
+          )}
+        </div>
+
+        {/* ───────── LOGOS LIBRES ───────── */}
+        <div className="grupo-personalizacion" hidden={seccionAbierta !== 'logos'}>
+          <div className="grupo-titulo">🖼️ Logos libres (competencia, torneo, liga…)</div>
+          <p className="texto-tenue" style={{ margin: '0 0 10px' }}>
+            Subí el logo y agregalo a la pantalla — después arrastralo directo en la vista previa de arriba para ubicarlo donde quieras.
+            El tamaño y la transparencia se ajustan acá abajo, por cada logo.
+          </p>
+          <SelectorLogo logos={logos} value="" onChange={agregarLogoLibre} onLogoSubido={(l) => { setLogos((prev) => [l, ...prev]); agregarLogoLibre(urlLogo(l.filename)); }} />
+
+          {logosLibres.length === 0 ? (
+            <p className="texto-tenue" style={{ marginTop: 10 }}>Todavía no agregaste ningún logo libre.</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 12 }}>
+              {logosLibres.map((logo) => (
+                <div key={logo.id} className="tarjeta" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div className="fila-form" style={{ margin: 0, justifyContent: 'space-between' }}>
+                    <div className="fila-form" style={{ margin: 0 }}>
+                      <img src={logo.logoUrl} alt="" style={{ width: 32, height: 32, objectFit: 'contain' }} />
+                      <span className="texto-tenue">{logos.find((l) => urlLogo(l.filename) === logo.logoUrl)?.nombre || 'Logo'}</span>
+                    </div>
+                    <button type="button" className="btn-link" onClick={() => eliminarLogoLibre(logo.id)}>🗑️ Quitar</button>
+                  </div>
+                  <label>
+                    Tamaño ({Math.round(logo.anchoPercent ?? 15)}%)
+                    <input
+                      type="range" min={3} max={40} step={1}
+                      value={Number.isFinite(logo.anchoPercent) ? logo.anchoPercent : 15}
+                      onChange={(e) => actualizarLogoLibre(logo.id, { anchoPercent: Number(e.target.value) })}
+                    />
+                  </label>
+                  <label>
+                    Transparencia ({Math.round(logo.opacidad ?? 100)}%)
+                    <input
+                      type="range" min={10} max={100} step={1}
+                      value={Number.isFinite(logo.opacidad) ? logo.opacidad : 100}
+                      onChange={(e) => actualizarLogoLibre(logo.id, { opacidad: Number(e.target.value) })}
+                    />
+                  </label>
+                </div>
+              ))}
             </div>
           )}
         </div>
