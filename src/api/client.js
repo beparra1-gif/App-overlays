@@ -94,6 +94,7 @@ export const api = {
   actualizarLogo: (id, payload) => solicitud(`/logos/${id}`, { method: 'PUT', body: payload }),
   eliminarLogo: (id) => solicitud(`/logos/${id}`, { method: 'DELETE' }),
 
+  listarPlantillasOcultas: () => solicitud('/disenos/plantillas-ocultas'),
   listarDisenos: () => solicitud('/disenos'),
   crearDiseno: (payload) => solicitud('/disenos', { method: 'POST', body: payload }),
   actualizarDiseno: (id, payload) => solicitud(`/disenos/${id}`, { method: 'PUT', body: payload }),
@@ -113,4 +114,7 @@ export const api = {
   adminListarUsuarios: () => solicitud('/admin/usuarios'),
   adminListarDisenosDeUsuario: (userId) => solicitud(`/admin/usuarios/${userId}/disenos`),
   adminEliminarDiseno: (id) => solicitud(`/admin/disenos/${id}`, { method: 'DELETE' }),
+  adminListarPlantillasOcultas: () => solicitud('/admin/plantillas-ocultas'),
+  adminOcultarPlantilla: (id) => solicitud(`/admin/plantillas/${id}`, { method: 'DELETE' }),
+  adminRestaurarPlantilla: (id) => solicitud(`/admin/plantillas/${id}/restaurar`, { method: 'POST' }),
 };

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { api } from '../api/client';
+import { useAuth } from '../context/AuthContext';
 import { PLANTILLAS_MARCADOR } from '../marcadores/registro';
 import { PRESETS_POSICION, mostrar, FUENTES_DISPONIBLES } from '../marcadores/utils';
 import MiniPreviewMarcador from '../marcadores/MiniPreviewMarcador';
@@ -1046,15 +1047,32 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
 }
 
 export default function Disenos() {
+  const { usuario } = useAuth();
   const [disenos, setDisenos] = useState([]);
+  const [plantillasOcultas, setPlantillasOcultas] = useState([]);
   const [editando, setEditando] = useState(null); // null | { id?, nombre?, plantilla_base, config? }
   const [error, setError] = useState('');
 
   const cargar = () => {
     api.listarDisenos().then((d) => setDisenos(d.disenos));
+    api.listarPlantillasOcultas().then((d) => setPlantillasOcultas(d.plantillas));
   };
 
   useEffect(() => { cargar(); }, []);
+
+  // Solo el super admin puede sacar una plantilla ENTERA del catálogo (para
+  // todo el mundo, no solo su cuenta) — a diferencia de `eliminar` (abajo),
+  // que borra la personalización de un usuario puntual y la tarjeta sigue
+  // apareciendo en blanco. Confirmación reforzada porque afecta a todos.
+  const ocultarPlantilla = async (plantilla) => {
+    if (!window.confirm(`¿Sacar "${plantilla.nombre}" del catálogo para TODOS los usuarios? Se puede restaurar después desde el panel de administración.`)) return;
+    try {
+      await api.adminOcultarPlantilla(plantilla.id);
+      setPlantillasOcultas((p) => [...p, plantilla.id]);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
 
   // Guardar ya no cierra la pantalla ni navega a ningún lado — el usuario
   // sigue en "Personalizar tablero"/"Juego en vivo" hasta que aprieta
@@ -1124,7 +1142,7 @@ export default function Disenos() {
         />
       ) : (
         <div className="grilla-tarjetas">
-          {PLANTILLAS_MARCADOR.map((p) => {
+          {PLANTILLAS_MARCADOR.filter((p) => !plantillasOcultas.includes(p.id)).map((p) => {
             const guardado = disenos.find((d) => d.plantilla_base === p.id);
             return (
               <div className="tarjeta" key={p.id}>
@@ -1145,6 +1163,17 @@ export default function Disenos() {
                     </button>
                   )}
                 </div>
+                {usuario?.es_admin && (
+                  <button
+                    type="button"
+                    className="btn-link"
+                    style={{ fontSize: 11, marginTop: 2 }}
+                    title="Sacar esta plantilla del catálogo para todos los usuarios"
+                    onClick={() => ocultarPlantilla(p)}
+                  >
+                    Quitar plantilla del catálogo (admin)
+                  </button>
+                )}
               </div>
             );
           })}

@@ -65,4 +65,40 @@ router.delete('/disenos/:id', async (req, res) => {
   }
 });
 
+// Plantillas ocultadas del catálogo global (ver migración 014) — a
+// diferencia de DELETE /disenos/:id (que borra la personalización de UN
+// usuario para una plantilla puntual), esto saca la plantilla entera del
+// catálogo para TODOS: el catálogo pasa de mostrar 25 tarjetas a 24. Queda
+// reversible (POST .../restaurar) porque es un cambio que afecta a todo el
+// mundo, no solo a la cuenta del admin.
+router.get('/plantillas-ocultas', async (req, res) => {
+  try {
+    const resultado = await pool.query('SELECT plantilla_id, ocultada_en FROM plantillas_ocultas ORDER BY ocultada_en DESC');
+    res.json({ plantillas: resultado.rows });
+  } catch (error) {
+    console.error('[GET /admin/plantillas-ocultas]', error);
+    res.status(500).json({ error: 'No se pudieron obtener las plantillas ocultas' });
+  }
+});
+
+router.delete('/plantillas/:id', async (req, res) => {
+  try {
+    await pool.query('INSERT INTO plantillas_ocultas (plantilla_id) VALUES ($1) ON CONFLICT DO NOTHING', [req.params.id]);
+    res.status(204).end();
+  } catch (error) {
+    console.error('[DELETE /admin/plantillas/:id]', error);
+    res.status(500).json({ error: 'No se pudo quitar la plantilla del catálogo' });
+  }
+});
+
+router.post('/plantillas/:id/restaurar', async (req, res) => {
+  try {
+    await pool.query('DELETE FROM plantillas_ocultas WHERE plantilla_id = $1', [req.params.id]);
+    res.status(204).end();
+  } catch (error) {
+    console.error('[POST /admin/plantillas/:id/restaurar]', error);
+    res.status(500).json({ error: 'No se pudo restaurar la plantilla' });
+  }
+});
+
 export default router;

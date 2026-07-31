@@ -97,6 +97,8 @@ const EquipoFicha = forwardRef(function EquipoFicha({ titulo, valorDefecto, equi
 
   // Si ya arrancamos con un equipo activo (partido en curso), traemos su
   // nómina de una — así "Agregar nómina" ya aparece prendido si corresponde.
+  // Estos jugadores ya están guardados de verdad (vienen de la base), a
+  // diferencia de los que se agreguen acá abajo mientras se arma el diseño.
   useEffect(() => {
     if (!equipoActivo?.id) return;
     let activo = true;
@@ -108,6 +110,50 @@ const EquipoFicha = forwardRef(function EquipoFicha({ titulo, valorDefecto, equi
     return () => { activo = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [equipoActivo?.id]);
+
+  // Mientras se arma el diseño, un jugador nuevo NO se guarda en la base al
+  // tipearlo — antes cualquier nombre tipeado acá quedaba enseguida como
+  // parte permanente del equipo reusable, aunque solo fuera la nómina de un
+  // partido suelto de hoy. Ahora queda solo en memoria (marcado "pendiente")
+  // hasta que el usuario lo guarda a propósito (guardarNominaPendiente) o
+  // hasta que hace falta de verdad para jugar (obtener(), al entrar a
+  // "Juego en vivo" — recién ahí la Mesa de control necesita ids reales).
+  // Solo arma y devuelve el objeto pendiente — NO toca `roster` acá: quien
+  // agrega de verdad a la lista es `onJugadorAgregado` (EquipoRoster ya lo
+  // llama con lo que le devuelva esta función). Antes acá también se hacía
+  // un setRoster propio, así que cada jugador quedaba agregado DOS veces.
+  const agregarJugadorLocal = async (datos) => ({
+    id: `pendiente-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    ...datos,
+    pendiente: true,
+  });
+
+  // Recibe el equipo YA resuelto (en vez de leer equipoId del estado) para
+  // no pisarse con React: si a este mismo llamado le tocó resolver() recién
+  // ahora, el estado todavía no terminó de actualizarse en este render.
+  const flushNominaPendiente = async (equipo, rosterActual) => {
+    const pendientes = rosterActual.filter((j) => j.pendiente);
+    for (const p of pendientes) {
+      const { jugador } = await api.crearJugador(equipo.id, { nombre: p.nombre, dorsal: p.dorsal });
+      setRoster((r) => r.map((x) => (x.id === p.id ? jugador : x)));
+    }
+  };
+
+  const [guardandoNomina, setGuardandoNomina] = useState(false);
+  const guardarNominaPendiente = async () => {
+    if (!roster.some((j) => j.pendiente)) return;
+    setGuardandoNomina(true);
+    setError('');
+    try {
+      const equipo = equipoId ? { id: equipoId } : await resolver();
+      if (!equipo) return;
+      await flushNominaPendiente(equipo, roster);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setGuardandoNomina(false);
+    }
+  };
 
   // Una vez que `equipoId` queda enganchado a un equipo real (por
   // `equipoActivo`, o porque `resolver()` lo creó/matcheó la primera vez),
@@ -199,10 +245,15 @@ const EquipoFicha = forwardRef(function EquipoFicha({ titulo, valorDefecto, equi
   };
 
   useImperativeHandle(ref, () => ({
+    // Arrancar "Juego en vivo" es justo el momento en que la Mesa de
+    // control necesita jugadores con id real — acá (y solo acá, si el
+    // usuario no guardó la nómina a mano antes) es cuando lo pendiente pasa
+    // a guardado de verdad.
     async obtener() {
-      if (equipoId) return { id: equipoId };
-      const equipo = await resolver();
-      return equipo ? { id: equipo.id } : null;
+      const equipo = equipoId ? { id: equipoId } : await resolver();
+      if (!equipo) return null;
+      await flushNominaPendiente(equipo, roster);
+      return { id: equipo.id };
     },
     // Fuerza a guardar YA lo que esté tipeado/elegido, sin esperar los
     // 500ms de quietud — se llama justo antes de crear/retomar el partido
@@ -214,7 +265,7 @@ const EquipoFicha = forwardRef(function EquipoFicha({ titulo, valorDefecto, equi
       await guardarEquipo();
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [equipoId, nombre, color, logoUrl]);
+  }), [equipoId, nombre, color, logoUrl, roster]);
 
   return (
     <div className="tarjeta">
@@ -239,12 +290,25 @@ const EquipoFicha = forwardRef(function EquipoFicha({ titulo, valorDefecto, equi
       </label>
 
       {nominaHabilitada && equipoId && (
-        <EquipoRoster
-          equipo={{ id: equipoId, nombre }}
-          roster={roster}
-          seleccionable={false}
-          onJugadorAgregado={(j) => setRoster((r) => [...r, j])}
-        />
+        <>
+          <EquipoRoster
+            equipo={{ id: equipoId, nombre }}
+            roster={roster}
+            seleccionable={false}
+            onJugadorAgregado={(j) => setRoster((r) => [...r, j])}
+            onAgregarJugador={agregarJugadorLocal}
+          />
+          {roster.some((j) => j.pendiente) && (
+            <div className="fila-form" style={{ marginTop: -12 }}>
+              <span className="texto-tenue">
+                Sin guardar todavía — se guarda sola al empezar "Juego en vivo", o guardala ahora si querés reusar este plantel más adelante.
+              </span>
+              <button type="button" className="btn-secundario btn-chico" disabled={guardandoNomina} onClick={guardarNominaPendiente}>
+                {guardandoNomina ? 'Guardando…' : '💾 Guardar nómina ahora'}
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

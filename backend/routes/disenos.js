@@ -10,6 +10,19 @@ async function disenoDelUsuario(id, userId) {
   return resultado.rows[0] || null;
 }
 
+// Cualquier usuario logueado necesita saber cuáles plantillas sacó el super
+// admin del catálogo (ver /admin/plantillas/:id) para no mostrar esas
+// tarjetas — de solo lectura, por eso vive acá y no bajo /admin.
+router.get('/plantillas-ocultas', async (req, res) => {
+  try {
+    const resultado = await pool.query('SELECT plantilla_id FROM plantillas_ocultas');
+    res.json({ plantillas: resultado.rows.map((r) => r.plantilla_id) });
+  } catch (error) {
+    console.error('[GET /disenos/plantillas-ocultas]', error);
+    res.status(500).json({ error: 'No se pudo obtener el catálogo' });
+  }
+});
+
 router.get('/', async (req, res) => {
   try {
     const resultado = await pool.query('SELECT * FROM disenos_guardados WHERE user_id = $1 ORDER BY creado_en DESC', [req.userId]);

@@ -18,6 +18,13 @@ export default function EquipoRoster({
   seleccionados = [],
   onCambiarQuinteto,
   onJugadorAgregado,
+  // Quién persiste la fila nueva (o no): por defecto la guarda YA en el
+  // equipo real (comportamiento de siempre, el que usa la Mesa de control
+  // en un partido en curso — ahí SÍ tiene que quedar guardada al toque para
+  // que sincronice con la transmisión). "Personalizar tablero → Equipos"
+  // pasa su propia versión que NO pega contra el backend — solo arma la
+  // lista en memoria hasta que el usuario decide guardarla de verdad.
+  onAgregarJugador,
   seleccionable = true,
   permitirAgregar = true,
 }) {
@@ -39,7 +46,10 @@ export default function EquipoRoster({
     setError('');
     if (!nombreJugador.trim()) return setError('Ponele nombre al jugador');
     try {
-      const { jugador } = await api.crearJugador(equipo.id, { nombre: nombreJugador.trim(), dorsal: dorsal || null });
+      const datos = { nombre: nombreJugador.trim(), dorsal: dorsal || null };
+      const jugador = onAgregarJugador
+        ? await onAgregarJugador(datos)
+        : (await api.crearJugador(equipo.id, datos)).jugador;
       onJugadorAgregado(jugador);
       setDorsal('');
       setNombreJugador('');
@@ -71,7 +81,10 @@ export default function EquipoRoster({
                 <span className="dorsal-chip">{j.dorsal ?? '-'}</span> {j.nombre}
               </label>
             ) : (
-              <span><span className="dorsal-chip">{j.dorsal ?? '-'}</span> {j.nombre}</span>
+              <span>
+                <span className="dorsal-chip">{j.dorsal ?? '-'}</span> {j.nombre}
+                {j.pendiente && <span className="texto-tenue" style={{ fontSize: 11 }}> (sin guardar)</span>}
+              </span>
             )}
           </li>
         ))}

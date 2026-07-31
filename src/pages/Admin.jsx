@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api/client';
+import { PLANTILLAS_MARCADOR } from '../marcadores/registro';
 
 function fecha(iso) {
   if (!iso) return 'Nunca';
@@ -56,6 +57,46 @@ function DisenosDeUsuario({ usuario, onCerrar }) {
   );
 }
 
+// Plantillas que el super admin sacó del catálogo (para todos) — se
+// muestran acá para poder restaurarlas si hizo falta por error; el
+// catálogo (Diseños) ya las filtra y no las ofrece más.
+function PlantillasOcultas() {
+  const [ocultas, setOcultas] = useState(null);
+  const [error, setError] = useState('');
+
+  const cargar = () => api.adminListarPlantillasOcultas().then((d) => setOcultas(d.plantillas)).catch((err) => setError(err.message));
+  useEffect(() => { cargar(); }, []);
+
+  const restaurar = async (id) => {
+    try {
+      await api.adminRestaurarPlantilla(id);
+      cargar();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  if (ocultas && ocultas.length === 0) return null;
+
+  return (
+    <div className="tarjeta" style={{ marginTop: 20 }}>
+      <strong>Plantillas quitadas del catálogo</strong>
+      {error && <p className="mensaje-error">{error}</p>}
+      {!ocultas && <p className="texto-tenue">Cargando…</p>}
+      {ocultas && ocultas.length > 0 && (
+        <ul className="lista-jugadores" style={{ marginTop: 10 }}>
+          {ocultas.map((o) => (
+            <li key={o.plantilla_id}>
+              {PLANTILLAS_MARCADOR.find((p) => p.id === o.plantilla_id)?.nombre || o.plantilla_id}
+              <button className="btn-link" onClick={() => restaurar(o.plantilla_id)}>↩️ Restaurar</button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 export default function Admin() {
   const [usuarios, setUsuarios] = useState(null);
   const [error, setError] = useState('');
@@ -107,6 +148,7 @@ export default function Admin() {
         </div>
       )}
       {usuarioAbierto && <DisenosDeUsuario usuario={usuarioAbierto} onCerrar={() => setUsuarioAbierto(null)} />}
+      <PlantillasOcultas />
     </div>
   );
 }
