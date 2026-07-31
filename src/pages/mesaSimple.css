@@ -1,0 +1,124 @@
+/* A diferencia de mesa.css (Mesa amplia, siempre oscura tipo tablero de
+   videojuego), esta usa las variables de tema GLOBALES de la app
+   (--fondo/--tarjeta/--texto/--borde de index.css) — así responde sola al
+   interruptor Oscuro/Claro de la barra de navegación, sin un toggle propio,
+   tal como se pidió ("tema oscuro o claro según lo requiera el usuario"). */
+.ms-wrap {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 16px;
+}
+.ms-wrap.ms-pantalla-completa {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  max-width: none;
+  overflow-y: auto;
+  background: var(--fondo);
+}
+
+.ms-topbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 14px;
+}
+.ms-topbar-separador { flex: 1; min-width: 0; }
+
+.ms-scorebar {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 10px;
+  align-items: stretch;
+  margin-bottom: 16px;
+}
+.ms-equipo {
+  background: var(--tarjeta);
+  border: 1px solid var(--borde);
+  border-radius: 14px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+}
+.ms-equipo-nombre {
+  font-weight: 800;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+}
+.ms-puntaje {
+  font-family: 'Orbitron', monospace;
+  font-size: 44px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.ms-puntos-botones { display: flex; gap: 6px; }
+.ms-btn-punto {
+  border: 1px solid var(--borde);
+  background: var(--fondo);
+  color: var(--texto);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-weight: 800;
+  font-size: 13px;
+  cursor: pointer;
+}
+.ms-btn-punto:hover { border-color: var(--primario); color: var(--primario); }
+
+.ms-centro {
+  background: var(--tarjeta);
+  border: 1px solid var(--borde);
+  border-radius: 14px;
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 160px;
+}
+.ms-reloj {
+  font-family: 'Orbitron', monospace;
+  font-size: 34px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+.ms-periodo { font-size: 12px; font-weight: 800; color: var(--texto-tenue); text-transform: uppercase; }
+
+.ms-seccion {
+  background: var(--tarjeta);
+  border: 1px solid var(--borde);
+  border-radius: 14px;
+  padding: 14px;
+  margin-bottom: 12px;
+}
+.ms-seccion h6 { margin: 0 0 10px; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--texto-tenue); }
+.ms-fila { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+
+.ms-pill {
+  background: var(--fondo);
+  border: 1px solid var(--borde);
+  color: var(--texto);
+  padding: 10px 15px;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: 13px;
+  cursor: pointer;
+}
+.ms-pill:hover { border-color: var(--primario); color: var(--primario); }
+.ms-pill.ms-primario { background: var(--primario); color: var(--primario-texto); border-color: var(--primario); }
+.ms-pill.ms-peligro { color: var(--peligro); border-color: var(--peligro); }
+
+.ms-faltas-timeouts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.ms-contador { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.ms-contador-valor { font-size: 22px; font-weight: 900; font-variant-numeric: tabular-nums; min-width: 28px; text-align: center; }
+
+@media (max-width: 560px) {
+  .ms-scorebar { grid-template-columns: 1fr; }
+  .ms-faltas-timeouts { grid-template-columns: 1fr; }
+}

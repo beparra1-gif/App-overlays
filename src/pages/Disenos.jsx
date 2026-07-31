@@ -6,6 +6,7 @@ import MiniPreviewMarcador from '../marcadores/MiniPreviewMarcador';
 import PreviaCombinada from '../marcadores/PreviaCombinada';
 import EquipoFicha from '../components/EquipoFicha';
 import Mesa from './Mesa';
+import MesaSimple from './MesaSimple';
 
 const CONFIG_INICIAL = {
   // Equipos y reglas del partido
@@ -202,6 +203,11 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
   const [partidoId, setPartidoId] = useState(null);
   const [preparandoPartido, setPreparandoPartido] = useState(false);
   const [errorPartido, setErrorPartido] = useState('');
+  // Mesa amplia (todo: plantel, disparos de transmisión) o simple (solo
+  // puntaje/reloj/faltas/tiempos fuera) — se recuerda entre visitas porque
+  // suele ser una preferencia de LA PERSONA que anota, no del partido.
+  const [mesaModo, setMesaModo] = useState(() => localStorage.getItem('app_overlays_mesa_modo') || 'amplia');
+  useEffect(() => { localStorage.setItem('app_overlays_mesa_modo', mesaModo); }, [mesaModo]);
   // Si este diseño ya tiene un partido activo (se reabrió con algo en
   // curso), acá se trae el equipo REAL con el que se está jugando — así la
   // ficha de "Equipos" no vuelve a mostrar "Local"/"Visita" en blanco.
@@ -508,7 +514,19 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
           se desconecta el socket de la Mesa embebida cada vez que mirás
           "Personalizar tablero" un segundo. */}
       <div className="grupo-personalizacion" hidden={pestanaExterna !== 'jugar'}>
-        <div className="grupo-titulo">🏀 Juego en vivo</div>
+        <div className="fila-form" style={{ justifyContent: 'space-between' }}>
+          <div className="grupo-titulo" style={{ margin: 0 }}>🏀 Juego en vivo</div>
+          {partidoId && (
+            <div className="pestanas-personalizacion" style={{ margin: 0, maxWidth: 320 }}>
+              <button type="button" className={`pestana-btn ${mesaModo === 'amplia' ? 'activa' : ''}`} onClick={() => setMesaModo('amplia')}>
+                Mesa amplia
+              </button>
+              <button type="button" className={`pestana-btn ${mesaModo === 'simple' ? 'activa' : ''}`} onClick={() => setMesaModo('simple')}>
+                Mesa simple
+              </button>
+            </div>
+          )}
+        </div>
         {preparandoPartido && <p className="texto-tenue">Preparando el partido…</p>}
         {errorPartido && (
           <>
@@ -516,7 +534,8 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
             <button className="btn-secundario" onClick={prepararPartido}>Reintentar</button>
           </>
         )}
-        {partidoId && <Mesa partidoId={partidoId} embebido onPartidoCambio={setPartidoEnVivo} />}
+        {partidoId && mesaModo === 'amplia' && <Mesa partidoId={partidoId} embebido onPartidoCambio={setPartidoEnVivo} />}
+        {partidoId && mesaModo === 'simple' && <MesaSimple partidoId={partidoId} embebido onPartidoCambio={setPartidoEnVivo} />}
       </div>
 
       <div hidden={pestanaExterna !== 'personalizar'}>

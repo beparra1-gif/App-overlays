@@ -21,6 +21,13 @@ const googleClient = process.env.GOOGLE_CLIENT_ID ? new OAuth2Client(process.env
 
 const hashToken = (token) => crypto.createHash('sha256').update(token).digest('hex');
 
+// "Último uso" del panel de super admin — se toca en cada entrada real a la
+// cuenta (registro/login/Google/resetear contraseña) y en /auth/me (que el
+// frontend llama una vez por carga de página, ver AuthContext) — no hace
+// falta más granularidad que esa para saber "cuándo fue la última vez que
+// esta cuenta entró a la app".
+const tocarUltimoUso = (id) => pool.query('UPDATE usuarios SET ultimo_uso_en = now() WHERE id = $1', [id]).catch(() => {});
+
 router.post('/registro', limiteLogin, async (req, res) => {
   const email = String(req.body?.email || '').trim().toLowerCase();
   const password = String(req.body?.password || '');
@@ -38,10 +45,11 @@ router.post('/registro', limiteLogin, async (req, res) => {
 
     const passwordHash = await bcrypt.hash(password, 10);
     const resultado = await pool.query(
-      'INSERT INTO usuarios (email, password_hash, nombre) VALUES ($1, $2, $3) RETURNING id, email, nombre',
+      'INSERT INTO usuarios (email, password_hash, nombre) VALUES ($1, $2, $3) RETURNING id, email, nombre, es_admin',
       [email, passwordHash, nombre || null]
     );
     const usuario = resultado.rows[0];
+    await tocarUltimoUso(usuario.id);
     const token = firmarToken(usuario.id);
     res.status(201).json({ token, usuario });
   } catch (error) {
@@ -59,7 +67,7 @@ router.post('/login', limiteLogin, async (req, res) => {
   }
 
   try {
-    const resultado = await pool.query('SELECT id, email, nombre, password_hash FROM usuarios WHERE email = $1', [email]);
+    const resultado = await pool.query('SELECT id, email, nombre, password_hash, es_admin FROM usuarios WHERE email = $1', [email]);
     const usuario = resultado.rows[0];
     if (!usuario) return res.status(401).json({ error: 'Credenciales inválidas' });
     // Cuenta creada con Google: nunca tuvo contraseña propia — avisar en vez
@@ -69,8 +77,9 @@ router.post('/login', limiteLogin, async (req, res) => {
     const coincide = await bcrypt.compare(password, usuario.password_hash);
     if (!coincide) return res.status(401).json({ error: 'Credenciales inválidas' });
 
+    await tocarUltimoUso(usuario.id);
     const token = firmarToken(usuario.id);
-    res.json({ token, usuario: { id: usuario.id, email: usuario.email, nombre: usuario.nombre } });
+    res.json({ token, usuario: { id: usuario.id, email: usuario.email, nombre: usuario.nombre, es_admin: usuario.es_admin } });
   } catch (error) {
     console.error('[POST /auth/login]', error);
     res.status(500).json({ error: 'No se pudo iniciar sesión' });
@@ -130,8 +139,9 @@ router.post('/resetear-password', limiteRecuperacion, async (req, res) => {
     // veces) siga siendo válido después de ya haber cambiado la contraseña.
     await pool.query('UPDATE password_reset_tokens SET usado_en = now() WHERE user_id = $1 AND usado_en IS NULL', [fila.user_id]);
 
-    const usuarioResultado = await pool.query('SELECT id, email, nombre FROM usuarios WHERE id = $1', [fila.user_id]);
+    const usuarioResultado = await pool.query('SELECT id, email, nombre, es_admin FROM usuarios WHERE id = $1', [fila.user_id]);
     const usuario = usuarioResultado.rows[0];
+    await tocarUltimoUso(usuario.id);
     const token = firmarToken(usuario.id);
     res.json({ token, usuario });
   } catch (error) {
@@ -158,10 +168,10 @@ router.post('/google', limiteLogin, async (req, res) => {
     const googleId = payload.sub;
     const nombre = payload.name || null;
 
-    let usuario = (await pool.query('SELECT id, email, nombre FROM usuarios WHERE google_id = $1', [googleId])).rows[0];
+    let usuario = (await pool.query('SELECT id, email, nombre, es_admin FROM usuarios WHERE google_id = $1', [googleId])).rows[0];
 
     if (!usuario) {
-      usuario = (await pool.query('SELECT id, email, nombre FROM usuarios WHERE email = $1', [email])).rows[0];
+      usuario = (await pool.query('SELECT id, email, nombre, es_admin FROM usuarios WHERE email = $1', [email])).rows[0];
       if (usuario) {
         // Ya había una cuenta con este email (creada con contraseña) — se
         // vincula Google a ESA cuenta en vez de crear una duplicada; Google
@@ -169,12 +179,13 @@ router.post('/google', limiteLogin, async (req, res) => {
         await pool.query('UPDATE usuarios SET google_id = $1 WHERE id = $2', [googleId, usuario.id]);
       } else {
         usuario = (await pool.query(
-          'INSERT INTO usuarios (email, nombre, google_id) VALUES ($1, $2, $3) RETURNING id, email, nombre',
+          'INSERT INTO usuarios (email, nombre, google_id) VALUES ($1, $2, $3) RETURNING id, email, nombre, es_admin',
           [email, nombre, googleId]
         )).rows[0];
       }
     }
 
+    await tocarUltimoUso(usuario.id);
     const token = firmarToken(usuario.id);
     res.json({ token, usuario });
   } catch (error) {
@@ -185,8 +196,9 @@ router.post('/google', limiteLogin, async (req, res) => {
 
 router.get('/me', authenticate, async (req, res) => {
   try {
-    const resultado = await pool.query('SELECT id, email, nombre FROM usuarios WHERE id = $1', [req.userId]);
+    const resultado = await pool.query('SELECT id, email, nombre, es_admin FROM usuarios WHERE id = $1', [req.userId]);
     if (resultado.rows.length === 0) return res.status(404).json({ error: 'Usuario no encontrado' });
+    tocarUltimoUso(req.userId); // sin await a propósito: no vale la pena demorar la respuesta por esto
     res.json({ usuario: resultado.rows[0] });
   } catch (error) {
     console.error('[GET /auth/me]', error);

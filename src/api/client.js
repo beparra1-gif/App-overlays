@@ -107,4 +107,8 @@ export const api = {
   listarPosiciones: () => solicitud('/posiciones'),
   crearPosicion: (payload) => solicitud('/posiciones', { method: 'POST', body: payload }),
   eliminarPosicion: (id) => solicitud(`/posiciones/${id}`, { method: 'DELETE' }),
+
+  adminListarUsuarios: () => solicitud('/admin/usuarios'),
+  adminListarDisenosDeUsuario: (userId) => solicitud(`/admin/usuarios/${userId}/disenos`),
+  adminEliminarDiseno: (id) => solicitud(`/admin/disenos/${id}`, { method: 'DELETE' }),
 };
