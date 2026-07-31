@@ -1,4 +1,4 @@
-import { estiloTema, estiloUbicacion, familiaDePlantilla, fuenteDePlantilla, formatearReloj } from '../utils';
+import { estiloTema, estiloUbicacion, familiaDePlantilla, fuenteEfectiva, formatearReloj } from '../utils';
 import LogoEquipo from '../LogoEquipo';
 import '../estadisticas.css';
 
@@ -116,7 +116,7 @@ export default function VistaEstadisticas({ partido, config = {}, tema, plantill
   // modos "ambos" y "jugador" siguen usando la ubicación del diseño, como
   // ya la tenían.
   const ubicacion = modo === 'equipo' ? (config.equipo === 'visita' ? 'derecha' : 'izquierda') : tema?.estadisticasPosicion;
-  const estilo = { ...estiloTema(tema), ...estiloUbicacion(ubicacion), '--pm-fuente': fuenteDePlantilla(plantillaId) };
+  const estilo = { ...estiloTema(tema), ...estiloUbicacion(ubicacion), '--pm-fuente': fuenteEfectiva(tema, plantillaId) };
 
   if (modo === 'ambos') {
     return (

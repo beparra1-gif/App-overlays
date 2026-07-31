@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { estiloTema, estiloAnclaAlerta, familiaDePlantilla, fuenteDePlantilla, FAMILIAS_VISUALES } from '../utils';
+import { estiloTema, estiloAnclaAlerta, familiaDePlantilla, fuenteEfectiva, FAMILIAS_VISUALES } from '../utils';
 import '../anuncios.css';
 
 // `caja` (ver useCajaMarcador): cuando el título del marcador está activo Y
@@ -79,7 +79,7 @@ export default function VistaAnuncios({ jugadas, config, tema, plantillaId, demo
   const claseFamilia = `fam-${familiaAnimacion} ${claseModo} lado-${ladoTab} ${claseModoExtra}`.trim();
   const estiloAncla = {
     ...estiloTema(tema),
-    '--pm-fuente': fuenteDePlantilla(plantillaId),
+    '--pm-fuente': fuenteEfectiva(tema, plantillaId),
     ...(colorEquipo ? { '--anuncio-color-equipo': colorEquipo } : {}),
     ...estiloPosicion,
   };

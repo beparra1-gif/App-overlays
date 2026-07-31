@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { api } from '../api/client';
 import { PLANTILLAS_MARCADOR } from '../marcadores/registro';
-import { PRESETS_POSICION, mostrar } from '../marcadores/utils';
+import { PRESETS_POSICION, mostrar, FUENTES_DISPONIBLES } from '../marcadores/utils';
 import MiniPreviewMarcador from '../marcadores/MiniPreviewMarcador';
 import PreviaCombinada from '../marcadores/PreviaCombinada';
 import EquipoFicha from '../components/EquipoFicha';
@@ -25,6 +25,7 @@ const CONFIG_INICIAL = {
   colorBannerAlpha: 100,
   colorMarcadorAlpha: 100,
   colorTextoAlpha: 100,
+  fuenteMarcador: '',
   tamanoTextoMarcador: 100,
   tamanoTextoNombre: 100,
   mostrarLogo: true,
@@ -702,6 +703,14 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
           <button type="button" className="btn-link" style={{ alignSelf: 'flex-start', margin: '0 0 10px' }} onClick={restablecerColores}>
             Restablecer colores
           </button>
+
+          <p className="seccion-titulo">Tipografía</p>
+          <label>
+            Tipo de letra del marcador (y de nómina/estadísticas/anuncios, para que todo combine)
+            <select value={config.fuenteMarcador || ''} onChange={(e) => cambiarConfig('fuenteMarcador', e.target.value)}>
+              {FUENTES_DISPONIBLES.map((f) => <option key={f.id} value={f.id}>{f.etiqueta}</option>)}
+            </select>
+          </label>
 
           <p className="seccion-titulo">Tamaño de los textos</p>
           <div className="fila-form">

@@ -1,4 +1,4 @@
-import { estiloTema, fuenteDePlantilla } from './utils';
+import { estiloTema, fuenteEfectiva } from './utils';
 import './titulo.css';
 
 // Encabezado opcional del marcador — capa compuesta (mismo truco de apilado
@@ -26,7 +26,7 @@ export default function TituloMarcador({ config, plantillaId, caja, suprimir = f
     display: 'flex',
     pointerEvents: 'none',
     ...estiloTema(config),
-    '--pm-fuente': fuenteDePlantilla(plantillaId),
+    '--pm-fuente': fuenteEfectiva(config, plantillaId),
     justifyContent: 'flex-start',
     alignItems: 'flex-start',
     paddingLeft: `${caja.left + caja.width / 2}%`,

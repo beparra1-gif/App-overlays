@@ -1,4 +1,4 @@
-import { mostrar, estiloAnclaLogo, estiloAnclaLogoCaja, estiloTema, fuenteDePlantilla } from './utils';
+import { mostrar, estiloAnclaLogo, estiloAnclaLogoCaja, estiloTema, fuenteEfectiva } from './utils';
 import './logoFlotante.css';
 
 // Logo arriba/abajo/costados del marcador — ancla cerca de la caja y
@@ -134,7 +134,7 @@ export default function LogoFlotante({ equipoLocal, equipoVisita, config, planti
   }
 
   if (dentro) {
-    const estiloAncla = { position: 'fixed', inset: 0, display: 'flex', pointerEvents: 'none', ...estiloTema(config), '--pm-fuente': fuenteDePlantilla(plantillaId), ...estiloAnclaLogoCaja(config, posicion) };
+    const estiloAncla = { position: 'fixed', inset: 0, display: 'flex', pointerEvents: 'none', ...estiloTema(config), '--pm-fuente': fuenteEfectiva(config, plantillaId), ...estiloAnclaLogoCaja(config, posicion) };
     return (
       <div style={estiloAncla}>
         <div className={`lf-dentro lf-dentro-${posicion}`}>

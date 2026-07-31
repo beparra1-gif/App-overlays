@@ -110,6 +110,11 @@ export function mitadCajaProporcional(config) {
 
 export function estiloPersonalizado(config = {}) {
   const estilo = estiloTema(config);
+  // Sin esto, cada plantilla sigue usando su propia tipografía fija de
+  // siempre (el valor por defecto de la variable CSS, ya escrito en
+  // plantillas.css) — solo se pisa cuando el usuario eligió una a mano en
+  // "Personalizar diseño → Marcador → Tipografía".
+  if (config?.fuenteMarcador) estilo['--pm-fuente'] = config.fuenteMarcador;
 
   const tienePosicion = Number.isFinite(config?.posX) && Number.isFinite(config?.posY);
   if (tienePosicion) {
@@ -214,6 +219,36 @@ const FUENTE_POR_PLANTILLA = {
 };
 
 export const fuenteDePlantilla = (plantillaId) => FUENTE_POR_PLANTILLA[plantillaId] || "'Oswald', sans-serif";
+
+// Catálogo de tipografías elegibles a mano (config.fuenteMarcador) — son
+// las mismas 13 familias de Google Fonts que ya carga plantillas.css para
+// las 25 plantillas (más 'Courier New' y 'system-ui', del sistema), así
+// que elegir cualquiera de acá no suma ni un solo pedido de red nuevo: ya
+// están cargadas siempre, se usen o no en la plantilla activa.
+export const FUENTES_DISPONIBLES = [
+  { id: '', etiqueta: 'Automática (la de la plantilla)' },
+  { id: "'Orbitron', sans-serif", etiqueta: 'Orbitron — digital, angulosa' },
+  { id: "'Oswald', sans-serif", etiqueta: 'Oswald — condensada, prolija' },
+  { id: "'Bebas Neue', sans-serif", etiqueta: 'Bebas Neue — grande, impactante' },
+  { id: "'Anton', sans-serif", etiqueta: 'Anton — extra gruesa' },
+  { id: "'Bungee', sans-serif", etiqueta: 'Bungee — street, con relieve' },
+  { id: "'Barlow Condensed', sans-serif", etiqueta: 'Barlow Condensed — angosta, moderna' },
+  { id: "'Rajdhani', sans-serif", etiqueta: 'Rajdhani — técnica, futurista' },
+  { id: "'Russo One', sans-serif", etiqueta: 'Russo One — sólida, arcade' },
+  { id: "'Teko', sans-serif", etiqueta: 'Teko — muy angosta, alta' },
+  { id: "'Poppins', sans-serif", etiqueta: 'Poppins — redondeada, amable' },
+  { id: "'Cinzel', serif", etiqueta: 'Cinzel — clásica, con serifa' },
+  { id: "'Titillium Web', sans-serif", etiqueta: 'Titillium Web — limpia, corporativa' },
+  { id: "'Exo 2', sans-serif", etiqueta: 'Exo 2 — geométrica, sci-fi' },
+  { id: "'Courier New', monospace", etiqueta: 'Courier New — máquina de escribir' },
+  { id: 'system-ui, sans-serif', etiqueta: 'Del sistema — minimalista' },
+];
+
+// Fuente efectiva de un diseño: la elegida a mano en Personalizar diseño
+// (config.fuenteMarcador) si hay una, o si no la propia de la plantilla
+// (fuenteDePlantilla) — así "Automática" (el valor por defecto, cadena
+// vacía) preserva el look de autor de cada plantilla tal cual estaba.
+export const fuenteEfectiva = (config, plantillaId) => config?.fuenteMarcador || fuenteDePlantilla(plantillaId);
 
 // `modoAlerta` define cómo entra una jugada/falta en la escena de Anuncios
 // respecto al marcador: 'arriba' la agrega como una franja encima de él

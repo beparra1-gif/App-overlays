@@ -1,4 +1,4 @@
-import { estiloTema, familiaDePlantilla, fuenteDePlantilla } from '../utils';
+import { estiloTema, familiaDePlantilla, fuenteEfectiva } from '../utils';
 import LogoEquipo from '../LogoEquipo';
 import '../nomina.css';
 
@@ -47,7 +47,7 @@ export default function VistaNomina({ partido, modo = 'ambos', claveAnimacion = 
   // manda sobre el configurado (local ⇒ izquierda, visita ⇒ derecha).
   const horizontal = modo === 'local' ? 'izquierda' : modo === 'visita' ? 'derecha' : config?.nominaPosicion;
   const justifyContent = horizontal === 'izquierda' ? 'flex-start' : horizontal === 'derecha' ? 'flex-end' : 'center';
-  const estilo = { ...estiloTema(config), alignItems: 'flex-start', justifyContent, '--pm-fuente': fuenteDePlantilla(plantillaId) };
+  const estilo = { ...estiloTema(config), alignItems: 'flex-start', justifyContent, '--pm-fuente': fuenteEfectiva(config, plantillaId) };
 
   // El delay del "entra deslizando" se achica con listas más largas (plantel
   // completo, hasta 12) para que no tarde años en aparecer el último — antes
