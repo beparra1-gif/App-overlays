@@ -50,6 +50,10 @@ const CONFIG_INICIAL = {
   mostrarAnimacionPuntos: true,
   animacionPuntosPosicion: 'costado',
   animacionPuntosTamano: 100,
+  animacionPuntosEstilo: 'clasica',
+  animacionPuntosConMano: false,
+  animacionPuntosX: 50,
+  animacionPuntosY: 50,
 
   // Nómina
   mostrarNomina: true,
@@ -957,8 +961,32 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
                   <option value="costado">Al costado del marcador (local izquierda, visita derecha)</option>
                   <option value="arriba">Arriba del marcador</option>
                   <option value="centro">Centro de la pantalla</option>
+                  <option value="libre">Posición libre (elegís el punto exacto)</option>
                 </select>
               </label>
+              {config.animacionPuntosPosicion === 'libre' && (
+                <>
+                  <label>
+                    Posición horizontal ({Math.round(Number.isFinite(config.animacionPuntosX) ? config.animacionPuntosX : 50)}%)
+                    <input
+                      type="range" min={0} max={100} step={1}
+                      value={Number.isFinite(config.animacionPuntosX) ? config.animacionPuntosX : 50}
+                      onChange={(e) => cambiarConfig('animacionPuntosX', Number(e.target.value))}
+                    />
+                  </label>
+                  <label>
+                    Posición vertical ({Math.round(Number.isFinite(config.animacionPuntosY) ? config.animacionPuntosY : 50)}%)
+                    <input
+                      type="range" min={0} max={100} step={1}
+                      value={Number.isFinite(config.animacionPuntosY) ? config.animacionPuntosY : 50}
+                      onChange={(e) => cambiarConfig('animacionPuntosY', Number(e.target.value))}
+                    />
+                  </label>
+                  <p className="texto-tenue" style={{ margin: 0, fontSize: 12 }}>
+                    Independiente de dónde esté el marcador — podés ponerla en cualquier zona de la pantalla.
+                  </p>
+                </>
+              )}
               <label>
                 Tamaño ({Number.isFinite(config.animacionPuntosTamano) ? config.animacionPuntosTamano : 100}%)
                 <input
@@ -970,6 +998,28 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
                   onChange={(e) => cambiarConfig('animacionPuntosTamano', Number(e.target.value))}
                 />
               </label>
+              <label>
+                Estilo de animación
+                <select
+                  value={config.animacionPuntosEstilo || 'clasica'}
+                  onChange={(e) => cambiarConfig('animacionPuntosEstilo', e.target.value)}
+                >
+                  <option value="clasica">Clásica (aparece con un giro y flota hacia arriba)</option>
+                  <option value="rebote">Rebote (entra con un pique elástico)</option>
+                  <option value="deslizar">Deslizar (entra desde el costado del equipo)</option>
+                  <option value="destello">Destello (pulsa brillo, tipo neón)</option>
+                </select>
+              </label>
+              <Toggle
+                etiqueta="Sumarle una manito (☝️ 1pt / ✌️ 2pts / 🤟 3pts)"
+                checked={Boolean(config.animacionPuntosConMano)}
+                onChange={(v) => cambiarConfig('animacionPuntosConMano', v)}
+              />
+              {config.animacionPuntosConMano && (
+                <p className="texto-tenue" style={{ margin: 0, fontSize: 12 }}>
+                  No existe un emoji "3 dedos" exacto — para el triple se usa 🤟, la aproximación más parecida.
+                </p>
+              )}
             </div>
           )}
         </div>

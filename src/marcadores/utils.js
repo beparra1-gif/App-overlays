@@ -384,6 +384,26 @@ export function estiloAnclaPop(tema = {}, lado, posicion = 'costado') {
     return { justifyContent: 'center', alignItems: 'center', paddingLeft: 0, paddingTop: 0 };
   }
 
+  // 'libre': el usuario elige un punto propio (animacionPuntosX/Y), sin
+  // depender de dónde esté el marcador ni de su tamaño — a diferencia de
+  // 'costado'/'arriba' (calculados relativos a la caja del marcador, así que
+  // mover el marcador también corre la animación), acá el punto es fijo. Los
+  // dos lados quedan separados por una distancia chica y pareja a los costados
+  // de ese punto — mismo patrón visual que 'costado', centrado en el punto
+  // elegido en vez del borde del marcador.
+  if (posicion === 'libre') {
+    const libreX = Number.isFinite(tema?.animacionPuntosX) ? tema.animacionPuntosX : 50;
+    const libreY = Number.isFinite(tema?.animacionPuntosY) ? tema.animacionPuntosY : 50;
+    const separacionLibre = 6;
+    const y = paddingTopDesdeY(Math.max(0, libreY - 4));
+    if (lado === 'visita') {
+      const x = Math.min(98, libreX + separacionLibre);
+      return { justifyContent: 'flex-start', alignItems: 'flex-start', paddingLeft: `${x}%`, paddingTop: y };
+    }
+    const x = Math.max(2, libreX - separacionLibre);
+    return { justifyContent: 'flex-end', alignItems: 'flex-start', paddingRight: `${100 - x}%`, paddingTop: y };
+  }
+
   if (posicion === 'arriba') {
     const arribaY = paddingTopDesdeY(Math.max(0, posY - mitad.y - 16));
     if (lado === 'visita') {
