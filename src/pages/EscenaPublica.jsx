@@ -6,6 +6,7 @@ import VistaMarcador from '../marcadores/vistas/VistaMarcador';
 import VistaNomina from '../marcadores/vistas/VistaNomina';
 import VistaEstadisticas from '../marcadores/vistas/VistaEstadisticas';
 import VistaAnuncios from '../marcadores/vistas/VistaAnuncios';
+import ErrorBoundary from '../components/ErrorBoundary';
 import { useCajaMarcador } from '../marcadores/utils';
 
 // El payload que viaja por socket (stats_pulso) trae solo lo mínimo; acá se
@@ -151,29 +152,37 @@ export default function EscenaPublica() {
               salida/entrada la hace VistaMarcador con opacity/scale según
               `oculto`; sacarlo de golpe con un `&&` condicional no dejaba
               lugar para ninguna transición. */}
-          <VistaMarcador partido={datos.partido} diseno={datos.diseno} oculto={ocultarMarcadorAhora} suprimirTitulo={suprimirTitulo} />
+          <ErrorBoundary>
+            <VistaMarcador partido={datos.partido} diseno={datos.diseno} oculto={ocultarMarcadorAhora} suprimirTitulo={suprimirTitulo} />
+          </ErrorBoundary>
           {cfg.mostrarNomina && nomina && (
-            <VistaNomina key={nomina.ts} partido={datos.partido} modo={nomina.modo} claveAnimacion={nomina.ts} config={cfg} plantillaId={plantillaId} />
+            <ErrorBoundary>
+              <VistaNomina key={nomina.ts} partido={datos.partido} modo={nomina.modo} claveAnimacion={nomina.ts} config={cfg} plantillaId={plantillaId} />
+            </ErrorBoundary>
           )}
           {cfg.mostrarEstadisticas && stats && (
-            <VistaEstadisticas
-              key={stats.ts}
-              partido={datos.partido}
-              config={configEstadisticas(stats)}
-              tema={cfg}
-              plantillaId={plantillaId}
-            />
+            <ErrorBoundary>
+              <VistaEstadisticas
+                key={stats.ts}
+                partido={datos.partido}
+                config={configEstadisticas(stats)}
+                tema={cfg}
+                plantillaId={plantillaId}
+              />
+            </ErrorBoundary>
           )}
           {cfg.anunciarJugadas && (
-            <VistaAnuncios
-              jugadas={jugadas}
-              config={cfg}
-              tema={cfg}
-              plantillaId={plantillaId}
-              colorLocal={datos.partido.equipoLocal?.color}
-              colorVisita={datos.partido.equipoVisita?.color}
-              caja={caja}
-            />
+            <ErrorBoundary>
+              <VistaAnuncios
+                jugadas={jugadas}
+                config={cfg}
+                tema={cfg}
+                plantillaId={plantillaId}
+                colorLocal={datos.partido.equipoLocal?.color}
+                colorVisita={datos.partido.equipoVisita?.color}
+                caja={caja}
+              />
+            </ErrorBoundary>
           )}
         </div>
       );
@@ -182,19 +191,29 @@ export default function EscenaPublica() {
       // Escena dedicada (no la compuesta arriba): se queda visible mientras
       // esté activa, sin ocultarse sola — es su propia fuente de OBS, el
       // interruptor de Mesa ya la prende/apaga.
-      return <VistaNomina partido={datos.partido} modo={nomina?.modo || 'ambos'} claveAnimacion={nomina?.ts || 0} config={datos.diseno?.config} plantillaId={datos.diseno?.plantilla_base} />;
+      return (
+        <ErrorBoundary>
+          <VistaNomina partido={datos.partido} modo={nomina?.modo || 'ambos'} claveAnimacion={nomina?.ts || 0} config={datos.diseno?.config} plantillaId={datos.diseno?.plantilla_base} />
+        </ErrorBoundary>
+      );
     case 'estadisticas':
-      return <VistaEstadisticas partido={datos.partido} config={datos.escena.config} tema={datos.diseno?.config} plantillaId={datos.diseno?.plantilla_base} />;
+      return (
+        <ErrorBoundary>
+          <VistaEstadisticas partido={datos.partido} config={datos.escena.config} tema={datos.diseno?.config} plantillaId={datos.diseno?.plantilla_base} />
+        </ErrorBoundary>
+      );
     case 'anuncios':
       return (
-        <VistaAnuncios
-          jugadas={jugadas}
-          config={datos.escena.config}
-          tema={datos.diseno?.config}
-          plantillaId={datos.diseno?.plantilla_base}
-          colorLocal={datos.partido.equipoLocal?.color}
-          colorVisita={datos.partido.equipoVisita?.color}
-        />
+        <ErrorBoundary>
+          <VistaAnuncios
+            jugadas={jugadas}
+            config={datos.escena.config}
+            tema={datos.diseno?.config}
+            plantillaId={datos.diseno?.plantilla_base}
+            colorLocal={datos.partido.equipoLocal?.color}
+            colorVisita={datos.partido.equipoVisita?.color}
+          />
+        </ErrorBoundary>
       );
     default:
       return null;

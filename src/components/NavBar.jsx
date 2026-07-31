@@ -15,6 +15,7 @@ export default function NavBar() {
       <NavLink to="/logos" className="navbar-link">Logos</NavLink>
       <NavLink to="/publicidad" className="navbar-link">Publicidad</NavLink>
       {usuario.es_admin && <NavLink to="/admin" className="navbar-link">🛡️ Admin</NavLink>}
+      <NavLink to="/perfil" className="navbar-link navbar-link-perfil">👤 Perfil</NavLink>
       <span className="navbar-spacer" />
       <button className="btn-secundario" onClick={alternarTema} title="Cambiar tema">
         {tema === 'oscuro' ? '☀️ Claro' : '🌙 Oscuro'}
