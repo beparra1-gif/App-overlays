@@ -57,19 +57,26 @@ export default function LogoFlotante({ equipoLocal, equipoVisita, config, planti
       // así el "9999px" de esquinas redondeadas de logoFlotante.css termina
       // recortando algo más parecido a una pastilla/badge que a una media
       // luna finita, con lugar de sobra para un logo de tamaño normal.
-      const factor = 0.68;
+      // `logoCostadoTamano` (config, 50-200%) escala esa fracción entera —
+      // antes la burbuja no tenía NINGÚN control de tamaño propio.
+      const escalaCostado = Number.isFinite(config?.logoCostadoTamano) ? config.logoCostadoTamano / 100 : 1;
+      const factor = 0.68 * escalaCostado;
       const diametroAncho = caja.height * factor;
       const diametroAlto = caja.heightAlto * factor;
       const anchoBurbuja = diametroAncho * 0.85;
       const centroVerticalAlto = caja.topAlto + caja.heightAlto / 2;
       const topBurbuja = centroVerticalAlto - diametroAlto / 2;
-      // Solape chico hacia ADENTRO de la caja + z-index negativo: sirve de
-      // colchón contra cualquier redondeo de sub-píxel en la medición, pero
-      // ahora es solo un respaldo (no la clave del diseño, como antes) — el
-      // lado que toca la caja ya no tiene borde propio, así que un solape
-      // de más o de menos no se nota (no hay una segunda línea de contorno
-      // que pueda quedar "doble" ni "cortada").
-      const solape = 0.5;
+      // Solape chico hacia ADENTRO de la caja, con la burbuja pintada
+      // ENCIMA de la caja (nunca detrás): antes tenía z-index NEGATIVO — la
+      // intención era "esconder" el solape detrás del fondo opaco de la
+      // caja, pero eso dependía de que el solape fuera siempre chiquito. En
+      // cuanto la burbuja crecía (logo real más grande, plantilla con caja
+      // angosta, o el nuevo control de tamaño de acá arriba) una parte real
+      // del logo quedaba tapada por la caja — se veía "como si estuviera
+      // detrás del marcador", justo lo que se reportó. Pintándola ENCIMA
+      // (mismo color de fondo que la caja, así el empalme no se nota) el
+      // logo nunca se recorta, sea cual sea el tamaño.
+      const solape = 0.6;
       const burbuja = (equipo, ladoIzquierdo) => {
         if (!equipo?.logo_url) return null;
         const bordeCaja = ladoIzquierdo ? caja.left : caja.left + caja.width;
@@ -83,7 +90,6 @@ export default function LogoFlotante({ equipoLocal, equipoVisita, config, planti
               left: `${leftBurbuja}%`,
               width: `${anchoBurbuja + solape}%`,
               height: `${diametroAlto}%`,
-              zIndex: -1,
               pointerEvents: 'none',
               display: 'flex',
               alignItems: 'center',

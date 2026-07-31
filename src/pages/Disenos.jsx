@@ -41,6 +41,7 @@ const CONFIG_INICIAL = {
   logoPosicion: 'costado',
   logoCajaModo: 'dentro',
   logoTamanoMarcador: 40,
+  logoCostadoTamano: 100,
   logoOpacidadMarcador: 100,
   logoTamanoFondo: 30,
   escala: 1,
@@ -872,6 +873,16 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
                     <option value="dentro">Dentro de la caja (el marcador se ve más alto, pegado)</option>
                     <option value="fuera">Fuera de la caja (flotando cerca, sin fondo)</option>
                   </select>
+                </label>
+              )}
+              {config.logoPosicion === 'costados' && (config.logoCajaModo || 'dentro') === 'dentro' && (
+                <label>
+                  Tamaño de la burbuja del costado ({config.logoCostadoTamano || 100}%)
+                  <input
+                    type="range" min={50} max={200} step={10}
+                    value={Number.isFinite(config.logoCostadoTamano) ? config.logoCostadoTamano : 100}
+                    onChange={(e) => cambiarConfig('logoCostadoTamano', Number(e.target.value))}
+                  />
                 </label>
               )}
               {config.logoPosicion === 'fondo' && (
