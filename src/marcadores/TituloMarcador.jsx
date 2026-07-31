@@ -1,4 +1,4 @@
-import { estiloTema, fuenteEfectiva } from './utils';
+import { estiloTema, fuenteEfectiva, hexConAlpha } from './utils';
 import './titulo.css';
 
 // Encabezado opcional del marcador — capa compuesta (mismo truco de apilado
@@ -32,10 +32,23 @@ export default function TituloMarcador({ config, plantillaId, caja, suprimir = f
     paddingLeft: `${caja.left + caja.width / 2}%`,
     paddingTop: `${caja.top}%`,
   };
+  // Tamaño de la pestaña (config.tituloTamano, 100% = el tamaño original de
+  // siempre) y color propio (config.colorTitulo/colorTituloTexto) — sin
+  // elegir color queda con los mismos --pm-banner/--pm-tablero de siempre
+  // (el CSS ya trae ese fallback), así que acá solo se agrega la propiedad
+  // cuando el usuario eligió una a mano.
+  const escala = (Number.isFinite(config?.tituloTamano) ? config.tituloTamano : 100) / 100;
+  const estiloTexto = {
+    fontSize: `${20 * escala}px`,
+    padding: `${8 * escala}px ${24 * escala}px`,
+    ...(config?.colorTitulo ? { background: hexConAlpha(config.colorTitulo, config.colorTituloAlpha) } : {}),
+    ...(config?.colorTituloTexto ? { color: hexConAlpha(config.colorTituloTexto, config.colorTituloTextoAlpha) } : {}),
+  };
+
   return (
     <div style={estilo}>
       <div className="pm-titulo-ancla">
-        <div className="pm-titulo-texto">{texto}</div>
+        <div className="pm-titulo-texto" style={estiloTexto}>{texto}</div>
       </div>
     </div>
   );

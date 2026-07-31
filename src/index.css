@@ -331,7 +331,12 @@ select {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  /* Más alto que el modo "pantalla completa" de Mesa/Mesa simple (2000,
+     ver mesa.css/mesaSimple.css) — si no, con la pantalla completa activa
+     cualquier modal (editar quinteto, agregar a la nómina, faltas, tiro
+     libre) quedaba dibujado DETRÁS de esa capa, invisible aunque estuviera
+     técnicamente abierto. Los modales siempre van arriba de todo. */
+  z-index: 3000;
 }
 
 /* Los únicos modales de la app son los de la Mesa de control (Falta, Tiro

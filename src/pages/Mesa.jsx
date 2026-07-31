@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { api, getToken } from '../api/client';
 import { crearSocket } from '../socket';
 import EquipoRoster from '../components/EquipoRoster';
@@ -600,6 +600,7 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
       {partido.estado === 'en_curso' && (
         <div className={`mv-wrap ${enPantallaCompleta ? 'mv-pantalla-completa' : ''}`} ref={mesaEnVivoRef}>
           <div className="mv-topbar">
+            {!embebido && <Link className="mv-pill" to={`/mesa/${id}/simple`}>📋 Mesa simple</Link>}
             <button className="mv-pill" onClick={alternarPantallaCompleta}>
               {enPantallaCompleta ? '✕ Salir de Pantalla Completa' : '⛶ Pantalla Completa'}
             </button>

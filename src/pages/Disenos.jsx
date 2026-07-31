@@ -12,6 +12,11 @@ const CONFIG_INICIAL = {
   // Equipos y reglas del partido
   mostrarTitulo: false,
   tituloTexto: '',
+  tituloTamano: 100,
+  colorTitulo: '',
+  colorTituloAlpha: 100,
+  colorTituloTexto: '',
+  colorTituloTextoAlpha: 100,
   mostrarReloj: true,
   minutosPeriodo: 10,
   minutosProrroga: 5,
@@ -617,48 +622,6 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
               <p className="texto-tenue" style={{ margin: '0 0 10px' }}>
                 Opcional — sin nómina, se juega "Local" vs "Visita". Los cambios se ven al instante en la transmisión.
               </p>
-
-              <p className="seccion-titulo">Título del marcador</p>
-              <Toggle etiqueta="Mostrar título" checked={config.mostrarTitulo} onChange={(v) => cambiarConfig('mostrarTitulo', v)} />
-              {config.mostrarTitulo && (
-                <div className="subgrupo">
-                  <label>
-                    Texto del título
-                    <input
-                      value={config.tituloTexto || ''}
-                      onChange={(e) => cambiarConfig('tituloTexto', e.target.value)}
-                      placeholder="Ej: Semifinal — Liga Regional 2026"
-                      maxLength={60}
-                    />
-                  </label>
-                </div>
-              )}
-
-              <p className="seccion-titulo">Reloj de juego</p>
-              <Toggle etiqueta="Mostrar reloj" checked={config.mostrarReloj} onChange={(v) => cambiarConfig('mostrarReloj', v)} />
-              <div className="fila-form" style={{ marginTop: 8 }}>
-                <label>Minutos por período
-                  <input
-                    type="number"
-                    min={1}
-                    max={20}
-                    value={Number.isFinite(config.minutosPeriodo) ? config.minutosPeriodo : 10}
-                    onChange={(e) => cambiarConfig('minutosPeriodo', Math.max(1, Number(e.target.value) || 1))}
-                    style={{ width: 70 }}
-                  />
-                </label>
-                <label>Minutos por tiempo extra
-                  <input
-                    type="number"
-                    min={1}
-                    max={20}
-                    value={Number.isFinite(config.minutosProrroga) ? config.minutosProrroga : 5}
-                    onChange={(e) => cambiarConfig('minutosProrroga', Math.max(1, Number(e.target.value) || 1))}
-                    style={{ width: 70 }}
-                  />
-                </label>
-              </div>
-              <p className="texto-tenue" style={{ margin: '6px 0 0' }}>Define la duración real del reloj, no solo la apariencia.</p>
             </div>
 
             {/* ───────── MARCADOR ───────── */}
@@ -724,6 +687,77 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
           <button type="button" className="btn-link" style={{ alignSelf: 'flex-start', margin: '0 0 10px' }} onClick={restablecerTamanosTexto}>
             Restablecer tamaños de texto
           </button>
+
+          <p className="seccion-titulo">Título del marcador</p>
+          <Toggle etiqueta="Mostrar título" checked={config.mostrarTitulo} onChange={(v) => cambiarConfig('mostrarTitulo', v)} />
+          {config.mostrarTitulo && (
+            <div className="subgrupo">
+              <label>
+                Texto del título
+                <input
+                  value={config.tituloTexto || ''}
+                  onChange={(e) => cambiarConfig('tituloTexto', e.target.value)}
+                  placeholder="Ej: Semifinal — Liga Regional 2026"
+                  maxLength={60}
+                />
+              </label>
+              <label>
+                Tamaño de la pestaña ({config.tituloTamano || 100}%)
+                <input
+                  type="range"
+                  min={50}
+                  max={200}
+                  value={Number.isFinite(config.tituloTamano) ? config.tituloTamano : 100}
+                  onChange={(e) => cambiarConfig('tituloTamano', Number(e.target.value))}
+                />
+              </label>
+              <div className="fila-form" style={{ alignItems: 'stretch' }}>
+                <SelectorColor
+                  etiqueta="Fondo de la pestaña"
+                  valor={config.colorTitulo}
+                  alpha={config.colorTituloAlpha}
+                  porDefecto="#ffb703"
+                  onCambiarColor={(v) => cambiarConfig('colorTitulo', v)}
+                  onCambiarAlpha={(v) => cambiarConfig('colorTituloAlpha', v)}
+                />
+                <SelectorColor
+                  etiqueta="Letras"
+                  valor={config.colorTituloTexto}
+                  alpha={config.colorTituloTextoAlpha}
+                  porDefecto="#0a0c12"
+                  onCambiarColor={(v) => cambiarConfig('colorTituloTexto', v)}
+                  onCambiarAlpha={(v) => cambiarConfig('colorTituloTextoAlpha', v)}
+                />
+              </div>
+              <p className="texto-tenue" style={{ margin: 0 }}>Si no tocás el color, usa el mismo tono del Banner de arriba.</p>
+            </div>
+          )}
+
+          <p className="seccion-titulo">Reloj de juego</p>
+          <Toggle etiqueta="Mostrar reloj" checked={config.mostrarReloj} onChange={(v) => cambiarConfig('mostrarReloj', v)} />
+          <div className="fila-form" style={{ marginTop: 8 }}>
+            <label>Minutos por período
+              <input
+                type="number"
+                min={1}
+                max={20}
+                value={Number.isFinite(config.minutosPeriodo) ? config.minutosPeriodo : 10}
+                onChange={(e) => cambiarConfig('minutosPeriodo', Math.max(1, Number(e.target.value) || 1))}
+                style={{ width: 70 }}
+              />
+            </label>
+            <label>Minutos por tiempo extra
+              <input
+                type="number"
+                min={1}
+                max={20}
+                value={Number.isFinite(config.minutosProrroga) ? config.minutosProrroga : 5}
+                onChange={(e) => cambiarConfig('minutosProrroga', Math.max(1, Number(e.target.value) || 1))}
+                style={{ width: 70 }}
+              />
+            </label>
+          </div>
+          <p className="texto-tenue" style={{ margin: '6px 0 0' }}>Define la duración real del reloj, no solo la apariencia.</p>
 
           <p className="seccion-titulo">Logo en el marcador</p>
           <Toggle etiqueta="Logo del equipo" checked={config.mostrarLogo} onChange={(v) => cambiarConfig('mostrarLogo', v)} />
