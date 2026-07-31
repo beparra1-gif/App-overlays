@@ -138,6 +138,26 @@ export default function Equipos() {
       cargar();
       avisar('Equipo eliminado ✓');
     } catch (err) {
+      // El backend avisa CUÁNTOS partidos lo tienen asociado (ver
+      // DELETE /equipos/:id) — antes esto era un callejón sin salida: el
+      // error decía "verificá que no tenga partidos asociados" pero no había
+      // ningún lugar en la app para ver o borrar esos partidos viejos.
+      if (err.data?.partidos_bloqueando) {
+        const cantidad = err.data.partidos_bloqueando;
+        const confirmado = window.confirm(
+          `"${equipo.nombre}" tiene ${cantidad} partido${cantidad === 1 ? '' : 's'} asociado${cantidad === 1 ? '' : 's'}, cada uno con su propio enlace de OBS. ` +
+          `Si los eliminás junto con el equipo, esos enlaces dejan de funcionar. Esta acción no se puede deshacer. ¿Eliminar el equipo Y esos partidos?`
+        );
+        if (!confirmado) return;
+        try {
+          await api.eliminarEquipo(equipo.id, { forzar: true });
+          cargar();
+          avisar('Equipo y partidos asociados eliminados ✓');
+        } catch (err2) {
+          setError(err2.message);
+        }
+        return;
+      }
       setError(err.message);
     }
   };

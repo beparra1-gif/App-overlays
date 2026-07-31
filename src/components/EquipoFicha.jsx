@@ -177,7 +177,13 @@ const EquipoFicha = forwardRef(function EquipoFicha({ titulo, valorDefecto, equi
     setError('');
     setResolviendo(true);
     try {
-      const equipo = await resolverOCrearEquipo({ nombre: nombre || valorDefecto, color, logoUrl, equipos });
+      // La prop `equipos` se cargó una sola vez al abrir esta pantalla y
+      // puede haber quedado vieja (otra pestaña, u otro diseño resuelto
+      // antes en esta misma sesión) — sin pedirla de nuevo acá, un "Local"/
+      // "Visita" que YA existía no se encontraba y se creaba un duplicado
+      // cada vez, así que la lista de equipos sueltos crecía sin parar.
+      const equiposFrescos = await api.listarEquipos().then((d) => d.equipos).catch(() => equipos);
+      const equipo = await resolverOCrearEquipo({ nombre: nombre || valorDefecto, color, logoUrl, equipos: equiposFrescos });
       if (!equipo) return null;
       onEquipoCreado(equipo);
       setNombre(equipo.nombre);

@@ -98,12 +98,32 @@ router.delete('/:id', async (req, res) => {
   const equipo = await equipoDelUsuario(req.params.id, req.userId);
   if (!equipo) return res.status(404).json({ error: 'Equipo no encontrado' });
 
+  // `?forzar=true`: el usuario ya vio cuántos partidos bloqueaban el borrado
+  // (ver el catch de abajo) y confirmó que quiere borrarlos también — los
+  // partidos de prueba/terminados que ya nadie necesita se van con el
+  // equipo, nunca solos y nunca sin ese paso previo. Las escenas/eventos de
+  // esos partidos se van solos (ON DELETE CASCADE).
+  const forzar = req.query.forzar === 'true';
+
   try {
+    if (forzar) {
+      await pool.query('DELETE FROM partidos WHERE user_id = $1 AND (equipo_local_id = $2 OR equipo_visita_id = $2)', [req.userId, equipo.id]);
+    }
     await pool.query('DELETE FROM equipos WHERE id = $1', [equipo.id]);
     res.status(204).end();
   } catch (error) {
+    // 23503 = violación de FK (postgres): el equipo todavía tiene partidos
+    // asociados — en vez de un error genérico, se le dice al frontend
+    // CUÁNTOS, para que pueda ofrecer borrarlos junto con el equipo.
+    if (error.code === '23503') {
+      const bloqueando = await pool.query(
+        'SELECT COUNT(*)::int AS cantidad FROM partidos WHERE user_id = $1 AND (equipo_local_id = $2 OR equipo_visita_id = $2)',
+        [req.userId, equipo.id]
+      );
+      return res.status(409).json({ error: 'Este equipo tiene partidos asociados', partidos_bloqueando: bloqueando.rows[0].cantidad });
+    }
     console.error('[DELETE /equipos/:id]', error);
-    res.status(500).json({ error: 'No se pudo eliminar el equipo (verifica que no tenga partidos asociados)' });
+    res.status(500).json({ error: 'No se pudo eliminar el equipo' });
   }
 });
 

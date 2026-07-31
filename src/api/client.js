@@ -34,7 +34,14 @@ async function solicitud(path, { method = 'GET', body, autenticado = true } = {}
 
   const datos = await respuesta.json().catch(() => ({}));
   if (!respuesta.ok) {
-    throw new Error(datos?.error || `Error ${respuesta.status}`);
+    const error = new Error(datos?.error || `Error ${respuesta.status}`);
+    // Campos extra del cuerpo del error (p. ej. partidos_bloqueando en
+    // DELETE /equipos/:id) van colgando del error en vez de perderse — quien
+    // atrapa el error sigue pudiendo usar err.message como siempre, y quien
+    // necesite el detalle extra lo lee de err.data sin romper nada existente.
+    error.status = respuesta.status;
+    error.data = datos;
+    throw error;
   }
   return datos;
 }
@@ -65,7 +72,7 @@ export const api = {
   listarEquipos: () => solicitud('/equipos'),
   crearEquipo: (payload) => solicitud('/equipos', { method: 'POST', body: payload }),
   actualizarEquipo: (id, payload) => solicitud(`/equipos/${id}`, { method: 'PUT', body: payload }),
-  eliminarEquipo: (id) => solicitud(`/equipos/${id}`, { method: 'DELETE' }),
+  eliminarEquipo: (id, opciones) => solicitud(`/equipos/${id}${opciones?.forzar ? '?forzar=true' : ''}`, { method: 'DELETE' }),
   listarJugadores: (equipoId) => solicitud(`/equipos/${equipoId}/jugadores`),
   crearJugador: (equipoId, payload) => solicitud(`/equipos/${equipoId}/jugadores`, { method: 'POST', body: payload }),
   actualizarJugador: (id, payload) => solicitud(`/jugadores/${id}`, { method: 'PUT', body: payload }),
