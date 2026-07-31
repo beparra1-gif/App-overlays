@@ -11,9 +11,9 @@ export default function CornerMinimo({ partido, config }) {
         {mostrar(config, 'mostrarLogo') && partido.equipoLocal.logo_url && (
           <img className="pcb-logo" src={partido.equipoLocal.logo_url} alt="" style={{ height: config?.logoTamano || 20, width: 'auto', maxWidth: (config?.logoTamano || 20) * 1.8 }} />
         )}
-        <span className={pulsoLocal ? 'pm-pulso' : ''}>{partido.ptsLocal}</span>
+        <span className={`pcb-pts ${pulsoLocal ? 'pm-pulso' : ''}`}>{partido.ptsLocal}</span>
         <span style={{ opacity: 0.6 }}>-</span>
-        <span className={pulsoVisita ? 'pm-pulso' : ''}>{partido.ptsVisita}</span>
+        <span className={`pcb-pts ${pulsoVisita ? 'pm-pulso' : ''}`}>{partido.ptsVisita}</span>
         {mostrar(config, 'mostrarLogo') && partido.equipoVisita.logo_url && (
           <img className="pcb-logo" src={partido.equipoVisita.logo_url} alt="" style={{ height: config?.logoTamano || 20, width: 'auto', maxWidth: (config?.logoTamano || 20) * 1.8 }} />
         )}

@@ -84,7 +84,7 @@ html:has(.plantilla-marcador) {
 .pu-fila { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px; padding: 6px 12px; }
 .pu-fila + .pu-fila { border-top: 1px solid rgba(255,255,255,.1); }
 .pu-logo { width: 20px; height: 20px; object-fit: contain; opacity: var(--pm-logo-opacidad, 1); }
-.pu-abrev { font-size: 15px; font-weight: 700; letter-spacing: 1px; }
+.pu-abrev { font-size: calc(15px * var(--pm-escala-nombre, 1)); font-weight: 700; letter-spacing: 1px; }
 .pu-pts { font-size: calc(20px * var(--pm-escala-pts, 1)); font-weight: 900; color: var(--pm-marcador, #fff); }
 .pu-pie { display: flex; justify-content: space-between; padding: 4px 12px; background: var(--pm-banner, rgba(255,255,255,.06)); font-size: 11px; }
 
@@ -121,6 +121,7 @@ html:has(.plantilla-marcador) {
 .pt-barra { background: var(--pm-tablero, #0b0d13); border-top: 3px solid var(--pm-banner, #ffb703); display: flex; align-items: center; padding: 10px 26px; gap: 22px; }
 .pt-seg { display: flex; align-items: center; gap: 10px; font-size: 18px; }
 .pt-logo { height: 20px; object-fit: contain; opacity: var(--pm-logo-opacidad, 1); }
+.pt-nombre { font-size: calc(18px * var(--pm-escala-nombre, 1)); }
 .pt-pts { font-weight: 900; font-size: calc(24px * var(--pm-escala-pts, 1)); color: var(--pm-marcador, #fff); }
 .pt-sep { color: #565c68; }
 .pt-reloj { margin-left: auto; font-weight: 700; }
@@ -128,6 +129,7 @@ html:has(.plantilla-marcador) {
 /* 8. Corner Bug mínimo */
 .pcb-wrap { display: flex; align-items: flex-start; justify-content: flex-end; height: 100%; padding: 20px; font-family: var(--pm-fuente, 'Oswald', sans-serif); }
 .pcb-caja { background: var(--pm-tablero, rgba(8,10,16,.85)); border-radius: 999px; padding: 8px 18px; display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 700; color: var(--pm-marcador, #fff); }
+.pcb-pts { font-size: calc(15px * var(--pm-escala-pts, 1)); }
 .pcb-logo { object-fit: contain; opacity: var(--pm-logo-opacidad, 1); }
 .pcb-reloj { color: #9aa0ac; font-weight: 500; font-size: 13px; }
 
@@ -175,6 +177,7 @@ html:has(.plantilla-marcador) {
 .pe-wrap { position: absolute; left: 0; right: 0; bottom: 0; font-family: var(--pm-fuente, 'Anton', sans-serif); }
 .pe-barra { display: grid; grid-template-columns: auto 1fr auto; align-items: stretch; background: var(--pm-tablero, #0d0f16); }
 .pe-bloque { display: flex; align-items: center; gap: 10px; padding: 10px 22px; font-weight: 700; }
+.pe-nombre { font-size: calc(16px * var(--pm-escala-nombre, 1)); }
 .pe-pts { font-size: calc(26px * var(--pm-escala-pts, 1)); font-weight: 900; color: var(--pm-marcador, #fff); }
 .pe-centro { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 10px; background: var(--pm-banner, #14161c); }
 .pe-logo { height: 22px; object-fit: contain; opacity: var(--pm-logo-opacidad, 1); }

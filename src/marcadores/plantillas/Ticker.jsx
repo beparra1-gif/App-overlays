@@ -11,13 +11,13 @@ export default function Ticker({ partido, config }) {
       <div className="pt-barra">
         <div className="pt-seg">
           <LogoEquipo equipo={partido.equipoLocal} config={config} className="pt-logo" />
-          <span>{partido.equipoLocal.nombre}</span>
+          <span className="pt-nombre">{partido.equipoLocal.nombre}</span>
           <span className={`pt-pts ${pulsoLocal ? 'pm-pulso' : ''}`}>{partido.ptsLocal}</span>
         </div>
         <span className="pt-sep">—</span>
         <div className="pt-seg">
           <span className={`pt-pts ${pulsoVisita ? 'pm-pulso' : ''}`}>{partido.ptsVisita}</span>
-          <span>{partido.equipoVisita.nombre}</span>
+          <span className="pt-nombre">{partido.equipoVisita.nombre}</span>
           <LogoEquipo equipo={partido.equipoVisita} config={config} className="pt-logo" />
         </div>
         {mostrar(config, 'mostrarFaltas') && (
