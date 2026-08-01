@@ -517,6 +517,16 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
     });
   };
 
+  // Sacar un jugador de la nómina desde la Mesa (partido ya en curso) — si
+  // estaba en cancha en ese momento, sale también del quinteto (si no,
+  // quedaba un id fantasma jugando un partido sin existir más en la
+  // nómina).
+  const eliminarJugadorDeRoster = (equipoKey, jugadorId) => {
+    (equipoKey === 'local' ? setRosterLocalCompleto : setRosterVisitaCompleto)((r) => r.filter((j) => j.id !== jugadorId));
+    const quinteto = equipoKey === 'local' ? partido.quintetoLocalIds : partido.quintetoVisitaIds;
+    if (quinteto.includes(jugadorId)) cambiarQuinteto(equipoKey, quinteto.filter((id) => id !== jugadorId));
+  };
+
   const elegirEquipoActivo = (equipoKey) => {
     setEquipoActivo(equipoKey);
     setJugadorSeleccionadoId(null);
@@ -930,6 +940,8 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
             roster={modalNomina === 'local' ? rosterLocalCompleto : rosterVisitaCompleto}
             seleccionable={false}
             onJugadorAgregado={(j) => (modalNomina === 'local' ? setRosterLocalCompleto : setRosterVisitaCompleto)((r) => [...r, j])}
+            permitirEliminar
+            onJugadorEliminado={(id) => eliminarJugadorDeRoster(modalNomina, id)}
           />
         </ModalRoster>
       )}

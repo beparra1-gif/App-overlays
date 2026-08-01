@@ -54,7 +54,7 @@ const CONFIG_INICIAL = {
   animacionPuntosPosicion: 'costado',
   animacionPuntosTamano: 100,
   animacionPuntosEstilo: 'clasica',
-  animacionPuntosConMano: false,
+  animacionPuntosIcono: 'numero',
   animacionPuntosX: 50,
   animacionPuntosY: 50,
 
@@ -329,6 +329,11 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
   }, []);
 
   const cambiarConfig = (clave, valor) => setConfig((c) => ({ ...c, [clave]: valor }));
+
+  // Arrastrar la marca de la animación de puntos en la vista previa (ver
+  // PreviaCombinada) actualiza los dos ejes de una — mismo patrón que
+  // arrastrar un logo libre.
+  const arrastrarAnimacionPuntos = (x, y) => setConfig((c) => ({ ...c, animacionPuntosX: x, animacionPuntosY: y }));
 
   // Logos libres: se guardan y se leen siempre desde config.logosLibres —
   // agregar/editar/borrar son todo variaciones de "reemplazar el array
@@ -619,6 +624,8 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
             modo={previaGeneral ? 'general' : PREVIA_MODO_POR_SECCION[seccionAbierta]}
             logosLibresEditable={seccionAbierta === 'logos'}
             onArrastrarLogoLibre={(id, x, y) => actualizarLogoLibre(id, { xPercent: x, yPercent: y })}
+            animacionPuntosEditable={seccionAbierta === 'marcador'}
+            onArrastrarAnimacionPuntos={arrastrarAnimacionPuntos}
           />
         </div>
 
@@ -1024,7 +1031,7 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
                     />
                   </label>
                   <p className="texto-tenue" style={{ margin: 0, fontSize: 12 }}>
-                    Independiente de dónde esté el marcador — podés ponerla en cualquier zona de la pantalla.
+                    Independiente de dónde esté el marcador — o arrastrá el punto azul directo en la vista previa de arriba.
                   </p>
                 </>
               )}
@@ -1051,12 +1058,20 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
                   <option value="destello">Destello (pulsa brillo, tipo neón)</option>
                 </select>
               </label>
-              <Toggle
-                etiqueta="Sumarle una manito (☝️ 1pt / ✌️ 2pts / 🤟 3pts)"
-                checked={Boolean(config.animacionPuntosConMano)}
-                onChange={(v) => cambiarConfig('animacionPuntosConMano', v)}
-              />
-              {config.animacionPuntosConMano && (
+              <label>
+                Cómo se anuncia
+                <select
+                  value={config.animacionPuntosIcono || 'numero'}
+                  onChange={(e) => cambiarConfig('animacionPuntosIcono', e.target.value)}
+                >
+                  <option value="numero">Números (+1 / +2 / +3)</option>
+                  <option value="numero-dedos">Números con manito (✌️ +2)</option>
+                  <option value="dedos">Solo con los dedos (☝️ / ✌️ / 🤟)</option>
+                  <option value="estrellas">Estrellas (⭐ por punto)</option>
+                  <option value="balones">Balones de básquet (🏀 por punto)</option>
+                </select>
+              </label>
+              {(config.animacionPuntosIcono === 'dedos' || config.animacionPuntosIcono === 'numero-dedos') && (
                 <p className="texto-tenue" style={{ margin: 0, fontSize: 12 }}>
                   No existe un emoji "3 dedos" exacto — para el triple se usa 🤟, la aproximación más parecida.
                 </p>

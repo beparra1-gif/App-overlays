@@ -7,6 +7,7 @@ import LogoMarcaAgua from './LogoMarcaAgua';
 import LogoFlotante from './LogoFlotante';
 import TituloMarcador from './TituloMarcador';
 import LogosLibres from './LogosLibres';
+import PopSumaPuntos from './PopSumaPuntos';
 import { PARTIDO_DEMO, JUGADAS_DEMO } from './datosDemo';
 import { useCajaMarcador, useMedidaElemento } from './utils';
 import './miniPreview.css';
@@ -55,6 +56,7 @@ const SELECTOR_CONTENIDO = { nomina: '.nomina-fila', estadisticas: '.stats-caja'
 export default function PreviaCombinada({
   plantillaId, config, equipoLocalPreview, equipoVisitaPreview, partidoReal, modo = 'general',
   logosLibresEditable = false, onArrastrarLogoLibre,
+  animacionPuntosEditable = false, onArrastrarAnimacionPuntos,
 }) {
   const { Componente: Marcador } = obtenerPlantilla(plantillaId);
   // Mismo criterio que VistaMarcador (la escena pública real): el título y
@@ -92,7 +94,12 @@ export default function PreviaCombinada({
   // centrar ese punto y agrandar hasta que el lado más chico ocupe el
   // `RELLENO`% del marco.
   const RELLENO = 74;
-  const medidaAEncuadrar = modo === 'marcador' ? caja : medidaContenido;
+  // 'anuncios' encuadra la caja del MARCADOR (no el toast) a propósito: el
+  // aviso siempre se ancla cerca de él, así que mostrar los dos juntos con
+  // el marcador como referencia de tamaño es lo que deja ver de verdad si
+  // el aviso quedó desproporcionado — encuadrar solo el toast (como antes)
+  // dejaba al marcador afuera del encuadre, editando el tamaño "a ciegas".
+  const medidaAEncuadrar = (modo === 'marcador' || modo === 'anuncios') ? caja : medidaContenido;
   let estiloZoom;
   if (medidaAEncuadrar) {
     const zoomAncho = RELLENO / Math.max(1, medidaAEncuadrar.width);
@@ -105,10 +112,19 @@ export default function PreviaCombinada({
     estiloZoom = { transform: 'none' };
   }
 
-  const conMarcador = modo === 'general' || modo === 'marcador';
+  // 'anuncios' ahora también dibuja el marcador (ver medidaAEncuadrar más
+  // arriba) — para que se pueda comparar el tamaño del aviso contra el
+  // marcador de verdad, en vez de verlo solo, flotando en un lienzo vacío.
+  const conMarcador = modo === 'general' || modo === 'marcador' || modo === 'anuncios';
   const conNomina = modo === 'general' ? config?.mostrarNomina : modo === 'nomina';
   const conEstadisticas = modo === 'general' ? config?.mostrarEstadisticas : modo === 'estadisticas';
   const conAnuncios = modo === 'general' ? config?.anunciarJugadas : modo === 'anuncios';
+  // La animación de sumar puntos no tiene pestaña propia (vive adentro de
+  // Marcador) y solo se dispara con un cambio de puntaje real — sin esto la
+  // vista previa nunca la mostraba, así que se ajustaba a ciegas. Se fuerza
+  // visible (2 y 3 puntos, uno por lado) mientras se está viendo el
+  // marcador, para poder ajustar tamaño/posición/ícono/animación en vivo.
+  const mostrarDemoPuntos = modo === 'general' || modo === 'marcador';
   // En la vista previa el aviso demo está siempre visible (no se apaga
   // solo), así que en modo 'general' con "reemplaza el título" elegido, el
   // título se ve siempre suprimido — igual que se vería en la transmisión
@@ -125,6 +141,16 @@ export default function PreviaCombinada({
               <Marcador partido={partido} config={config} />
               <LogoFlotante equipoLocal={partido.equipoLocal} equipoVisita={partido.equipoVisita} config={config} plantillaId={plantillaId} caja={caja} />
               <TituloMarcador config={config} plantillaId={plantillaId} caja={caja} suprimir={suprimirTitulo} />
+              {mostrarDemoPuntos && (
+                <PopSumaPuntos
+                  partido={partido}
+                  config={config}
+                  demo
+                  editable={animacionPuntosEditable}
+                  onArrastrar={onArrastrarAnimacionPuntos}
+                  contenedorRef={lienzoRef}
+                />
+              )}
             </>
           )}
           {conNomina && <VistaNomina partido={partido} modo="ambos" config={config} plantillaId={plantillaId} />}

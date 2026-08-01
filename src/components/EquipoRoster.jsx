@@ -27,6 +27,18 @@ export default function EquipoRoster({
   onAgregarJugador,
   seleccionable = true,
   permitirAgregar = true,
+  // Sacar un jugador de la nómina — apagado por defecto (la selección de
+  // quinteto en Mesa no lo necesita, solo elegir quién arranca en cancha).
+  // `onEliminarJugador` es la misma idea que `onAgregarJugador`: quién
+  // persiste (o no) el borrado. Por defecto pega contra el backend de
+  // verdad — salvo que el jugador todavía esté "pendiente" (sin guardar,
+  // ver EquipoFicha), ahí no hay nada que borrar en la base, solo sacarlo
+  // de la lista en memoria. `onJugadorEliminado` avisa al padre para que
+  // saque esa fila de su propio estado — mismo patrón que
+  // `onJugadorAgregado`.
+  permitirEliminar = false,
+  onEliminarJugador,
+  onJugadorEliminado,
 }) {
   const [dorsal, setDorsal] = useState('');
   const [nombreJugador, setNombreJugador] = useState('');
@@ -58,6 +70,20 @@ export default function EquipoRoster({
     }
   };
 
+  const eliminarJugador = async (jugador) => {
+    if (!window.confirm(`¿Sacar a ${jugador.nombre} de la nómina? Esta acción no se puede deshacer.`)) return;
+    setError('');
+    try {
+      if (!jugador.pendiente) {
+        if (onEliminarJugador) await onEliminarJugador(jugador);
+        else await api.eliminarJugador(jugador.id);
+      }
+      onJugadorEliminado?.(jugador.id);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   const alcanzoTopeFiba = roster.length >= MAX_FIBA && !forzarMasDeDoce;
 
   return (
@@ -69,7 +95,7 @@ export default function EquipoRoster({
       {error && <p className="mensaje-error">{error}</p>}
       <ul className="lista-seleccion">
         {roster.map((j) => (
-          <li key={j.id}>
+          <li key={j.id} style={{ justifyContent: 'space-between' }}>
             {seleccionable ? (
               <label>
                 <input
@@ -85,6 +111,9 @@ export default function EquipoRoster({
                 <span className="dorsal-chip">{j.dorsal ?? '-'}</span> {j.nombre}
                 {j.pendiente && <span className="texto-tenue" style={{ fontSize: 11 }}> (sin guardar)</span>}
               </span>
+            )}
+            {permitirEliminar && (
+              <button type="button" className="btn-link" onClick={() => eliminarJugador(j)} title="Sacar de la nómina">✕</button>
             )}
           </li>
         ))}

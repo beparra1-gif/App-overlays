@@ -303,6 +303,8 @@ const EquipoFicha = forwardRef(function EquipoFicha({ titulo, valorDefecto, equi
             seleccionable={false}
             onJugadorAgregado={(j) => setRoster((r) => [...r, j])}
             onAgregarJugador={agregarJugadorLocal}
+            permitirEliminar
+            onJugadorEliminado={(id) => setRoster((r) => r.filter((x) => x.id !== id))}
           />
           {roster.some((j) => j.pendiente) && (
             <div className="fila-form" style={{ marginTop: -12 }}>
