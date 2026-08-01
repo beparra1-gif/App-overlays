@@ -80,6 +80,28 @@ export default function EquipoRoster({
       }
       onJugadorEliminado?.(jugador.id);
     } catch (err) {
+      // Un jugador que ya anotó puntos/faltas en el partido tiene jugadas
+      // guardadas (eventos_partido) — borrarlo de una chocaba con eso y
+      // quedaba sin salida ("no se pudo eliminar"). El backend ahora avisa
+      // cuántas jugadas hay; club el puntaje total del equipo no se toca
+      // (vive aparte, ya sumado), solo se pierde el detalle jugada por
+      // jugada de ESE jugador si se confirma borrarlo igual.
+      if (err.data?.eventos_bloqueando) {
+        const cantidad = err.data.eventos_bloqueando;
+        const confirmado = window.confirm(
+          `${jugador.nombre} ya tiene ${cantidad} jugada${cantidad === 1 ? '' : 's'} anotada${cantidad === 1 ? '' : 's'} en este partido. ` +
+          `El puntaje del equipo no cambia, pero se pierde el detalle de esas jugadas para este jugador. Esta acción no se puede deshacer. ¿Eliminarlo igual?`
+        );
+        if (!confirmado) return;
+        try {
+          if (onEliminarJugador) await onEliminarJugador(jugador, { forzar: true });
+          else await api.eliminarJugador(jugador.id, { forzar: true });
+          onJugadorEliminado?.(jugador.id);
+        } catch (err2) {
+          setError(err2.message);
+        }
+        return;
+      }
       setError(err.message);
     }
   };

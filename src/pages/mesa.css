@@ -352,8 +352,8 @@
 .mv-pantalla-completa .fiba-botones-grid { gap: 6px; margin-top: 6px; }
 .mv-pantalla-completa .btn-fiba { min-height: 40px; padding: 8px 4px; font-size: 11px; border-radius: 12px; }
 .mv-pantalla-completa .mv-layout-grid { gap: 8px; }
-.mv-pantalla-completa .mv-jugadas,
-.mv-pantalla-completa .mv-disparadores { padding: 8px; margin-top: 8px; }
+.mv-pantalla-completa .mv-jugadas { padding: 8px; margin-top: 8px; }
+.mv-pantalla-completa .mv-disparadores { padding: 6px 10px; margin: 6px 0 10px; }
 .btn-fiba.err { background: linear-gradient(135deg, #ff3b30, #b31c14); }
 
 .mv-btn-cambio {
@@ -408,15 +408,20 @@
   font-size: 14px;
 }
 
-/* Disparadores de nómina/estadísticas — mismo look que "Últimas acciones",
-   pegados justo debajo para que quede todo dentro de la pantalla de la
-   Mesa, sin tener que abrir el panel de Gestión de escenas. */
+/* Disparadores de nómina/estadísticas — pegados justo debajo de la barra de
+   arriba (pantalla completa / marcador visible / etc.), para que se puedan
+   usar de un vistazo apenas se entra a la Mesa, sin scrollear ni abrir el
+   panel de Gestión de escenas. Modo compacto (`.mv-disparadores-compacto`):
+   todo en una sola fila con íconos en vez de la etiqueta "Nómina:"/
+   "Estadísticas:" repetida, textos cortos con el detalle completo en el
+   `title` (aparece al pasar el mouse) — antes ocupaba 4 líneas con bastante
+   texto de sobra para algo que se usa todo el tiempo durante el partido. */
 .mv-disparadores {
-  margin-top: 14px;
-  padding: 14px 18px;
+  margin: 10px 0 14px;
+  padding: 10px 14px;
   background: var(--mv-tarjeta);
   border: 1px solid var(--mv-borde);
-  border-radius: 16px;
+  border-radius: 14px;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -431,13 +436,25 @@
 .mv-disparadores .fila-form {
   margin-bottom: 0;
 }
+.mv-disparadores-compacto .fila-form {
+  align-items: center;
+  row-gap: 8px;
+}
+.mv-disparadores-sep {
+  width: 1px;
+  align-self: stretch;
+  min-height: 20px;
+  background: var(--mv-borde);
+  margin: 0 2px;
+}
 /* Antes usaban clases globales (.texto-tenue, .btn-secundario, <select> sin
    estilo) pensadas para el tema claro del resto de la app — adentro de la
    Mesa (siempre oscura) el texto quedaba oscuro sobre oscuro, casi
    invisible. Acá van con los colores propios de --mv-*. */
 .mv-disparadores-etiqueta {
   color: var(--mv-texto-tenue);
-  font-size: 13px;
+  font-size: 15px;
+  cursor: default;
 }
 .mv-select {
   background: var(--mv-input);
@@ -447,6 +464,11 @@
   padding: 8px 10px;
   font-size: 13px;
 }
+.mv-select-chico {
+  padding: 5px 8px;
+  font-size: 12px;
+  max-width: 130px;
+}
 .mv-check-detalle {
   display: flex;
   align-items: center;
@@ -454,5 +476,11 @@
   color: var(--mv-texto-tenue);
   font-size: 12px;
   cursor: pointer;
+  white-space: nowrap;
 }
 .mv-check-detalle input { cursor: pointer; }
+.mv-pill-chico {
+  padding: 6px 12px;
+  min-height: auto;
+  font-size: 11px;
+}

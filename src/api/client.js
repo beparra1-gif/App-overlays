@@ -76,7 +76,7 @@ export const api = {
   listarJugadores: (equipoId) => solicitud(`/equipos/${equipoId}/jugadores`),
   crearJugador: (equipoId, payload) => solicitud(`/equipos/${equipoId}/jugadores`, { method: 'POST', body: payload }),
   actualizarJugador: (id, payload) => solicitud(`/jugadores/${id}`, { method: 'PUT', body: payload }),
-  eliminarJugador: (id) => solicitud(`/jugadores/${id}`, { method: 'DELETE' }),
+  eliminarJugador: (id, opciones) => solicitud(`/jugadores/${id}${opciones?.forzar ? '?forzar=true' : ''}`, { method: 'DELETE' }),
 
   listarPartidos: () => solicitud('/partidos'),
   crearPartido: (payload) => solicitud('/partidos', { method: 'POST', body: payload }),

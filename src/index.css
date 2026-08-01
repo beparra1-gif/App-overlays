@@ -531,29 +531,31 @@ select {
   color: var(--primario-texto);
 }
 
-/* Selector de color con swatch grande + hex + transparencia propia — para
-   que se vea claramente QUÉ color es y qué tan transparente queda, en vez
-   de solo el cuadradito nativo del input[type=color]. */
+/* Selector de color con swatch + hex + transparencia propia — para que se
+   vea claramente QUÉ color es y qué tan transparente queda, en vez de solo
+   el cuadradito nativo del input[type=color]. Compacto a propósito (swatch
+   chico, poco padding): antes ocupaba demasiado lugar por cada color, y con
+   4-6 colores por sección la pantalla quedaba pesada de recorrer. */
 .selector-color {
   display: flex;
   flex-direction: column;
   gap: 6px;
   background: var(--tarjeta);
   border: 1px solid var(--borde);
-  border-radius: 12px;
-  padding: 10px 12px;
-  min-width: 160px;
+  border-radius: 10px;
+  padding: 8px 10px;
+  min-width: 140px;
   flex: 1;
 }
 .selector-color-fila {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 .selector-color-fila input[type='color'] {
-  width: 42px;
-  height: 42px;
-  border-radius: 10px;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
   border: 1px solid var(--borde);
   padding: 0;
   cursor: pointer;
@@ -570,17 +572,46 @@ select {
   font-weight: 700;
 }
 .selector-color-hex {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--texto-tenue);
   font-family: 'Courier New', monospace;
   text-transform: uppercase;
 }
-.selector-color-alpha {
-  font-size: 11px;
-  color: var(--texto-tenue);
+
+/* CampoRango: control compacto y reusable para CUALQUIER slider con un
+   valor a la vista (tamaño/transparencia/posición/duración) — etiqueta y
+   valor en la misma fila arriba, la barra ocupa todo el ancho debajo.
+   Reemplaza el patrón viejo de <label>Texto ({valor}%)<input/></label>, que
+   en más de un lugar (p. ej. la transparencia de cada color) terminaba
+   partido en 2-3 líneas sueltas por heredar flex-column con nodos de texto
+   separados — acá la etiqueta y el valor son SPANS propios, un solo nodo
+   cada uno, así que eso no puede volver a pasar.  */
+.campo-rango {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
+  font-size: 13px;
+  flex: 1;
+  min-width: 130px;
+}
+.campo-rango-cabecera {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+.campo-rango-etiqueta {
+  color: var(--texto);
+}
+.campo-rango-valor {
+  color: var(--texto-tenue);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.campo-rango-ayuda {
+  color: var(--texto-tenue);
+  font-size: 11px;
 }
 
 /* Color del equipo (EquipoFicha, "Personalizar tablero → Equipos"): a

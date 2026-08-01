@@ -639,6 +639,40 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
             <button className="mv-pill mv-pill-peligro" title="El enlace de OBS sigue funcionando después de finalizar" onClick={finalizarPartido}>⏹ Finalizar Partido</button>
           </div>
 
+          <div className="mv-disparadores mv-disparadores-compacto">
+            <div className="fila-form">
+              <span className="mv-disparadores-etiqueta" title="Nómina">👥</span>
+              <button className="mv-pill mv-pill-chico" title="Mostrar nómina — Local" onClick={() => reproducirNomina('local')}>Local</button>
+              <button className="mv-pill mv-pill-chico" title="Mostrar nómina — Visita" onClick={() => reproducirNomina('visita')}>Visita</button>
+              <button className="mv-pill mv-pill-chico" title="Mostrar nómina — Ambos" onClick={() => reproducirNomina('ambos')}>Ambos</button>
+              <span className="mv-disparadores-sep" />
+              <span className="mv-disparadores-etiqueta" title="Estadísticas">📊</span>
+              <button className="mv-pill mv-pill-chico" title="Estadísticas — Equipo Local" onClick={() => dispararEstadisticas({ modo: 'equipo', equipo: 'local', detalle: detalleJugadores })}>Local</button>
+              <button className="mv-pill mv-pill-chico" title="Estadísticas — Equipo Visita" onClick={() => dispararEstadisticas({ modo: 'equipo', equipo: 'visita', detalle: detalleJugadores })}>Visita</button>
+              <button className="mv-pill mv-pill-chico" title="Estadísticas — Ambos Equipos" onClick={() => dispararEstadisticas({ modo: 'ambos', detalle: detalleJugadores })}>Ambos</button>
+              <select
+                className="mv-select mv-select-chico"
+                title="Estadísticas de un jugador puntual"
+                value=""
+                onChange={(ev) => { if (ev.target.value) dispararEstadisticas({ modo: 'jugador', jugadorId: Number(ev.target.value) }); }}
+              >
+                <option value="">Jugador…</option>
+                {jugadoresDeAmbos.map((j) => (
+                  <option key={j.id} value={j.id}>{j.equipoNombre} — #{j.dorsal ?? '-'} {j.nombre}</option>
+                ))}
+              </select>
+              <span className="mv-disparadores-sep" />
+              <label className="mv-check-detalle" title="Incluir detalle por jugador en Equipo Local/Visita/Ambos">
+                <input type="checkbox" checked={detalleJugadores} onChange={(e) => setDetalleJugadores(e.target.checked)} />
+                Detalle x jugador
+              </label>
+              <label className="mv-check-detalle" title="Ocultar el marcador mientras se muestra Nómina/Estadísticas">
+                <input type="checkbox" checked={ocultarMarcador} onChange={(e) => setOcultarMarcador(e.target.checked)} />
+                Ocultar marcador
+              </label>
+            </div>
+          </div>
+
           {jugadoresDescalificadosEnCancha.length > 0 && (
             <div className="mensaje-error" style={{ marginBottom: 12 }}>
               Sustitución obligatoria: {jugadoresDescalificadosEnCancha.map((j) => `#${j.dorsal ?? '-'} ${j.nombre} (${j.equipo})`).join(', ')}
@@ -849,43 +883,6 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
               {jugadas.slice(0, 3).map((j, idx) => <li key={idx}>{j.texto}</li>)}
               {jugadas.length === 0 && <li className="mv-jugadas-vacio">Todavía no hay acciones registradas.</li>}
             </ul>
-          </div>
-
-          <div className="mv-disparadores">
-            <h6>Disparar en la transmisión</h6>
-            <div className="fila-form">
-              <span className="mv-disparadores-etiqueta">Nómina:</span>
-              <button className="mv-pill" onClick={() => reproducirNomina('local')}>▶ Local</button>
-              <button className="mv-pill" onClick={() => reproducirNomina('visita')}>▶ Visita</button>
-              <button className="mv-pill" onClick={() => reproducirNomina('ambos')}>▶ Ambos</button>
-            </div>
-            <div className="fila-form">
-              <span className="mv-disparadores-etiqueta">Estadísticas:</span>
-              <button className="mv-pill" onClick={() => dispararEstadisticas({ modo: 'equipo', equipo: 'local', detalle: detalleJugadores })}>📊 Equipo Local</button>
-              <button className="mv-pill" onClick={() => dispararEstadisticas({ modo: 'equipo', equipo: 'visita', detalle: detalleJugadores })}>📊 Equipo Visita</button>
-              <button className="mv-pill" onClick={() => dispararEstadisticas({ modo: 'ambos', detalle: detalleJugadores })}>📊 Ambos Equipos</button>
-              <select
-                className="mv-select"
-                value=""
-                onChange={(ev) => { if (ev.target.value) dispararEstadisticas({ modo: 'jugador', jugadorId: Number(ev.target.value) }); }}
-              >
-                <option value="">📊 Jugador…</option>
-                {jugadoresDeAmbos.map((j) => (
-                  <option key={j.id} value={j.id}>{j.equipoNombre} — #{j.dorsal ?? '-'} {j.nombre}</option>
-                ))}
-              </select>
-            </div>
-            <label className="mv-check-detalle">
-              <input type="checkbox" checked={detalleJugadores} onChange={(e) => setDetalleJugadores(e.target.checked)} />
-              Incluir detalle por jugador en Equipo Local/Visita/Ambos
-            </label>
-            <label className="mv-check-detalle">
-              <input type="checkbox" checked={ocultarMarcador} onChange={(e) => setOcultarMarcador(e.target.checked)} />
-              Ocultar el marcador mientras se muestra Nómina/Estadísticas
-            </label>
-            <p className="mv-disparadores-etiqueta" style={{ margin: 0 }}>
-              Cuántos segundos quedan visibles se ajusta por diseño, en Personalizar diseño.
-            </p>
           </div>
 
         </div>

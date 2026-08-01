@@ -139,18 +139,36 @@ function SelectorUbicacion({ etiqueta, valor, onChange, opciones = OPCIONES_UBIC
   );
 }
 
+// Control compacto para cualquier slider con un valor numérico a la vista
+// (tamaño/transparencia/posición/duración...) — etiqueta y valor van en la
+// MISMA fila (arriba), la barra ocupa todo el ancho debajo. Reemplaza el
+// patrón viejo (`<label>Texto ({valor}%)<input/></label>`, un solo bloque de
+// texto con un número metido en el medio) que en varios casos terminaba
+// partido en 2-3 líneas sueltas: JSX arma "Texto (", {valor} y "%)" como TRES
+// nodos de texto separados, y ese label heredaba estilos de flex-column en
+// algunos lugares — cada nodo terminaba en su propia fila. Con la etiqueta y
+// el valor en spans propios (un solo elemento cada uno) eso no puede pasar
+// más, en ningún contenedor.
+function CampoRango({ etiqueta, valor, unidad = '%', min, max, step = 1, onChange, ayuda }) {
+  return (
+    <label className="campo-rango">
+      <span className="campo-rango-cabecera">
+        <span className="campo-rango-etiqueta">{etiqueta}</span>
+        <span className="campo-rango-valor">{valor}{unidad}</span>
+      </span>
+      <input type="range" min={min} max={max} step={step} value={valor} onChange={(e) => onChange(Number(e.target.value))} />
+      {ayuda && <span className="campo-rango-ayuda">{ayuda}</span>}
+    </label>
+  );
+}
+
 // Cuántos segundos se queda en pantalla después de disparar el elemento
 // (nómina/estadísticas/anuncios) antes de ocultarse solo — cada uno tiene el
 // suyo, independiente de los demás, para poder dejar uno más rápido y otro
 // más lento según haga falta.
 function SelectorDuracion({ etiqueta, valor, porDefecto, onChange }) {
   const actual = Number.isFinite(valor) ? valor : porDefecto;
-  return (
-    <label>
-      {etiqueta} ({actual}s)
-      <input type="range" min={2} max={20} step={1} value={actual} onChange={(e) => onChange(Number(e.target.value))} />
-    </label>
-  );
+  return <CampoRango etiqueta={etiqueta} valor={actual} unidad="s" min={2} max={20} step={1} onChange={onChange} />;
 }
 
 const PESTANAS_PERSONALIZACION = [
@@ -187,16 +205,7 @@ function SelectorColor({ etiqueta, valor, alpha, porDefecto, onCambiarColor, onC
           <span className="selector-color-hex">{hex}</span>
         </div>
       </div>
-      <label className="selector-color-alpha">
-        Transparencia ({alpha}%)
-        <input
-          type="range"
-          min={10}
-          max={100}
-          value={Number.isFinite(alpha) ? alpha : 100}
-          onChange={(e) => onCambiarAlpha(Number(e.target.value))}
-        />
-      </label>
+      <CampoRango etiqueta="Transparencia" valor={Number.isFinite(alpha) ? alpha : 100} min={10} max={100} onChange={onCambiarAlpha} />
     </div>
   );
 }
@@ -769,12 +778,8 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
 
           <p className="seccion-titulo">Tamaño de los textos</p>
           <div className="fila-form">
-            <label>Números del marcador ({config.tamanoTextoMarcador}%)
-              <input type="range" min={60} max={220} value={config.tamanoTextoMarcador} onChange={(e) => cambiarConfig('tamanoTextoMarcador', Number(e.target.value))} />
-            </label>
-            <label>Nombre de los equipos ({config.tamanoTextoNombre}%)
-              <input type="range" min={60} max={220} value={config.tamanoTextoNombre} onChange={(e) => cambiarConfig('tamanoTextoNombre', Number(e.target.value))} />
-            </label>
+            <CampoRango etiqueta="Números del marcador" valor={config.tamanoTextoMarcador} min={60} max={220} onChange={(v) => cambiarConfig('tamanoTextoMarcador', v)} />
+            <CampoRango etiqueta="Nombre de los equipos" valor={config.tamanoTextoNombre} min={60} max={220} onChange={(v) => cambiarConfig('tamanoTextoNombre', v)} />
           </div>
           <button type="button" className="btn-link" style={{ alignSelf: 'flex-start', margin: '0 0 10px' }} onClick={restablecerTamanosTexto}>
             Restablecer tamaños de texto
@@ -793,16 +798,12 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
                   maxLength={60}
                 />
               </label>
-              <label>
-                Tamaño de la pestaña ({config.tituloTamano || 100}%)
-                <input
-                  type="range"
-                  min={50}
-                  max={200}
-                  value={Number.isFinite(config.tituloTamano) ? config.tituloTamano : 100}
-                  onChange={(e) => cambiarConfig('tituloTamano', Number(e.target.value))}
-                />
-              </label>
+              <CampoRango
+                etiqueta="Tamaño de la pestaña"
+                valor={Number.isFinite(config.tituloTamano) ? config.tituloTamano : 100}
+                min={50} max={200}
+                onChange={(v) => cambiarConfig('tituloTamano', v)}
+              />
               <div className="fila-form" style={{ alignItems: 'stretch' }}>
                 <SelectorColor
                   etiqueta="Fondo de la pestaña"
@@ -856,12 +857,8 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
           {config.mostrarLogo && (
             <div className="subgrupo">
               <div className="fila-form">
-                <label>Tamaño ({config.logoTamanoMarcador}px)
-                  <input type="range" min={20} max={180} value={config.logoTamanoMarcador} onChange={(e) => cambiarConfig('logoTamanoMarcador', Number(e.target.value))} />
-                </label>
-                <label>Transparencia ({config.logoOpacidadMarcador}%)
-                  <input type="range" min={10} max={100} value={config.logoOpacidadMarcador} onChange={(e) => cambiarConfig('logoOpacidadMarcador', Number(e.target.value))} />
-                </label>
+                <CampoRango etiqueta="Tamaño" valor={config.logoTamanoMarcador} unidad="px" min={20} max={180} onChange={(v) => cambiarConfig('logoTamanoMarcador', v)} />
+                <CampoRango etiqueta="Transparencia" valor={config.logoOpacidadMarcador} min={10} max={100} onChange={(v) => cambiarConfig('logoOpacidadMarcador', v)} />
               </div>
               <label>
                 Posición del logo en el marcador
@@ -883,21 +880,22 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
                 </label>
               )}
               {config.logoPosicion === 'costados' && (config.logoCajaModo || 'dentro') === 'dentro' && (
-                <label>
-                  Tamaño de la burbuja del costado ({config.logoCostadoTamano || 100}%)
-                  <input
-                    type="range" min={50} max={200} step={10}
-                    value={Number.isFinite(config.logoCostadoTamano) ? config.logoCostadoTamano : 100}
-                    onChange={(e) => cambiarConfig('logoCostadoTamano', Number(e.target.value))}
-                  />
-                </label>
+                <CampoRango
+                  etiqueta="Tamaño de la burbuja del costado"
+                  valor={Number.isFinite(config.logoCostadoTamano) ? config.logoCostadoTamano : 100}
+                  min={50} max={200} step={10}
+                  onChange={(v) => cambiarConfig('logoCostadoTamano', v)}
+                />
               )}
               {config.logoPosicion === 'fondo' && (
                 <>
-                  <label>Tamaño de la marca de agua ({config.logoTamanoFondo}% del ancho de la caja)
-                    <input type="range" min={15} max={90} value={config.logoTamanoFondo} onChange={(e) => cambiarConfig('logoTamanoFondo', Number(e.target.value))} />
-                  </label>
-                  <p className="texto-tenue" style={{ margin: 0 }}>Si tapa los números, bajá la transparencia (30-40%).</p>
+                  <CampoRango
+                    etiqueta="Tamaño de la marca de agua"
+                    valor={config.logoTamanoFondo}
+                    min={15} max={90}
+                    onChange={(v) => cambiarConfig('logoTamanoFondo', v)}
+                    ayuda="Si tapa los números, bajá la transparencia (30-40%)."
+                  />
                 </>
               )}
             </div>
@@ -931,17 +929,15 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
               </div>
             </label>
           </div>
-          <label>
-            Tamaño general ({Math.round(escalaActual * 100)}%)
-            <input type="range" min={0.5} max={2.6} step={0.05} value={escalaActual} onChange={(e) => cambiarConfig('escala', Number(e.target.value))} />
-          </label>
+          <CampoRango
+            etiqueta="Tamaño general"
+            valor={Math.round(escalaActual * 100)}
+            min={50} max={260} step={5}
+            onChange={(v) => cambiarConfig('escala', v / 100)}
+          />
           <div className="fila-form">
-            <label>Ensanchar (ancho, {estiramientoAnchoActual}%)
-              <input type="range" min={50} max={200} value={estiramientoAnchoActual} onChange={(e) => cambiarConfig('estiramientoAncho', Number(e.target.value))} />
-            </label>
-            <label>Alargar (alto, {estiramientoAltoActual}%)
-              <input type="range" min={50} max={200} value={estiramientoAltoActual} onChange={(e) => cambiarConfig('estiramientoAlto', Number(e.target.value))} />
-            </label>
+            <CampoRango etiqueta="Ensanchar (ancho)" valor={estiramientoAnchoActual} min={50} max={200} onChange={(v) => cambiarConfig('estiramientoAncho', v)} />
+            <CampoRango etiqueta="Alargar (alto)" valor={estiramientoAltoActual} min={50} max={200} onChange={(v) => cambiarConfig('estiramientoAlto', v)} />
           </div>
           <div className="fila-form" style={{ margin: '4px 0' }}>
             <span className="texto-tenue">{centrado && 'Centrado ✓'}</span>
@@ -1014,38 +1010,31 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
               </label>
               {config.animacionPuntosPosicion === 'libre' && (
                 <>
-                  <label>
-                    Posición horizontal ({Math.round(Number.isFinite(config.animacionPuntosX) ? config.animacionPuntosX : 50)}%)
-                    <input
-                      type="range" min={0} max={100} step={1}
-                      value={Number.isFinite(config.animacionPuntosX) ? config.animacionPuntosX : 50}
-                      onChange={(e) => cambiarConfig('animacionPuntosX', Number(e.target.value))}
+                  <div className="fila-form">
+                    <CampoRango
+                      etiqueta="Posición horizontal"
+                      valor={Math.round(Number.isFinite(config.animacionPuntosX) ? config.animacionPuntosX : 50)}
+                      min={0} max={100}
+                      onChange={(v) => cambiarConfig('animacionPuntosX', v)}
                     />
-                  </label>
-                  <label>
-                    Posición vertical ({Math.round(Number.isFinite(config.animacionPuntosY) ? config.animacionPuntosY : 50)}%)
-                    <input
-                      type="range" min={0} max={100} step={1}
-                      value={Number.isFinite(config.animacionPuntosY) ? config.animacionPuntosY : 50}
-                      onChange={(e) => cambiarConfig('animacionPuntosY', Number(e.target.value))}
+                    <CampoRango
+                      etiqueta="Posición vertical"
+                      valor={Math.round(Number.isFinite(config.animacionPuntosY) ? config.animacionPuntosY : 50)}
+                      min={0} max={100}
+                      onChange={(v) => cambiarConfig('animacionPuntosY', v)}
                     />
-                  </label>
+                  </div>
                   <p className="texto-tenue" style={{ margin: 0, fontSize: 12 }}>
-                    Independiente de dónde esté el marcador — o arrastrá el punto azul directo en la vista previa de arriba.
+                    O arrastrá el punto azul directo en la vista previa de arriba.
                   </p>
                 </>
               )}
-              <label>
-                Tamaño ({Number.isFinite(config.animacionPuntosTamano) ? config.animacionPuntosTamano : 100}%)
-                <input
-                  type="range"
-                  min={50}
-                  max={200}
-                  step={10}
-                  value={Number.isFinite(config.animacionPuntosTamano) ? config.animacionPuntosTamano : 100}
-                  onChange={(e) => cambiarConfig('animacionPuntosTamano', Number(e.target.value))}
-                />
-              </label>
+              <CampoRango
+                etiqueta="Tamaño"
+                valor={Number.isFinite(config.animacionPuntosTamano) ? config.animacionPuntosTamano : 100}
+                min={50} max={200} step={10}
+                onChange={(v) => cambiarConfig('animacionPuntosTamano', v)}
+              />
               <label>
                 Estilo de animación
                 <select
@@ -1099,27 +1088,17 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
                     </select>
                   </label>
                   {config.nominaLogoPosicion === 'fondo' ? (
-                    <>
-                      <label>
-                        Tamaño ({config.nominaLogoFondoTamano || 130}% de la altura de la nómina)
-                        <input
-                          type="range"
-                          min={100}
-                          max={220}
-                          value={Number.isFinite(config.nominaLogoFondoTamano) ? config.nominaLogoFondoTamano : 130}
-                          onChange={(e) => cambiarConfig('nominaLogoFondoTamano', Number(e.target.value))}
-                        />
-                      </label>
-                      <p className="texto-tenue" style={{ margin: 0 }}>Nunca queda más chico que la altura de la nómina.</p>
-                    </>
+                    <CampoRango
+                      etiqueta="Tamaño"
+                      valor={Number.isFinite(config.nominaLogoFondoTamano) ? config.nominaLogoFondoTamano : 130}
+                      min={100} max={220}
+                      onChange={(v) => cambiarConfig('nominaLogoFondoTamano', v)}
+                      ayuda="Nunca queda más chico que la altura de la nómina."
+                    />
                   ) : (
-                    <label>Tamaño ({config.logoTamanoNomina}px)
-                      <input type="range" min={20} max={140} value={config.logoTamanoNomina} onChange={(e) => cambiarConfig('logoTamanoNomina', Number(e.target.value))} />
-                    </label>
+                    <CampoRango etiqueta="Tamaño" valor={config.logoTamanoNomina} unidad="px" min={20} max={140} onChange={(v) => cambiarConfig('logoTamanoNomina', v)} />
                   )}
-                  <label>Transparencia ({config.logoOpacidadNomina}%)
-                    <input type="range" min={10} max={100} value={config.logoOpacidadNomina} onChange={(e) => cambiarConfig('logoOpacidadNomina', Number(e.target.value))} />
-                  </label>
+                  <CampoRango etiqueta="Transparencia" valor={config.logoOpacidadNomina} min={10} max={100} onChange={(v) => cambiarConfig('logoOpacidadNomina', v)} />
                 </div>
               )}
               <Toggle etiqueta="Estadísticas por jugador" checked={config.nominaConEstadisticas} onChange={(v) => cambiarConfig('nominaConEstadisticas', v)} />
@@ -1141,12 +1120,8 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
               <Toggle etiqueta="Escudos de los equipos" checked={config.logoEnEstadisticas} onChange={(v) => cambiarConfig('logoEnEstadisticas', v)} />
               {config.logoEnEstadisticas && (
                 <div className="fila-form">
-                  <label>Tamaño ({config.logoTamanoEstadisticas}px)
-                    <input type="range" min={30} max={160} value={config.logoTamanoEstadisticas} onChange={(e) => cambiarConfig('logoTamanoEstadisticas', Number(e.target.value))} />
-                  </label>
-                  <label>Transparencia ({config.logoOpacidadEstadisticas}%)
-                    <input type="range" min={10} max={100} value={config.logoOpacidadEstadisticas} onChange={(e) => cambiarConfig('logoOpacidadEstadisticas', Number(e.target.value))} />
-                  </label>
+                  <CampoRango etiqueta="Tamaño" valor={config.logoTamanoEstadisticas} unidad="px" min={30} max={160} onChange={(v) => cambiarConfig('logoTamanoEstadisticas', v)} />
+                  <CampoRango etiqueta="Transparencia" valor={config.logoOpacidadEstadisticas} min={10} max={100} onChange={(v) => cambiarConfig('logoOpacidadEstadisticas', v)} />
                 </div>
               )}
               <Toggle etiqueta="Detalle por jugador" checked={config.mostrarDetalleJugadores} onChange={(v) => cambiarConfig('mostrarDetalleJugadores', v)} />
@@ -1214,22 +1189,18 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
                     </div>
                     <button type="button" className="btn-link" onClick={() => eliminarLogoLibre(logo.id)}>🗑️ Quitar</button>
                   </div>
-                  <label>
-                    Tamaño ({Math.round(logo.anchoPercent ?? 15)}%)
-                    <input
-                      type="range" min={3} max={40} step={1}
-                      value={Number.isFinite(logo.anchoPercent) ? logo.anchoPercent : 15}
-                      onChange={(e) => actualizarLogoLibre(logo.id, { anchoPercent: Number(e.target.value) })}
-                    />
-                  </label>
-                  <label>
-                    Transparencia ({Math.round(logo.opacidad ?? 100)}%)
-                    <input
-                      type="range" min={10} max={100} step={1}
-                      value={Number.isFinite(logo.opacidad) ? logo.opacidad : 100}
-                      onChange={(e) => actualizarLogoLibre(logo.id, { opacidad: Number(e.target.value) })}
-                    />
-                  </label>
+                  <CampoRango
+                    etiqueta="Tamaño"
+                    valor={Number.isFinite(logo.anchoPercent) ? logo.anchoPercent : 15}
+                    min={3} max={40}
+                    onChange={(v) => actualizarLogoLibre(logo.id, { anchoPercent: v })}
+                  />
+                  <CampoRango
+                    etiqueta="Transparencia"
+                    valor={Number.isFinite(logo.opacidad) ? logo.opacidad : 100}
+                    min={10} max={100}
+                    onChange={(v) => actualizarLogoLibre(logo.id, { opacidad: v })}
+                  />
                 </div>
               ))}
             </div>
