@@ -266,6 +266,41 @@ export const FUENTES_DISPONIBLES = [
 // vacía) preserva el look de autor de cada plantilla tal cual estaba.
 export const fuenteEfectiva = (config, plantillaId) => config?.fuenteMarcador || fuenteDePlantilla(plantillaId);
 
+// Colores/tamaños/tipografía PROPIOS de una capa (Nómina/Estadísticas/
+// Anuncios), independientes de los del marcador (--pm-*) — mismo patrón
+// para las tres, un solo lugar. `prefijo` es 'nomina'/'estadisticas'/
+// 'anuncios': lee config[`${prefijo}ColorFondo`] etc. y arma las variables
+// `--${prefijo}-fondo`/`-texto`/`-titulo`/`-escala-texto`/`-escala-titulo`/
+// `-titulo-fuente`/`-titulo-peso`. Sin elegir nada a mano, el CSS de cada
+// capa sigue cayendo en var(--pm-tablero, ...) como respaldo (ver cada
+// hoja de estilos) — este helper solo agrega la propiedad cuando el
+// usuario eligió algo puntual, nunca fuerza un valor por las suyas.
+export function estiloTemaCapa(config, prefijo) {
+  const estilo = {};
+  const fondo = config?.[`${prefijo}ColorFondo`];
+  const texto = config?.[`${prefijo}ColorTexto`];
+  const titulo = config?.[`${prefijo}ColorTitulo`];
+  if (fondo) estilo[`--${prefijo}-fondo`] = hexConAlpha(fondo, config?.[`${prefijo}ColorFondoAlpha`]);
+  if (texto) estilo[`--${prefijo}-texto`] = hexConAlpha(texto, config?.[`${prefijo}ColorTextoAlpha`]);
+  if (titulo) estilo[`--${prefijo}-titulo`] = hexConAlpha(titulo, config?.[`${prefijo}ColorTituloAlpha`]);
+  const escalaTexto = Number.isFinite(config?.[`${prefijo}TamanoTexto`]) ? config[`${prefijo}TamanoTexto`] / 100 : 1;
+  const escalaTitulo = Number.isFinite(config?.[`${prefijo}TamanoTitulo`]) ? config[`${prefijo}TamanoTitulo`] / 100 : 1;
+  estilo[`--${prefijo}-escala-texto`] = escalaTexto;
+  estilo[`--${prefijo}-escala-titulo`] = escalaTitulo;
+  if (config?.[`${prefijo}TituloFuente`]) estilo[`--${prefijo}-titulo-fuente`] = config[`${prefijo}TituloFuente`];
+  estilo[`--${prefijo}-titulo-peso`] = config?.[`${prefijo}TituloNegrita`] ? 800 : 400;
+  return estilo;
+}
+
+// Familia visual efectiva de una capa: la elegida a mano
+// (config[`${prefijo}EstiloAnimacion`]) si hay una, o si no la de la
+// plantilla de marcador — mismo criterio que ya usaba Anuncios
+// (alertaAnimacion), ahora factorizado para reusarlo en Nómina y
+// Estadísticas también.
+export function familiaEfectiva(config, prefijo, plantillaId) {
+  return config?.[`${prefijo}EstiloAnimacion`] || familiaDePlantilla(plantillaId);
+}
+
 // `modoAlerta` define cómo entra una jugada/falta en la escena de Anuncios
 // respecto al marcador: 'arriba' la agrega como una franja encima de él
 // (el marcador se sigue viendo debajo, sin taparlo); 'superpone' la hace
@@ -299,6 +334,25 @@ export function estiloAnclaAlerta(tema = {}, modo = 'arriba', lado = 'izquierda'
   const posX = Number.isFinite(tema?.posX) ? tema.posX : 50;
   const posY = Number.isFinite(tema?.posY) ? tema.posY : 88;
   const mitad = mitadCajaProporcional(tema);
+
+  // 'libre': el usuario elige un punto propio (anunciosX/Y), como con el
+  // marcador — sin depender de dónde esté la caja ni de su tamaño. Mismo
+  // criterio que 'costado' (la jugada del equipo LOCAL sale del lado
+  // izquierdo de ese punto, la del VISITA del lado derecho) para no perder
+  // esa lectura ("de qué lado jugó cada uno") solo porque la posición ahora
+  // es libre en vez de estar atada al marcador.
+  if (modo === 'libre') {
+    const libreX = Number.isFinite(tema?.anunciosX) ? tema.anunciosX : 50;
+    const libreY = Number.isFinite(tema?.anunciosY) ? tema.anunciosY : 15;
+    const separacionLibre = 4;
+    const x = lado === 'derecha' ? Math.min(100, libreX + separacionLibre) : Math.max(0, libreX - separacionLibre);
+    return {
+      justifyContent: 'flex-start',
+      alignItems: 'flex-start',
+      paddingLeft: `${x}%`,
+      paddingTop: paddingTopDesdeY(libreY),
+    };
+  }
 
   if (modo === 'costado') {
     const x = lado === 'derecha' ? Math.min(100, posX + mitad.x) : Math.max(0, posX - mitad.x);

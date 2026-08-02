@@ -13,11 +13,11 @@ html:has(.stats-overlay) {
   justify-content: center;
   padding: 40px;
   font-family: var(--pm-fuente, 'Oswald', sans-serif);
-  color: var(--pm-texto, #fff);
+  color: var(--estadisticas-texto, var(--pm-texto, #fff));
 }
 
 .stats-caja {
-  background: var(--pm-tablero, rgba(8, 10, 16, 0.9));
+  background: var(--estadisticas-fondo, var(--pm-tablero, rgba(8, 10, 16, 0.9)));
   border-radius: 14px;
   padding: 18px 30px;
   min-width: 320px;
@@ -126,7 +126,7 @@ html:has(.stats-overlay) {
   grid-template-columns: 24px 1fr 32px 32px 32px 32px 44px;
   gap: 6px;
   align-items: center;
-  font-size: 12px;
+  font-size: calc(12px * var(--estadisticas-escala-texto, 1));
 }
 .stats-fila-encabezado {
   color: #9aa0ac;
@@ -160,7 +160,7 @@ html:has(.stats-overlay) {
 }
 
 .stats-titulo {
-  font-size: 14px;
+  font-size: calc(14px * var(--estadisticas-escala-titulo, 1));
   text-transform: uppercase;
   letter-spacing: 1.5px;
   color: #9aa0ac;
@@ -168,8 +168,10 @@ html:has(.stats-overlay) {
 }
 
 .stats-nombre {
-  font-size: 22px;
-  font-weight: 700;
+  font-size: calc(22px * var(--estadisticas-escala-titulo, 1));
+  font-weight: var(--estadisticas-titulo-peso, 700);
+  font-family: var(--estadisticas-titulo-fuente, inherit);
+  color: var(--estadisticas-titulo, inherit);
   margin-bottom: 14px;
 }
 
@@ -184,13 +186,13 @@ html:has(.stats-overlay) {
 }
 
 .stats-valor {
-  font-size: 30px;
+  font-size: calc(30px * var(--estadisticas-escala-texto, 1));
   font-weight: 700;
   color: var(--pm-marcador, #fff);
 }
 
 .stats-etiqueta {
-  font-size: 11px;
+  font-size: calc(11px * var(--estadisticas-escala-texto, 1));
   color: #9aa0ac;
   text-transform: uppercase;
 }

@@ -24,8 +24,10 @@ html:has(.anuncios-overlay) {
 .anuncios-ancla {
   display: inline-block;
 }
-.modo-costado.lado-izquierda .anuncios-ancla { transform: translate(-100%, -50%); }
-.modo-costado.lado-derecha .anuncios-ancla { transform: translate(0%, -50%); }
+.modo-costado.lado-izquierda .anuncios-ancla,
+.modo-libre.lado-izquierda .anuncios-ancla { transform: translate(-100%, -50%); }
+.modo-costado.lado-derecha .anuncios-ancla,
+.modo-libre.lado-derecha .anuncios-ancla { transform: translate(0%, -50%); }
 .modo-superpone .anuncios-ancla { transform: translate(-50%, -50%); }
 .modo-arriba .anuncios-ancla { transform: translate(-50%, -100%); }
 /* Cuando el título está activo y el aviso va "debajo del marcador"
@@ -34,11 +36,12 @@ html:has(.anuncios-overlay) {
 .modo-abajo-caja .anuncios-ancla { transform: translate(-50%, 0%); }
 
 .anuncios-toast {
-  background: var(--pm-tablero, rgba(8, 10, 16, 0.92));
+  background: var(--anuncios-fondo, var(--pm-tablero, rgba(8, 10, 16, 0.92)));
   border-left: 6px solid var(--pm-banner, #ffb703);
-  color: var(--pm-texto, #fff);
-  font-size: 22px;
-  font-weight: 700;
+  color: var(--anuncios-texto, var(--pm-texto, #fff));
+  font-size: calc(22px * var(--anuncios-escala-texto, 1));
+  font-weight: var(--anuncios-titulo-peso, 700);
+  font-family: var(--anuncios-titulo-fuente, inherit);
   padding: 14px 28px;
   border-radius: 8px;
   box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
@@ -48,7 +51,7 @@ html:has(.anuncios-overlay) {
 
 /* La alerta "toma" el área del marcador un instante — más grande y notoria */
 .modo-superpone .anuncios-toast {
-  font-size: 30px;
+  font-size: calc(30px * var(--anuncios-escala-texto, 1));
   padding: 20px 40px;
 }
 
@@ -57,12 +60,14 @@ html:has(.anuncios-overlay) {
    de ahí en vez de ser un cartel aparte. El borde que toca la caja se pinta
    del color del equipo que hizo la jugada (si el diseño lo conoce), como
    conector visual entre la pestaña y el marcador. */
-.modo-costado.lado-izquierda .anuncios-toast {
+.modo-costado.lado-izquierda .anuncios-toast,
+.modo-libre.lado-izquierda .anuncios-toast {
   border-radius: 10px 0 0 10px;
   border-left: none;
   border-right: 5px solid var(--anuncio-color-equipo, var(--pm-banner, #ffb703));
 }
-.modo-costado.lado-derecha .anuncios-toast {
+.modo-costado.lado-derecha .anuncios-toast,
+.modo-libre.lado-derecha .anuncios-toast {
   border-radius: 0 10px 10px 0;
   border-left: 5px solid var(--anuncio-color-equipo, var(--pm-banner, #ffb703));
 }
@@ -82,7 +87,7 @@ html:has(.anuncios-overlay) {
    competir en tamaño con él — sigue siendo notorio, pero se lee como parte
    del mismo conjunto en vez de un cartel más grande tapando todo. */
 .anuncios-compacto .anuncios-toast {
-  font-size: 16px;
+  font-size: calc(16px * var(--anuncios-escala-texto, 1));
   padding: 10px 20px;
 }
 

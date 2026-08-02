@@ -1,4 +1,4 @@
-import { estiloTema, familiaDePlantilla, fuenteEfectiva } from '../utils';
+import { estiloTema, estiloTemaCapa, familiaEfectiva, fuenteEfectiva } from '../utils';
 import LogoEquipo from '../LogoEquipo';
 import '../nomina.css';
 
@@ -28,26 +28,32 @@ export default function VistaNomina({ partido, modo = 'ambos', claveAnimacion = 
   // = esa altura exacta, más se lo puede agrandar para que sobresalga).
   const logoDeFondo = mostrarLogo && (config?.nominaLogoPosicion || 'costado') === 'fondo';
   const opacidadLogo = (Number.isFinite(config?.logoOpacidadNomina) ? config.logoOpacidadNomina : 100) / 100;
-  const altoLogoFondo = Math.max(100, Number(config?.nominaLogoFondoTamano) || 130);
-  const familia = familiaDePlantilla(plantillaId);
+  // Antes tenía un piso de 100% ("nunca más chico que la altura de la
+  // nómina") — ahora se puede achicar tanto como haga falta, el usuario
+  // decide, sin ningún mínimo forzado desde acá.
+  const altoLogoFondo = Number.isFinite(config?.nominaLogoFondoTamano) ? config.nominaLogoFondoTamano : 130;
+  const familia = familiaEfectiva(config, 'nomina', plantillaId);
   // Techo de ancho para el logo de fondo — antes, con un logo bien ancho (o
   // el tamaño llevado a 200%) podía crecer tanto que se metía en la zona del
   // OTRO equipo y los dos escudos quedaban superpuestos. Con esto, cada uno
   // queda confinado a su propia mitad de la pantalla como mucho.
   const maxAnchoLogoFondo = '32vw';
-  // La nómina SIEMPRE arranca pegada arriba, sea cual sea la cantidad de
+  // Por defecto la nómina arranca pegada arriba, sea cual sea la cantidad de
   // jugadores (3 o 12) o el modo (un equipo o los dos juntos) — antes el
   // disparo de un solo equipo usaba la ubicación "izquierda"/"derecha", que
-  // además de mover el bloque al costado lo CENTRA verticalmente
-  // (alignItems:center); con un plantel corto eso lo dejaba flotando a
-  // mitad de pantalla en vez de arrancar desde el mismo lugar que cuando se
-  // disparan los dos equipos juntos. Acá el alto NUNCA se toca (siempre
-  // flex-start) — lo único configurable es el costado (config.nominaPosicion:
-  // izquierda/centro/derecha), y si se dispara un solo equipo, ESE equipo
-  // manda sobre el configurado (local ⇒ izquierda, visita ⇒ derecha).
+  // además de mover el bloque al costado lo CENTRABA verticalmente,
+  // dejándolo flotando a mitad de pantalla con un plantel corto. Ahora
+  // "arriba" sigue siendo el default, pero config.nominaPosicionVertical
+  // permite elegir centro/abajo a propósito si el usuario lo quiere así —
+  // ya no es una regla fija, es una libertad más.
   const horizontal = modo === 'local' ? 'izquierda' : modo === 'visita' ? 'derecha' : config?.nominaPosicion;
   const justifyContent = horizontal === 'izquierda' ? 'flex-start' : horizontal === 'derecha' ? 'flex-end' : 'center';
-  const estilo = { ...estiloTema(config), alignItems: 'flex-start', justifyContent, '--pm-fuente': fuenteEfectiva(config, plantillaId) };
+  const vertical = config?.nominaPosicionVertical || 'arriba';
+  const alignItems = vertical === 'abajo' ? 'flex-end' : vertical === 'centro' ? 'center' : 'flex-start';
+  const estilo = {
+    ...estiloTema(config), ...estiloTemaCapa(config, 'nomina'),
+    alignItems, justifyContent, '--pm-fuente': fuenteEfectiva(config, plantillaId),
+  };
 
   // El delay del "entra deslizando" se achica con listas más largas (plantel
   // completo, hasta 12) para que no tarde años en aparecer el último — antes

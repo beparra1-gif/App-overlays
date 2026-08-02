@@ -57,6 +57,7 @@ export default function PreviaCombinada({
   plantillaId, config, equipoLocalPreview, equipoVisitaPreview, partidoReal, modo = 'general',
   logosLibresEditable = false, onArrastrarLogoLibre,
   animacionPuntosEditable = false, onArrastrarAnimacionPuntos,
+  anunciosEditable = false, onArrastrarAnuncios,
 }) {
   const { Componente: Marcador } = obtenerPlantilla(plantillaId);
   // Mismo criterio que VistaMarcador (la escena pública real): el título y
@@ -99,7 +100,12 @@ export default function PreviaCombinada({
   // el marcador como referencia de tamaño es lo que deja ver de verdad si
   // el aviso quedó desproporcionado — encuadrar solo el toast (como antes)
   // dejaba al marcador afuera del encuadre, editando el tamaño "a ciegas".
-  const medidaAEncuadrar = (modo === 'marcador' || modo === 'anuncios') ? caja : medidaContenido;
+  // Excepción: con posición LIBRE el aviso puede estar en cualquier punto
+  // de la pantalla, lejos del marcador — ahí no conviene ningún zoom
+  // ajustado, se ve el lienzo completo (igual que Logos libres) para poder
+  // arrastrar la marca a cualquier lado sin que quede fuera del encuadre.
+  const anunciosLibre = modo === 'anuncios' && (config?.alertaPosicion || '') === 'libre';
+  const medidaAEncuadrar = anunciosLibre ? null : (modo === 'marcador' || modo === 'anuncios') ? caja : medidaContenido;
   let estiloZoom;
   if (medidaAEncuadrar) {
     const zoomAncho = RELLENO / Math.max(1, medidaAEncuadrar.width);
@@ -167,6 +173,9 @@ export default function PreviaCombinada({
               colorVisita={partido.equipoVisita.color}
               caja={caja}
               demo
+              editable={anunciosEditable}
+              onArrastrar={onArrastrarAnuncios}
+              contenedorRef={lienzoRef}
             />
           )}
           <LogosLibres config={config} editable={logosLibresEditable} onArrastrar={onArrastrarLogoLibre} contenedorRef={lienzoRef} />

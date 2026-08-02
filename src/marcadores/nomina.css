@@ -12,7 +12,7 @@ html:has(.nomina-overlay) {
   align-items: center;
   justify-content: center;
   font-family: var(--pm-fuente, 'Oswald', sans-serif);
-  color: var(--pm-texto, #fff);
+  color: var(--nomina-texto, var(--pm-texto, #fff));
   padding: 40px;
 }
 
@@ -75,9 +75,12 @@ html:has(.nomina-overlay) {
 }
 
 .nomina-titulo {
-  font-size: 20px;
+  font-size: calc(20px * var(--nomina-escala-titulo, 1));
   text-transform: uppercase;
   letter-spacing: 2px;
+  color: var(--nomina-titulo, inherit);
+  font-weight: var(--nomina-titulo-peso, 400);
+  font-family: var(--nomina-titulo-fuente, inherit);
 }
 
 /* Grilla fija por fila — mismo ancho de columna (dorsal/nombre/stats) en
@@ -90,7 +93,7 @@ html:has(.nomina-overlay) {
   grid-template-columns: 40px 1fr auto auto;
   align-items: center;
   gap: 6px 10px;
-  background: var(--pm-tablero, rgba(10, 12, 20, 0.85));
+  background: var(--nomina-fondo, var(--pm-tablero, rgba(10, 12, 20, 0.85)));
   border-radius: 10px;
   padding: 8px 18px;
   width: 320px;
@@ -120,13 +123,13 @@ html:has(.nomina-overlay) {
 }
 
 .nomina-dorsal {
-  font-size: 26px;
+  font-size: calc(26px * var(--nomina-escala-texto, 1));
   font-weight: 700;
   text-align: center;
 }
 
 .nomina-nombre {
-  font-size: 18px;
+  font-size: calc(18px * var(--nomina-escala-texto, 1));
   font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -134,8 +137,8 @@ html:has(.nomina-overlay) {
 }
 
 .nomina-stats {
-  font-size: 11px;
-  color: #cfd3dc;
+  font-size: calc(11px * var(--nomina-escala-texto, 1));
+  color: var(--nomina-texto, #cfd3dc);
   text-align: right;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;

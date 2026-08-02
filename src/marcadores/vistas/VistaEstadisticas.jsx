@@ -1,4 +1,4 @@
-import { estiloTema, estiloUbicacion, familiaDePlantilla, fuenteEfectiva, formatearReloj } from '../utils';
+import { estiloTema, estiloTemaCapa, estiloUbicacion, familiaEfectiva, fuenteEfectiva, formatearReloj } from '../utils';
 import LogoEquipo from '../LogoEquipo';
 import '../estadisticas.css';
 
@@ -105,7 +105,7 @@ function CajaEquipo({ equipo, equipoKey, tema, mostrarLogo, detalle, puntosPorPe
 
 export default function VistaEstadisticas({ partido, config = {}, tema, plantillaId }) {
   const modo = config.modo === 'jugador' ? 'jugador' : config.modo === 'ambos' ? 'ambos' : 'equipo';
-  const familia = familiaDePlantilla(plantillaId);
+  const familia = familiaEfectiva(tema, 'estadisticas', plantillaId);
   // El detalle por jugador se puede fijar fijo en el diseño, o pedirlo
   // puntual al disparar desde la Mesa (esto último gana si está prendido).
   const detalle = config?.detalle === true || tema?.mostrarDetalleJugadores === true;
@@ -116,7 +116,10 @@ export default function VistaEstadisticas({ partido, config = {}, tema, plantill
   // modos "ambos" y "jugador" siguen usando la ubicación del diseño, como
   // ya la tenían.
   const ubicacion = modo === 'equipo' ? (config.equipo === 'visita' ? 'derecha' : 'izquierda') : tema?.estadisticasPosicion;
-  const estilo = { ...estiloTema(tema), ...estiloUbicacion(ubicacion), '--pm-fuente': fuenteEfectiva(tema, plantillaId) };
+  const estilo = {
+    ...estiloTema(tema), ...estiloTemaCapa(tema, 'estadisticas'), ...estiloUbicacion(ubicacion),
+    '--pm-fuente': fuenteEfectiva(tema, plantillaId),
+  };
 
   if (modo === 'ambos') {
     return (

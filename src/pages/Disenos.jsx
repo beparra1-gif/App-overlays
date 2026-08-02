@@ -61,6 +61,7 @@ const CONFIG_INICIAL = {
   // Nómina
   mostrarNomina: true,
   nominaPosicion: 'centro',
+  nominaPosicionVertical: 'arriba',
   nominaConEstadisticas: false,
   logoEnNomina: true,
   nominaLogoPosicion: 'costado',
@@ -68,6 +69,14 @@ const CONFIG_INICIAL = {
   logoOpacidadNomina: 100,
   nominaLogoFondoTamano: 130,
   nominaDuracionSeg: 6,
+  nominaTamanoTexto: 100,
+  nominaTamanoTitulo: 100,
+  nominaColorFondo: '', nominaColorFondoAlpha: 100,
+  nominaColorTexto: '', nominaColorTextoAlpha: 100,
+  nominaColorTitulo: '', nominaColorTituloAlpha: 100,
+  nominaEstiloAnimacion: '',
+  nominaTituloNegrita: false,
+  nominaTituloFuente: '',
 
   // Estadísticas
   mostrarEstadisticas: true,
@@ -77,6 +86,14 @@ const CONFIG_INICIAL = {
   logoTamanoEstadisticas: 56,
   logoOpacidadEstadisticas: 100,
   estadisticasDuracionSeg: 7,
+  estadisticasTamanoTexto: 100,
+  estadisticasTamanoTitulo: 100,
+  estadisticasColorFondo: '', estadisticasColorFondoAlpha: 100,
+  estadisticasColorTexto: '', estadisticasColorTextoAlpha: 100,
+  estadisticasColorTitulo: '', estadisticasColorTituloAlpha: 100,
+  estadisticasEstiloAnimacion: '',
+  estadisticasTituloNegrita: false,
+  estadisticasTituloFuente: '',
 
   // Anuncios
   anunciarJugadas: true,
@@ -84,6 +101,13 @@ const CONFIG_INICIAL = {
   alertaAnimacion: '',
   anunciarFaltas: true,
   anunciosDuracionSeg: 4,
+  anunciosTamanoTexto: 100,
+  anunciosColorFondo: '', anunciosColorFondoAlpha: 100,
+  anunciosColorTexto: '', anunciosColorTextoAlpha: 100,
+  anunciosTituloNegrita: false,
+  anunciosTituloFuente: '',
+  anunciosX: 50,
+  anunciosY: 15,
 
   // Logos libres (competencia/torneo/liga): posición y tamaño propios,
   // libres, sin atarse a ningún otro elemento del marcador.
@@ -108,15 +132,6 @@ const OPCIONES_UBICACION_NOMINA = [
   { id: 'izquierda', etiqueta: 'Izquierda' },
   { id: 'centro', etiqueta: 'Centro' },
   { id: 'derecha', etiqueta: 'Derecha' },
-];
-
-const OPCIONES_ANIMACION_ANUNCIO = [
-  { id: '', etiqueta: 'Automático según el diseño' },
-  { id: 'clasico', etiqueta: 'Clásica (aparece con un zoom suave)' },
-  { id: 'broadcast', etiqueta: 'Broadcast (desliza rápido desde el costado)' },
-  { id: 'neon', etiqueta: 'Neón (parpadeo tipo cartel de luz)' },
-  { id: 'streetball', etiqueta: 'Streetball (desliza inclinado con rebote)' },
-  { id: 'cristal', etiqueta: 'Cristal (aparece difuminado)' },
 ];
 
 function Toggle({ etiqueta, checked, onChange }) {
@@ -207,6 +222,62 @@ function SelectorColor({ etiqueta, valor, alpha, porDefecto, onCambiarColor, onC
       </div>
       <CampoRango etiqueta="Transparencia" valor={Number.isFinite(alpha) ? alpha : 100} min={10} max={100} onChange={onCambiarAlpha} />
     </div>
+  );
+}
+
+const OPCIONES_ANIMACION_FAMILIA = [
+  { id: '', etiqueta: 'Automática (la de la plantilla)' },
+  { id: 'clasico', etiqueta: 'Clásica' },
+  { id: 'broadcast', etiqueta: 'Broadcast' },
+  { id: 'neon', etiqueta: 'Neón' },
+  { id: 'streetball', etiqueta: 'Streetball' },
+  { id: 'cristal', etiqueta: 'Cristal' },
+];
+
+// Bloque de controles compartido por Nómina/Estadísticas/Anuncios: tamaño,
+// colores propios (vacío = hereda los del marcador), animación de entrada y
+// tipo de letra — mismo set en las tres, un solo lugar en vez de repetir
+// ~40 líneas de JSX por cada una. `prefijo` es 'nomina'/'estadisticas'/
+// 'anuncios' (así arma las claves de config, p. ej. nominaColorFondo);
+// `tituloSeparado=false` (Anuncios, que no tiene un "título" propio aparte
+// del texto del aviso) oculta el tamaño/color de título y relabelea tipo de
+// letra/negrita para que hablen del aviso entero.
+function SeccionEstiloCapa({ prefijo, config, cambiarConfig, tituloSeparado = true, etiquetaTitulo = 'Título' }) {
+  const g = (sufijo) => config[`${prefijo}${sufijo}`];
+  const set = (sufijo) => (v) => cambiarConfig(`${prefijo}${sufijo}`, v);
+  return (
+    <>
+      <p className="seccion-titulo">Tamaño</p>
+      <div className="fila-form">
+        <CampoRango etiqueta="Texto" valor={Number.isFinite(g('TamanoTexto')) ? g('TamanoTexto') : 100} min={5} max={200} onChange={set('TamanoTexto')} />
+        {tituloSeparado && (
+          <CampoRango etiqueta={etiquetaTitulo} valor={Number.isFinite(g('TamanoTitulo')) ? g('TamanoTitulo') : 100} min={5} max={200} onChange={set('TamanoTitulo')} />
+        )}
+      </div>
+      <p className="seccion-titulo">Colores (vacío = los del marcador)</p>
+      <div className="fila-form" style={{ alignItems: 'stretch' }}>
+        <SelectorColor etiqueta="Fondo" valor={g('ColorFondo')} alpha={g('ColorFondoAlpha')} porDefecto="#0a0c12" onCambiarColor={set('ColorFondo')} onCambiarAlpha={set('ColorFondoAlpha')} />
+        <SelectorColor etiqueta="Texto" valor={g('ColorTexto')} alpha={g('ColorTextoAlpha')} porDefecto="#ffffff" onCambiarColor={set('ColorTexto')} onCambiarAlpha={set('ColorTextoAlpha')} />
+        {tituloSeparado && (
+          <SelectorColor etiqueta={etiquetaTitulo} valor={g('ColorTitulo')} alpha={g('ColorTituloAlpha')} porDefecto="#ffb703" onCambiarColor={set('ColorTitulo')} onCambiarAlpha={set('ColorTituloAlpha')} />
+        )}
+      </div>
+      <label>
+        Animación
+        <select value={g('EstiloAnimacion') || ''} onChange={(e) => set('EstiloAnimacion')(e.target.value)}>
+          {OPCIONES_ANIMACION_FAMILIA.map((o) => <option key={o.id} value={o.id}>{o.etiqueta}</option>)}
+        </select>
+      </label>
+      <div className="fila-form">
+        <label>
+          Tipo de letra {tituloSeparado ? `del ${etiquetaTitulo.toLowerCase()}` : 'del aviso'}
+          <select value={g('TituloFuente') || ''} onChange={(e) => set('TituloFuente')(e.target.value)}>
+            {FUENTES_DISPONIBLES.map((f) => <option key={f.id} value={f.id}>{f.etiqueta}</option>)}
+          </select>
+        </label>
+      </div>
+      <Toggle etiqueta={`${tituloSeparado ? etiquetaTitulo : 'Aviso'} en negrita`} checked={Boolean(g('TituloNegrita'))} onChange={set('TituloNegrita')} />
+    </>
   );
 }
 
@@ -343,6 +414,9 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
   // PreviaCombinada) actualiza los dos ejes de una — mismo patrón que
   // arrastrar un logo libre.
   const arrastrarAnimacionPuntos = (x, y) => setConfig((c) => ({ ...c, animacionPuntosX: x, animacionPuntosY: y }));
+
+  // Mismo patrón para la marca de posición libre de Anuncios.
+  const arrastrarAnuncios = (x, y) => setConfig((c) => ({ ...c, anunciosX: x, anunciosY: y }));
 
   // Logos libres: se guardan y se leen siempre desde config.logosLibres —
   // agregar/editar/borrar son todo variaciones de "reemplazar el array
@@ -635,6 +709,8 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
             onArrastrarLogoLibre={(id, x, y) => actualizarLogoLibre(id, { xPercent: x, yPercent: y })}
             animacionPuntosEditable={seccionAbierta === 'marcador'}
             onArrastrarAnimacionPuntos={arrastrarAnimacionPuntos}
+            anunciosEditable={seccionAbierta === 'anuncios'}
+            onArrastrarAnuncios={arrastrarAnuncios}
           />
         </div>
 
@@ -778,8 +854,8 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
 
           <p className="seccion-titulo">Tamaño de los textos</p>
           <div className="fila-form">
-            <CampoRango etiqueta="Números del marcador" valor={config.tamanoTextoMarcador} min={60} max={220} onChange={(v) => cambiarConfig('tamanoTextoMarcador', v)} />
-            <CampoRango etiqueta="Nombre de los equipos" valor={config.tamanoTextoNombre} min={60} max={220} onChange={(v) => cambiarConfig('tamanoTextoNombre', v)} />
+            <CampoRango etiqueta="Números del marcador" valor={config.tamanoTextoMarcador} min={5} max={220} onChange={(v) => cambiarConfig('tamanoTextoMarcador', v)} />
+            <CampoRango etiqueta="Nombre de los equipos" valor={config.tamanoTextoNombre} min={5} max={220} onChange={(v) => cambiarConfig('tamanoTextoNombre', v)} />
           </div>
           <button type="button" className="btn-link" style={{ alignSelf: 'flex-start', margin: '0 0 10px' }} onClick={restablecerTamanosTexto}>
             Restablecer tamaños de texto
@@ -801,7 +877,7 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
               <CampoRango
                 etiqueta="Tamaño de la pestaña"
                 valor={Number.isFinite(config.tituloTamano) ? config.tituloTamano : 100}
-                min={50} max={200}
+                min={5} max={200}
                 onChange={(v) => cambiarConfig('tituloTamano', v)}
               />
               <div className="fila-form" style={{ alignItems: 'stretch' }}>
@@ -883,7 +959,7 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
                 <CampoRango
                   etiqueta="Tamaño de la burbuja del costado"
                   valor={Number.isFinite(config.logoCostadoTamano) ? config.logoCostadoTamano : 100}
-                  min={50} max={200} step={10}
+                  min={5} max={200} step={5}
                   onChange={(v) => cambiarConfig('logoCostadoTamano', v)}
                 />
               )}
@@ -892,7 +968,7 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
                   <CampoRango
                     etiqueta="Tamaño de la marca de agua"
                     valor={config.logoTamanoFondo}
-                    min={15} max={90}
+                    min={5} max={90}
                     onChange={(v) => cambiarConfig('logoTamanoFondo', v)}
                     ayuda="Si tapa los números, bajá la transparencia (30-40%)."
                   />
@@ -932,12 +1008,12 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
           <CampoRango
             etiqueta="Tamaño general"
             valor={Math.round(escalaActual * 100)}
-            min={50} max={260} step={5}
+            min={5} max={260} step={5}
             onChange={(v) => cambiarConfig('escala', v / 100)}
           />
           <div className="fila-form">
-            <CampoRango etiqueta="Ensanchar (ancho)" valor={estiramientoAnchoActual} min={50} max={200} onChange={(v) => cambiarConfig('estiramientoAncho', v)} />
-            <CampoRango etiqueta="Alargar (alto)" valor={estiramientoAltoActual} min={50} max={200} onChange={(v) => cambiarConfig('estiramientoAlto', v)} />
+            <CampoRango etiqueta="Ensanchar (ancho)" valor={estiramientoAnchoActual} min={5} max={200} onChange={(v) => cambiarConfig('estiramientoAncho', v)} />
+            <CampoRango etiqueta="Alargar (alto)" valor={estiramientoAltoActual} min={5} max={200} onChange={(v) => cambiarConfig('estiramientoAlto', v)} />
           </div>
           <div className="fila-form" style={{ margin: '4px 0' }}>
             <span className="texto-tenue">{centrado && 'Centrado ✓'}</span>
@@ -1032,7 +1108,7 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
               <CampoRango
                 etiqueta="Tamaño"
                 valor={Number.isFinite(config.animacionPuntosTamano) ? config.animacionPuntosTamano : 100}
-                min={50} max={200} step={10}
+                min={5} max={200} step={5}
                 onChange={(v) => cambiarConfig('animacionPuntosTamano', v)}
               />
               <label>
@@ -1075,8 +1151,15 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
           <Toggle etiqueta="Mostrar nómina" checked={config.mostrarNomina} onChange={(v) => cambiarConfig('mostrarNomina', v)} />
           {config.mostrarNomina && (
             <div className="subgrupo">
-              <SelectorUbicacion etiqueta="Costado en pantalla" valor={config.nominaPosicion} onChange={(v) => cambiarConfig('nominaPosicion', v)} opciones={OPCIONES_UBICACION_NOMINA} />
-              <p className="texto-tenue" style={{ margin: '-4px 0 0' }}>Siempre pegada arriba — acá solo se elige el costado.</p>
+              <div className="fila-form">
+                <SelectorUbicacion etiqueta="Costado en pantalla" valor={config.nominaPosicion} onChange={(v) => cambiarConfig('nominaPosicion', v)} opciones={OPCIONES_UBICACION_NOMINA} />
+                <SelectorUbicacion
+                  etiqueta="Altura en pantalla"
+                  valor={config.nominaPosicionVertical || 'arriba'}
+                  onChange={(v) => cambiarConfig('nominaPosicionVertical', v)}
+                  opciones={[{ id: 'arriba', etiqueta: 'Arriba' }, { id: 'centro', etiqueta: 'Centro' }, { id: 'abajo', etiqueta: 'Abajo' }]}
+                />
+              </div>
               <Toggle etiqueta="Logo del equipo" checked={config.logoEnNomina} onChange={(v) => cambiarConfig('logoEnNomina', v)} />
               {config.logoEnNomina && (
                 <div className="subgrupo">
@@ -1091,18 +1174,19 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
                     <CampoRango
                       etiqueta="Tamaño"
                       valor={Number.isFinite(config.nominaLogoFondoTamano) ? config.nominaLogoFondoTamano : 130}
-                      min={100} max={220}
+                      min={5} max={220}
                       onChange={(v) => cambiarConfig('nominaLogoFondoTamano', v)}
-                      ayuda="Nunca queda más chico que la altura de la nómina."
+                      ayuda="100% = alto de la nómina. Podés achicarlo o agrandarlo como quieras."
                     />
                   ) : (
-                    <CampoRango etiqueta="Tamaño" valor={config.logoTamanoNomina} unidad="px" min={20} max={140} onChange={(v) => cambiarConfig('logoTamanoNomina', v)} />
+                    <CampoRango etiqueta="Tamaño" valor={config.logoTamanoNomina} unidad="px" min={10} max={140} onChange={(v) => cambiarConfig('logoTamanoNomina', v)} />
                   )}
                   <CampoRango etiqueta="Transparencia" valor={config.logoOpacidadNomina} min={10} max={100} onChange={(v) => cambiarConfig('logoOpacidadNomina', v)} />
                 </div>
               )}
               <Toggle etiqueta="Estadísticas por jugador" checked={config.nominaConEstadisticas} onChange={(v) => cambiarConfig('nominaConEstadisticas', v)} />
               <SelectorDuracion etiqueta="Segundos visible al dispararla" valor={config.nominaDuracionSeg} porDefecto={6} onChange={(v) => cambiarConfig('nominaDuracionSeg', v)} />
+              <SeccionEstiloCapa prefijo="nomina" config={config} cambiarConfig={cambiarConfig} etiquetaTitulo="Título" />
             </div>
           )}
         </div>
@@ -1126,6 +1210,7 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
               )}
               <Toggle etiqueta="Detalle por jugador" checked={config.mostrarDetalleJugadores} onChange={(v) => cambiarConfig('mostrarDetalleJugadores', v)} />
               <SelectorDuracion etiqueta="Segundos visible al dispararlas" valor={config.estadisticasDuracionSeg} porDefecto={7} onChange={(v) => cambiarConfig('estadisticasDuracionSeg', v)} />
+              <SeccionEstiloCapa prefijo="estadisticas" config={config} cambiarConfig={cambiarConfig} etiquetaTitulo="Nombre del equipo" />
             </div>
           )}
         </div>
@@ -1143,9 +1228,31 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
                   <option value="costado">Como pestaña al costado (izquierda si es local, derecha si es visita)</option>
                   <option value="arriba">Como pestaña arriba del marcador</option>
                   <option value="superpone">Superpuesto, justo sobre el marcador</option>
+                  <option value="libre">Posición libre (elegís el punto exacto)</option>
                 </select>
               </label>
-              {config.mostrarTitulo && (config.alertaPosicion || '') !== 'costado' && (config.alertaPosicion || '') !== 'superpone' && (
+              {config.alertaPosicion === 'libre' && (
+                <>
+                  <div className="fila-form">
+                    <CampoRango
+                      etiqueta="Posición horizontal"
+                      valor={Math.round(Number.isFinite(config.anunciosX) ? config.anunciosX : 50)}
+                      min={0} max={100}
+                      onChange={(v) => cambiarConfig('anunciosX', v)}
+                    />
+                    <CampoRango
+                      etiqueta="Posición vertical"
+                      valor={Math.round(Number.isFinite(config.anunciosY) ? config.anunciosY : 15)}
+                      min={0} max={100}
+                      onChange={(v) => cambiarConfig('anunciosY', v)}
+                    />
+                  </div>
+                  <p className="texto-tenue" style={{ margin: 0, fontSize: 12 }}>
+                    Independiente del marcador — el aviso de LOCAL sale un poco a la izquierda de ese punto, el de VISITA a la derecha. O arrastrá el punto naranja directo en la vista previa de arriba.
+                  </p>
+                </>
+              )}
+              {config.mostrarTitulo && !['costado', 'superpone', 'libre'].includes(config.alertaPosicion || '') && (
                 <label>
                   Cómo convive con el título
                   <select value={config.anunciosTituloModo || 'arriba-titulo'} onChange={(e) => cambiarConfig('anunciosTituloModo', e.target.value)}>
@@ -1155,14 +1262,9 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
                   </select>
                 </label>
               )}
-              <label>
-                Animación del aviso
-                <select value={config.alertaAnimacion || ''} onChange={(e) => cambiarConfig('alertaAnimacion', e.target.value)}>
-                  {OPCIONES_ANIMACION_ANUNCIO.map((o) => <option key={o.id} value={o.id}>{o.etiqueta}</option>)}
-                </select>
-              </label>
               <Toggle etiqueta="Anunciar faltas" checked={config.anunciarFaltas} onChange={(v) => cambiarConfig('anunciarFaltas', v)} />
               <SelectorDuracion etiqueta="Segundos visible cada aviso" valor={config.anunciosDuracionSeg} porDefecto={4} onChange={(v) => cambiarConfig('anunciosDuracionSeg', v)} />
+              <SeccionEstiloCapa prefijo="anuncios" config={config} cambiarConfig={cambiarConfig} tituloSeparado={false} />
             </div>
           )}
         </div>
