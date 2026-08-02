@@ -29,6 +29,11 @@ html:has(.nomina-overlay) {
   flex-wrap: nowrap;
   align-items: flex-start;
   gap: 60px;
+  /* "Tamaño general" de Nómina (config.nominaEscala) — agranda/achica todo
+     el bloque (las dos columnas juntas) de una, como propiedad de
+     transform APARTE (no `transform`) para no pisar las animaciones de
+     entrada de cada fila (.nomina-jugador), que sí usan `transform`. */
+  scale: var(--nomina-escala-general, 1);
 }
 
 .nomina-equipo {

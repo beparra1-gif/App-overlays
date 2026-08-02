@@ -47,6 +47,10 @@ html:has(.anuncios-overlay) {
   box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
   animation: an-clasico-in 0.6s ease forwards;
   white-space: nowrap;
+  /* "Tamaño general" del aviso (config.anunciosEscala) — propiedad `scale`
+     APARTE de `transform` para no pisar las animaciones de entrada de
+     arriba (an-clasico-in y las de cada familia), que sí animan `transform`. */
+  scale: var(--anuncios-escala-general, 1);
 }
 
 /* La alerta "toma" el área del marcador un instante — más grande y notoria */

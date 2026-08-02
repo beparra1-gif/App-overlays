@@ -69,6 +69,7 @@ const CONFIG_INICIAL = {
   logoOpacidadNomina: 100,
   nominaLogoFondoTamano: 130,
   nominaDuracionSeg: 6,
+  nominaEscala: 100,
   nominaTamanoTexto: 100,
   nominaTamanoTitulo: 100,
   nominaColorFondo: '', nominaColorFondoAlpha: 100,
@@ -86,6 +87,7 @@ const CONFIG_INICIAL = {
   logoTamanoEstadisticas: 56,
   logoOpacidadEstadisticas: 100,
   estadisticasDuracionSeg: 7,
+  estadisticasEscala: 100,
   estadisticasTamanoTexto: 100,
   estadisticasTamanoTitulo: 100,
   estadisticasColorFondo: '', estadisticasColorFondoAlpha: 100,
@@ -101,6 +103,7 @@ const CONFIG_INICIAL = {
   alertaAnimacion: '',
   anunciarFaltas: true,
   anunciosDuracionSeg: 4,
+  anunciosEscala: 100,
   anunciosTamanoTexto: 100,
   anunciosColorFondo: '', anunciosColorFondoAlpha: 100,
   anunciosColorTexto: '', anunciosColorTextoAlpha: 100,
@@ -247,7 +250,14 @@ function SeccionEstiloCapa({ prefijo, config, cambiarConfig, tituloSeparado = tr
   const set = (sufijo) => (v) => cambiarConfig(`${prefijo}${sufijo}`, v);
   return (
     <>
-      <p className="seccion-titulo">Tamaño</p>
+      <CampoRango
+        etiqueta="Tamaño general"
+        valor={Number.isFinite(g('Escala')) ? g('Escala') : 100}
+        min={5} max={260} step={5}
+        onChange={set('Escala')}
+        ayuda="Agranda o achica el bloque entero (caja, letras, todo junto) — igual que el 'Tamaño general' del marcador."
+      />
+      <p className="seccion-titulo">Tamaño del texto</p>
       <div className="fila-form">
         <CampoRango etiqueta="Texto" valor={Number.isFinite(g('TamanoTexto')) ? g('TamanoTexto') : 100} min={5} max={200} onChange={set('TamanoTexto')} />
         {tituloSeparado && (
@@ -1247,8 +1257,15 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
                       onChange={(v) => cambiarConfig('anunciosY', v)}
                     />
                   </div>
+                  <div className="fila-form" style={{ margin: '0 0 4px' }}>
+                    {PRESETS_POSICION.map((p) => (
+                      <button key={p.id} type="button" className="btn-secundario" onClick={() => setConfig((c) => ({ ...c, anunciosX: p.x, anunciosY: p.y }))}>
+                        {p.etiqueta}
+                      </button>
+                    ))}
+                  </div>
                   <p className="texto-tenue" style={{ margin: 0, fontSize: 12 }}>
-                    Independiente del marcador — el aviso de LOCAL sale un poco a la izquierda de ese punto, el de VISITA a la derecha. O arrastrá el punto naranja directo en la vista previa de arriba.
+                    Independiente del marcador, con el mismo tipo de control (mismos atajos "Arriba izq.", "Centro", etc.) — el aviso de LOCAL sale un poco a la izquierda de ese punto, el de VISITA a la derecha. O arrastrá el punto naranja directo en la vista previa de arriba.
                   </p>
                 </>
               )}

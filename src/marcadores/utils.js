@@ -271,10 +271,14 @@ export const fuenteEfectiva = (config, plantillaId) => config?.fuenteMarcador ||
 // para las tres, un solo lugar. `prefijo` es 'nomina'/'estadisticas'/
 // 'anuncios': lee config[`${prefijo}ColorFondo`] etc. y arma las variables
 // `--${prefijo}-fondo`/`-texto`/`-titulo`/`-escala-texto`/`-escala-titulo`/
-// `-titulo-fuente`/`-titulo-peso`. Sin elegir nada a mano, el CSS de cada
-// capa sigue cayendo en var(--pm-tablero, ...) como respaldo (ver cada
-// hoja de estilos) — este helper solo agrega la propiedad cuando el
-// usuario eligió algo puntual, nunca fuerza un valor por las suyas.
+// `-titulo-fuente`/`-titulo-peso`/`-escala-general`. Sin elegir nada a
+// mano, el CSS de cada capa sigue cayendo en var(--pm-tablero, ...) como
+// respaldo (ver cada hoja de estilos) — este helper solo agrega la
+// propiedad cuando el usuario eligió algo puntual, nunca fuerza un valor
+// por las suyas. `-escala-general` es el equivalente, por capa, del
+// "Tamaño general" del marcador (config.escala): agranda/achica el bloque
+// entero (caja + letras + todo junto) vía la propiedad CSS `scale`, no
+// solo el tamaño de fuente — eso lo sigue resolviendo `-escala-texto`.
 export function estiloTemaCapa(config, prefijo) {
   const estilo = {};
   const fondo = config?.[`${prefijo}ColorFondo`];
@@ -283,8 +287,10 @@ export function estiloTemaCapa(config, prefijo) {
   if (fondo) estilo[`--${prefijo}-fondo`] = hexConAlpha(fondo, config?.[`${prefijo}ColorFondoAlpha`]);
   if (texto) estilo[`--${prefijo}-texto`] = hexConAlpha(texto, config?.[`${prefijo}ColorTextoAlpha`]);
   if (titulo) estilo[`--${prefijo}-titulo`] = hexConAlpha(titulo, config?.[`${prefijo}ColorTituloAlpha`]);
+  const escalaGeneral = Number.isFinite(config?.[`${prefijo}Escala`]) ? config[`${prefijo}Escala`] / 100 : 1;
   const escalaTexto = Number.isFinite(config?.[`${prefijo}TamanoTexto`]) ? config[`${prefijo}TamanoTexto`] / 100 : 1;
   const escalaTitulo = Number.isFinite(config?.[`${prefijo}TamanoTitulo`]) ? config[`${prefijo}TamanoTitulo`] / 100 : 1;
+  estilo[`--${prefijo}-escala-general`] = escalaGeneral;
   estilo[`--${prefijo}-escala-texto`] = escalaTexto;
   estilo[`--${prefijo}-escala-titulo`] = escalaTitulo;
   if (config?.[`${prefijo}TituloFuente`]) estilo[`--${prefijo}-titulo-fuente`] = config[`${prefijo}TituloFuente`];

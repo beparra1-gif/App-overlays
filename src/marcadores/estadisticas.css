@@ -23,6 +23,10 @@ html:has(.stats-overlay) {
   min-width: 320px;
   box-shadow: 0 16px 36px rgba(0, 0, 0, 0.4);
   animation: stats-entrada 0.4s ease;
+  /* "Tamaño general" de Estadísticas (config.estadisticasEscala) — como
+     propiedad `scale` APARTE de `transform` para no pisar la animación de
+     entrada de arriba, que sí anima `transform`. */
+  scale: var(--estadisticas-escala-general, 1);
 }
 
 /* Los dos escudos siempre centrados arriba de la caja — el que corresponde
