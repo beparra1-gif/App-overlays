@@ -336,10 +336,20 @@ export const FAMILIAS_VISUALES = {
 // instante). Los tres modos los puede fijar el usuario a mano
 // (config.alertaPosicion) o, si no eligió ninguno, se usa el que le
 // corresponde a la familia visual del diseño.
-export function estiloAnclaAlerta(tema = {}, modo = 'arriba', lado = 'izquierda') {
-  const posX = Number.isFinite(tema?.posX) ? tema.posX : 50;
-  const posY = Number.isFinite(tema?.posY) ? tema.posY : 88;
-  const mitad = mitadCajaProporcional(tema);
+//
+// `caja` (opcional, de useCajaMarcador): la caja YA RENDERIDA, medida de
+// verdad — cuando está disponible, se usa en vez de posX/posY +
+// mitadCajaProporcional (una aproximación fija que asume un tamaño típico
+// de caja). Antes, con un diseño con logo/fuente/escala fuera de lo
+// "típico", la aproximación quedaba corrida del borde real de la caja —
+// ningún ajuste de tamaño o posición del AVISO podía corregir eso, porque
+// el problema estaba en el ANCLA, no en el aviso — el aviso "se veía mal"
+// sin importar qué se tocara. Con la caja real, el ancla queda pegada al
+// borde de verdad sea cual sea la plantilla/tamaño/logo/fuente.
+export function estiloAnclaAlerta(tema = {}, modo = 'arriba', lado = 'izquierda', caja = null) {
+  const posX = caja ? caja.left + caja.width / 2 : (Number.isFinite(tema?.posX) ? tema.posX : 50);
+  const posY = caja ? caja.topAlto + caja.heightAlto / 2 : (Number.isFinite(tema?.posY) ? tema.posY : 88);
+  const mitad = caja ? { x: caja.width / 2, y: caja.heightAlto / 2 } : mitadCajaProporcional(tema);
 
   // 'libre': el usuario elige un punto propio (anunciosX/Y), como con el
   // marcador — sin depender de dónde esté la caja ni de su tamaño. Mismo

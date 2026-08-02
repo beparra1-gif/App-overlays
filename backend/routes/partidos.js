@@ -21,20 +21,27 @@ function activoSegunToggle(configDiseno, clave) {
 }
 
 async function crearEscenasPorDefecto(partidoId, disenoIdMarcador, configDiseno) {
+  // Las 4 escenas quedan enlazadas al MISMO diseño — sin esto, una escena
+  // dedicada de Nómina/Estadísticas/Anuncios (fuente de OBS aparte, no la
+  // compuesta) se quedaba sin diseño (diseno_id null) y por lo tanto sin
+  // NINGUNA personalización (color/tamaño/posición/animación, nada de lo
+  // que se elige en "Personalizar diseño"): ni al cargarla ni al recibir
+  // cambios en vivo por socket (ver roomDiseno en backend/socket/index.js,
+  // que solo se une si escena.diseno_id existe).
   const definicion = [
     { tipo: 'marcador', nombre: 'Marcador', disenoId: disenoIdMarcador || null, activo: true, config: {} },
-    { tipo: 'nomina', nombre: 'Nómina', disenoId: null, activo: activoSegunToggle(configDiseno, 'mostrarNomina'), config: {} },
+    { tipo: 'nomina', nombre: 'Nómina', disenoId: disenoIdMarcador || null, activo: activoSegunToggle(configDiseno, 'mostrarNomina'), config: {} },
     {
       tipo: 'estadisticas',
       nombre: 'Estadísticas',
-      disenoId: null,
+      disenoId: disenoIdMarcador || null,
       activo: activoSegunToggle(configDiseno, 'mostrarEstadisticas'),
       config: { modo: 'equipo', equipo: 'local' },
     },
     {
       tipo: 'anuncios',
       nombre: 'Anuncios',
-      disenoId: null,
+      disenoId: disenoIdMarcador || null,
       activo: activoSegunToggle(configDiseno, 'anunciarJugadas'),
       config: { anunciarFaltas: activoSegunToggle(configDiseno, 'anunciarFaltas') },
     },

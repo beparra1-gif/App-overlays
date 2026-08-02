@@ -112,7 +112,11 @@ export default function VistaAnuncios({
       estiloPosicion = { justifyContent: 'flex-start', alignItems: 'flex-start', paddingLeft: `${anclaX}%`, paddingTop: `${Math.max(0, caja.top - 5)}%` };
     }
   } else {
-    estiloPosicion = estiloAnclaAlerta(tema, modoAlerta, ladoTab);
+    // `caja` (la del marcador, ya medida de verdad) reemplaza la
+    // aproximación fija de estiloAnclaAlerta cuando está disponible — ver
+    // el comentario en esa función. En 'libre' no la usa (posición
+    // totalmente manual), así que pasarla siempre acá es seguro.
+    estiloPosicion = estiloAnclaAlerta(tema, modoAlerta, ladoTab, caja);
   }
 
   const claseFamilia = `fam-${familiaAnimacion} ${claseModo} lado-${ladoTab} ${claseModoExtra}`.trim();
