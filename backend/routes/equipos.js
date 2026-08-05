@@ -127,13 +127,20 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
+// Solo el plantel PERMANENTE (temporal = false) — este es "la nómina
+// guardada del equipo", la que se reusa automáticamente en cualquier
+// partido futuro. Un jugador "solo para este partido" (ver POST más abajo)
+// nunca aparece acá, para no ensuciar el plantel de siempre — sí aparece,
+// mientras dure ESE partido puntual, en el roster que arma
+// cargarRoster()/construirEstado (backend/socket/estadoPartido.js), que
+// filtra distinto (por partido, no por equipo).
 router.get('/:id/jugadores', async (req, res) => {
   const equipo = await equipoDelUsuario(req.params.id, req.userId);
   if (!equipo) return res.status(404).json({ error: 'Equipo no encontrado' });
 
   try {
     const resultado = await pool.query(
-      'SELECT * FROM jugadores WHERE equipo_id = $1 ORDER BY dorsal ASC NULLS LAST, nombre ASC',
+      'SELECT * FROM jugadores WHERE equipo_id = $1 AND temporal = false ORDER BY dorsal ASC NULLS LAST, nombre ASC',
       [equipo.id]
     );
     res.json({ jugadores: resultado.rows });
@@ -143,6 +150,15 @@ router.get('/:id/jugadores', async (req, res) => {
   }
 });
 
+// `temporal` + `partido_id` (opcionales): un jugador "solo para este
+// partido" (invitado, suplente de una fecha puntual) — queda guardado
+// igual que cualquier otro (mismas jugadas/estadísticas, mismo jugador_id
+// en eventos_partido), pero NUNCA aparece en el plantel reusable del
+// equipo (GET de acá arriba) ni en partidos futuros — solo en el que se
+// indica. `partido_id` tiene que ser un partido real del usuario donde
+// juega este equipo — si no, se ignora el pedido de "temporal" (se guarda
+// como jugador normal) en vez de fallar silenciosamente con un jugador
+// temporal que no aparecería en ningún lado.
 router.post('/:id/jugadores', async (req, res) => {
   const equipo = await equipoDelUsuario(req.params.id, req.userId);
   if (!equipo) return res.status(404).json({ error: 'Equipo no encontrado' });
@@ -150,14 +166,24 @@ router.post('/:id/jugadores', async (req, res) => {
   const nombre = String(req.body?.nombre || '').trim();
   const dorsalRaw = req.body?.dorsal;
   const dorsal = dorsalRaw != null && dorsalRaw !== '' ? Number(dorsalRaw) : null;
+  let partidoId = req.body?.temporal && req.body?.partido_id ? Number(req.body.partido_id) : null;
 
   if (!nombre) return res.status(400).json({ error: 'El nombre del jugador es obligatorio' });
   if (dorsal != null && !Number.isFinite(dorsal)) return res.status(400).json({ error: 'Dorsal inválido' });
 
+  if (partidoId) {
+    const partido = await pool.query(
+      'SELECT id FROM partidos WHERE id = $1 AND user_id = $2 AND (equipo_local_id = $3 OR equipo_visita_id = $3)',
+      [partidoId, req.userId, equipo.id]
+    );
+    if (partido.rows.length === 0) partidoId = null;
+  }
+  const temporal = Boolean(partidoId);
+
   try {
     const resultado = await pool.query(
-      'INSERT INTO jugadores (equipo_id, dorsal, nombre) VALUES ($1, $2, $3) RETURNING *',
-      [equipo.id, dorsal, nombre]
+      'INSERT INTO jugadores (equipo_id, dorsal, nombre, temporal, partido_id) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+      [equipo.id, dorsal, nombre, temporal, partidoId]
     );
     res.status(201).json({ jugador: resultado.rows[0] });
   } catch (error) {

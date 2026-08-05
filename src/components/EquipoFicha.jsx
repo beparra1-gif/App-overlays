@@ -94,6 +94,11 @@ const EquipoFicha = forwardRef(function EquipoFicha({ titulo, valorDefecto, equi
   // si el equipo elegido ya tenía jugadores cargados de antes, o a mano con
   // el toggle de abajo.
   const [nominaHabilitada, setNominaHabilitada] = useState(false);
+  // "Solo para este partido": los jugadores que se agreguen MIENTRAS este
+  // toggle esté prendido no se guardan en el plantel reusable del equipo —
+  // quedan atados nada más a este partido puntual (invitados, suplentes de
+  // una fecha, etc.), ver flushTemporales.
+  const [nominaTemporal, setNominaTemporal] = useState(false);
 
   // Si ya arrancamos con un equipo activo (partido en curso), traemos su
   // nómina de una — así "Agregar nómina" ya aparece prendido si corresponde.
@@ -118,30 +123,55 @@ const EquipoFicha = forwardRef(function EquipoFicha({ titulo, valorDefecto, equi
   // hasta que el usuario lo guarda a propósito (guardarNominaPendiente) o
   // hasta que hace falta de verdad para jugar (obtener(), al entrar a
   // "Juego en vivo" — recién ahí la Mesa de control necesita ids reales).
-  // Solo arma y devuelve el objeto pendiente — NO toca `roster` acá: quien
-  // agrega de verdad a la lista es `onJugadorAgregado` (EquipoRoster ya lo
-  // llama con lo que le devuelva esta función). Antes acá también se hacía
-  // un setRoster propio, así que cada jugador quedaba agregado DOS veces.
+  // `nominaTemporal` (ver el toggle de abajo) marca cada jugador agregado
+  // MIENTRAS está prendido como "solo para este partido" — ver
+  // flushTemporales más abajo, la diferencia real está en CUÁNDO y CÓMO se
+  // guardan, no acá. Solo arma y devuelve el objeto pendiente — NO toca
+  // `roster` acá: quien agrega de verdad a la lista es `onJugadorAgregado`
+  // (EquipoRoster ya lo llama con lo que le devuelva esta función). Antes
+  // acá también se hacía un setRoster propio, así que cada jugador quedaba
+  // agregado DOS veces.
   const agregarJugadorLocal = async (datos) => ({
     id: `pendiente-${Date.now()}-${Math.random().toString(36).slice(2)}`,
     ...datos,
     pendiente: true,
+    temporal: nominaTemporal,
   });
 
   // Recibe el equipo YA resuelto (en vez de leer equipoId del estado) para
   // no pisarse con React: si a este mismo llamado le tocó resolver() recién
   // ahora, el estado todavía no terminó de actualizarse en este render.
+  // Los pendientes TEMPORALES ("solo para este partido") NO se guardan acá
+  // — todavía no existe el partido (esto corre ANTES de crearlo, ver
+  // prepararPartido en Disenos.jsx) y guardarlos como jugador normal del
+  // equipo sería justo lo que se quiere evitar. Quedan pendientes hasta
+  // flushTemporales, ya con el partido creado.
   const flushNominaPendiente = async (equipo, rosterActual) => {
-    const pendientes = rosterActual.filter((j) => j.pendiente);
+    const pendientes = rosterActual.filter((j) => j.pendiente && !j.temporal);
     for (const p of pendientes) {
       const { jugador } = await api.crearJugador(equipo.id, { nombre: p.nombre, dorsal: p.dorsal });
       setRoster((r) => r.map((x) => (x.id === p.id ? jugador : x)));
     }
   };
 
+  // Guarda los pendientes TEMPORALES una vez que el partido ya existe —
+  // quedan en la base (mismas jugadas/estadísticas que cualquier jugador)
+  // pero marcados `temporal` + atados a ESE partido_id, así que nunca
+  // aparecen en el plantel reusable del equipo ni en partidos futuros (ver
+  // GET /equipos/:id/jugadores y cargarRoster en el backend).
+  const flushTemporales = async (partidoId) => {
+    const equipo = equipoId ? { id: equipoId } : null;
+    if (!equipo) return;
+    const pendientes = roster.filter((j) => j.pendiente && j.temporal);
+    for (const p of pendientes) {
+      const { jugador } = await api.crearJugador(equipo.id, { nombre: p.nombre, dorsal: p.dorsal, temporal: true, partido_id: partidoId });
+      setRoster((r) => r.map((x) => (x.id === p.id ? jugador : x)));
+    }
+  };
+
   const [guardandoNomina, setGuardandoNomina] = useState(false);
   const guardarNominaPendiente = async () => {
-    if (!roster.some((j) => j.pendiente)) return;
+    if (!roster.some((j) => j.pendiente && !j.temporal)) return;
     setGuardandoNomina(true);
     setError('');
     try {
@@ -173,6 +203,23 @@ const EquipoFicha = forwardRef(function EquipoFicha({ titulo, valorDefecto, equi
     if (!logoTocado) setLogoUrl(sugerirLogoUrl(valor, logos));
   };
 
+  // Deja este equipo YA resuelto como el vinculado a la ficha (nombre,
+  // color, logo, y su nómina guardada) — compartido entre resolver() (match
+  // por nombre tipeado, o crea uno nuevo) y elegirEquipoGuardado (el
+  // desplegable de abajo, elegido a propósito de una lista en vez de
+  // adivinado por el texto).
+  const aplicarEquipo = async (equipo) => {
+    onEquipoCreado(equipo);
+    setNombre(equipo.nombre);
+    setColor(equipo.color || color);
+    setLogoUrl(equipo.logo_url || '');
+    setEquipoId(equipo.id);
+    const { jugadores } = await api.listarJugadores(equipo.id);
+    setRoster(jugadores);
+    if (jugadores.length > 0) setNominaHabilitada(true);
+    return equipo;
+  };
+
   const resolver = async () => {
     setError('');
     setResolviendo(true);
@@ -185,18 +232,33 @@ const EquipoFicha = forwardRef(function EquipoFicha({ titulo, valorDefecto, equi
       const equiposFrescos = await api.listarEquipos().then((d) => d.equipos).catch(() => equipos);
       const equipo = await resolverOCrearEquipo({ nombre: nombre || valorDefecto, color, logoUrl, equipos: equiposFrescos });
       if (!equipo) return null;
-      onEquipoCreado(equipo);
-      setNombre(equipo.nombre);
-      setColor(equipo.color || color);
-      setLogoUrl(equipo.logo_url || '');
-      setEquipoId(equipo.id);
-      const { jugadores } = await api.listarJugadores(equipo.id);
-      setRoster(jugadores);
-      if (jugadores.length > 0) setNominaHabilitada(true);
-      return equipo;
+      return await aplicarEquipo(equipo);
     } catch (err) {
       setError(err.message);
       throw err;
+    } finally {
+      setResolviendo(false);
+    }
+  };
+
+  // Desplegable "Elegir equipo guardado": mismo resultado que tipear un
+  // nombre que matchea exacto (trae nombre/color/logo/nómina reales), pero
+  // explícito — sin depender de acertarle a mayúsculas/tildes, y visible de
+  // entrada como una lista en vez de un match silencioso. Solo tiene efecto
+  // ANTES de que haya un equipoId enganchado (mismo criterio que
+  // resolverOCrearEquipo): una vez en juego, cambiar de equipo desde acá se
+  // desactiva para no desenganchar sin querer el que ya está en la Mesa.
+  const elegirEquipoGuardado = async (idTexto) => {
+    const id = Number(idTexto);
+    if (!id) return;
+    const equipo = equipos.find((e) => e.id === id);
+    if (!equipo) return;
+    setError('');
+    setResolviendo(true);
+    try {
+      await aplicarEquipo(equipo);
+    } catch (err) {
+      setError(err.message);
     } finally {
       setResolviendo(false);
     }
@@ -270,6 +332,11 @@ const EquipoFicha = forwardRef(function EquipoFicha({ titulo, valorDefecto, equi
       if (temporizadorGuardadoRef.current) clearTimeout(temporizadorGuardadoRef.current);
       await guardarEquipo();
     },
+    // Recién con el partido ya creado (ver prepararPartido en Disenos.jsx)
+    // se pueden guardar los pendientes "solo para este partido" — hasta acá
+    // se quedaban en memoria porque no había todavía un partido_id real al
+    // que atarlos.
+    flushTemporales,
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [equipoId, nombre, color, logoUrl, roster]);
 
@@ -277,6 +344,18 @@ const EquipoFicha = forwardRef(function EquipoFicha({ titulo, valorDefecto, equi
     <div className="tarjeta">
       <h3>{titulo}</h3>
       {error && <p className="mensaje-error">{error}</p>}
+
+      {!equipoId && equipos.length > 0 && (
+        <label>
+          Elegir equipo guardado
+          <select value="" disabled={resolviendo} onChange={(e) => elegirEquipoGuardado(e.target.value)}>
+            <option value="">— O escribí un nombre nuevo abajo —</option>
+            {[...equipos].sort((a, b) => a.nombre.localeCompare(b.nombre)).map((e) => (
+              <option key={e.id} value={e.id}>{e.nombre}{e.jugadores_count ? ` (${e.jugadores_count})` : ''}</option>
+            ))}
+          </select>
+        </label>
+      )}
 
       <div className="fila-form" style={{ flexWrap: 'wrap' }}>
         <input
@@ -297,6 +376,10 @@ const EquipoFicha = forwardRef(function EquipoFicha({ titulo, valorDefecto, equi
 
       {nominaHabilitada && equipoId && (
         <>
+          <label className="toggle-switch" title="Los jugadores que agregues mientras esto está prendido no quedan en el plantel del equipo — se usan una sola vez, solo para este partido.">
+            <input type="checkbox" checked={nominaTemporal} onChange={(e) => setNominaTemporal(e.target.checked)} />
+            Nueva nómina solo para este partido (no se guarda en el equipo)
+          </label>
           <EquipoRoster
             equipo={{ id: equipoId, nombre }}
             roster={roster}
@@ -306,7 +389,7 @@ const EquipoFicha = forwardRef(function EquipoFicha({ titulo, valorDefecto, equi
             permitirEliminar
             onJugadorEliminado={(id) => setRoster((r) => r.filter((x) => x.id !== id))}
           />
-          {roster.some((j) => j.pendiente) && (
+          {roster.some((j) => j.pendiente && !j.temporal) && (
             <div className="fila-form" style={{ marginTop: -12 }}>
               <span className="texto-tenue">
                 Sin guardar todavía — se guarda sola al empezar "Juego en vivo", o guardala ahora si querés reusar este plantel más adelante.
@@ -315,6 +398,11 @@ const EquipoFicha = forwardRef(function EquipoFicha({ titulo, valorDefecto, equi
                 {guardandoNomina ? 'Guardando…' : '💾 Guardar nómina ahora'}
               </button>
             </div>
+          )}
+          {roster.some((j) => j.pendiente && j.temporal) && (
+            <p className="texto-tenue" style={{ margin: '-8px 0 0', fontSize: 12 }}>
+              Los jugadores marcados "solo por hoy" se usan nada más en este partido — nunca quedan en el plantel del equipo.
+            </p>
           )}
         </>
       )}

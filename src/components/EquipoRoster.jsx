@@ -39,9 +39,19 @@ export default function EquipoRoster({
   permitirEliminar = false,
   onEliminarJugador,
   onJugadorEliminado,
+  // Solo lo pasa la Mesa de control (un partido ya en curso, con id real):
+  // habilita el checkbox "Solo para este partido" en el form de agregar, y
+  // es lo que se manda como `partido_id` si se marca — el backend lo
+  // guarda como jugador `temporal` atado a ESE partido (ver POST
+  // /equipos/:id/jugadores), así que nunca queda en el plantel reusable
+  // del equipo. "Personalizar tablero → Equipos" resuelve esto distinto
+  // (un toggle propio, ver EquipoFicha) porque ahí el partido todavía no
+  // existe cuando se cargan los jugadores.
+  partidoId,
 }) {
   const [dorsal, setDorsal] = useState('');
   const [nombreJugador, setNombreJugador] = useState('');
+  const [soloEstePartido, setSoloEstePartido] = useState(false);
   const [forzarMasDeDoce, setForzarMasDeDoce] = useState(false);
   const [error, setError] = useState('');
 
@@ -59,11 +69,13 @@ export default function EquipoRoster({
     if (!nombreJugador.trim()) return setError('Ponele nombre al jugador');
     try {
       const datos = { nombre: nombreJugador.trim(), dorsal: dorsal || null };
+      if (partidoId && soloEstePartido) { datos.temporal = true; datos.partido_id = partidoId; }
       const jugador = onAgregarJugador
         ? await onAgregarJugador(datos)
         : (await api.crearJugador(equipo.id, datos)).jugador;
       onJugadorAgregado(jugador);
       setDorsal('');
+      setSoloEstePartido(false);
       setNombreJugador('');
     } catch (err) {
       setError(err.message);
@@ -132,6 +144,7 @@ export default function EquipoRoster({
               <span>
                 <span className="dorsal-chip">{j.dorsal ?? '-'}</span> {j.nombre}
                 {j.pendiente && <span className="texto-tenue" style={{ fontSize: 11 }}> (sin guardar)</span>}
+                {j.temporal && <span className="texto-tenue" style={{ fontSize: 11 }}> (solo este partido)</span>}
               </span>
             )}
             {permitirEliminar && (
@@ -150,10 +163,16 @@ export default function EquipoRoster({
             Norma FIBA: 12 jugadores por partido. <button type="button" className="btn-link" onClick={() => setForzarMasDeDoce(true)}>Agregar igual</button>
           </div>
         ) : (
-          <form className="fila-form" onSubmit={agregarJugador}>
+          <form className="fila-form" onSubmit={agregarJugador} style={{ flexWrap: 'wrap' }}>
             <input placeholder="Dorsal" value={dorsal} onChange={(e) => setDorsal(e.target.value)} style={{ width: 80 }} />
             <input placeholder="Nombre del jugador" value={nombreJugador} onChange={(e) => setNombreJugador(e.target.value)} required />
             <button className="btn-secundario" type="submit">+ Agregar</button>
+            {partidoId && (
+              <label className="texto-tenue" style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, width: '100%' }} title="No queda en el plantel del equipo — se usa una sola vez, solo en este partido.">
+                <input type="checkbox" checked={soloEstePartido} onChange={(e) => setSoloEstePartido(e.target.checked)} />
+                Solo para este partido (no lo guardes en el equipo)
+              </label>
+            )}
           </form>
         )
       )}

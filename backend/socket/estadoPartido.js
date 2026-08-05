@@ -43,7 +43,7 @@ async function cargarRoster(equipoId, partidoId, minutosPorJugador = new Map()) 
        COALESCE(SUM(CASE WHEN e.tipo = 'FALTA' THEN 1 ELSE 0 END), 0)::int AS faltas
      FROM jugadores j
      LEFT JOIN eventos_partido e ON e.jugador_id = j.id AND e.partido_id = $2
-     WHERE j.equipo_id = $1
+     WHERE j.equipo_id = $1 AND (j.temporal = false OR j.partido_id = $2)
      GROUP BY j.id
      ORDER BY j.dorsal ASC NULLS LAST, j.nombre ASC`,
     [equipoId, partidoId]

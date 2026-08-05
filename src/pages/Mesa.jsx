@@ -939,6 +939,7 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
             onJugadorAgregado={(j) => (modalNomina === 'local' ? setRosterLocalCompleto : setRosterVisitaCompleto)((r) => [...r, j])}
             permitirEliminar
             onJugadorEliminado={(id) => eliminarJugadorDeRoster(modalNomina, id)}
+            partidoId={partido.id}
           />
         </ModalRoster>
       )}

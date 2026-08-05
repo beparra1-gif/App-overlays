@@ -605,6 +605,13 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
         quinteto_visita_ids: [],
         diseno_id: disenoGuardado?.id || inicial?.id || null,
       });
+      // Los jugadores marcados "solo para este partido" (ver EquipoFicha)
+      // quedaron pendientes porque hasta acá no existía un partido_id real
+      // al que atarlos — recién ahora se guardan de verdad.
+      await Promise.all([
+        equipoLocalRef.current?.flushTemporales(partido.id),
+        equipoVisitaRef.current?.flushTemporales(partido.id),
+      ]);
       setPartidoId(partido.id);
     } catch (err) {
       setErrorPartido(err.message);
