@@ -44,8 +44,17 @@ const SELECTOR_CONTENIDO = { nomina: '.nomina-fila', estadisticas: '.stats-caja'
 // siga a la pestaña que se está editando en vez de mostrar siempre las 4
 // capas superpuestas (así no hay que "leer" al marcador chiquito escondido
 // atrás de la nómina para saber si un cambio de color surtió efecto):
-// - 'general': las 4 capas juntas, tal cual se verían en la transmisión
-//   real (comportamiento de siempre).
+// - 'general': el lienzo 1920×1080 COMPLETO, sin zoom, EXACTAMENTE como lo
+//   vería OBS apenas se carga el enlace — o sea, solo el marcador (+ logo/
+//   título/logos libres, que sí son permanentes). Nómina/Estadísticas/
+//   Anuncios NO se fuerzan acá aunque estén habilitadas para el diseño:
+//   en la transmisión real esas capas están ocultas hasta que la Mesa las
+//   dispara puntualmente (un pulso de nómina, una jugada) — mostrarlas acá
+//   siempre encendidas hacía que la "vista general" fuera en realidad un
+//   mashup de las 4 capas superpuestas que NUNCA se ve así de verdad en
+//   OBS, y de paso hacía que todo se viera amontonado y chico. Así, lo que
+//   se ve acá es lo mismo que vas a ver al pegar el enlace en OBS, sin
+//   sorpresas ni reajustes después.
 // - 'marcador': SOLO el marcador (+ logo/título), con zoom automático a la
 //   caja ya renderizada — así se ve grande incluso si está achicado o en una
 //   esquina, en vez del marcador diminuto perdido en un lienzo 1920×1080.
@@ -118,23 +127,21 @@ export default function PreviaCombinada({
     estiloZoom = { transform: 'none' };
   }
 
-  // 'anuncios' ahora también dibuja el marcador (ver medidaAEncuadrar más
-  // arriba) — para que se pueda comparar el tamaño del aviso contra el
-  // marcador de verdad, en vez de verlo solo, flotando en un lienzo vacío.
+  // 'anuncios' también dibuja el marcador (ver medidaAEncuadrar más arriba)
+  // — para que se pueda comparar el tamaño del aviso contra el marcador de
+  // verdad, en vez de verlo solo, flotando en un lienzo vacío.
   const conMarcador = modo === 'general' || modo === 'marcador' || modo === 'anuncios';
-  const conNomina = modo === 'general' ? config?.mostrarNomina : modo === 'nomina';
-  const conEstadisticas = modo === 'general' ? config?.mostrarEstadisticas : modo === 'estadisticas';
-  const conAnuncios = modo === 'general' ? config?.anunciarJugadas : modo === 'anuncios';
-  // La animación de sumar puntos no tiene pestaña propia (vive adentro de
-  // Marcador) y solo se dispara con un cambio de puntaje real — sin esto la
-  // vista previa nunca la mostraba, así que se ajustaba a ciegas. Se fuerza
-  // visible (2 y 3 puntos, uno por lado) mientras se está viendo el
-  // marcador, para poder ajustar tamaño/posición/ícono/animación en vivo.
-  const mostrarDemoPuntos = modo === 'general' || modo === 'marcador';
-  // En la vista previa el aviso demo está siempre visible (no se apaga
-  // solo), así que en modo 'general' con "reemplaza el título" elegido, el
-  // título se ve siempre suprimido — igual que se vería en la transmisión
-  // real mientras un aviso está en pantalla.
+  const conNomina = modo === 'nomina';
+  const conEstadisticas = modo === 'estadisticas';
+  const conAnuncios = modo === 'anuncios';
+  // La animación de sumar puntos solo se dispara con un cambio de puntaje
+  // real — sin esto la pestaña Marcador nunca la mostraba, así que se
+  // ajustaba a ciegas. Se fuerza visible (2 y 3 puntos, uno por lado) SOLO
+  // mientras se está editando esa pestaña puntual — en 'general' se deja
+  // apagada a propósito (ver el comentario de `modo` más arriba: esa vista
+  // tiene que ser fiel al estado de reposo real de OBS, y ahí esta
+  // animación tampoco está disparada la mayor parte del tiempo).
+  const mostrarDemoPuntos = modo === 'marcador';
   const suprimirTitulo = conMarcador && conAnuncios && config?.anunciosTituloModo === 'reemplaza-titulo';
 
   return (
