@@ -402,10 +402,14 @@ export function estiloAnclaAlerta(tema = {}, modo = 'arriba', lado = 'izquierda'
 // marcador, igual que estiloAnclaAlerta — reusa la misma corrección de
 // aspect-ratio para que "arriba"/"abajo" apunten donde realmente se ve, y la
 // misma mitad proporcional para que la cercanía no se rompa al agrandar.
-export function estiloAnclaLogo(tema = {}, modo = 'arriba') {
-  const posX = Number.isFinite(tema?.posX) ? tema.posX : 50;
-  const posY = Number.isFinite(tema?.posY) ? tema.posY : 88;
-  const mitad = mitadCajaProporcional(tema);
+// `caja` (opcional, real, medida): reemplaza posX/posY/mitadCajaProporcional
+// cuando está disponible — ver el comentario de estiloAnclaAlerta, mismo
+// motivo (la aproximación fija queda corrida en cuanto el diseño se aleja
+// del tamaño "típico" que asume).
+export function estiloAnclaLogo(tema = {}, modo = 'arriba', caja = null) {
+  const posX = caja ? caja.left + caja.width / 2 : (Number.isFinite(tema?.posX) ? tema.posX : 50);
+  const posY = caja ? caja.topAlto + caja.heightAlto / 2 : (Number.isFinite(tema?.posY) ? tema.posY : 88);
+  const mitad = caja ? { x: caja.width / 2, y: caja.heightAlto / 2 } : mitadCajaProporcional(tema);
   const y = modo === 'abajo' ? Math.min(100, posY + mitad.y + 2) : Math.max(0, posY - mitad.y - 16);
   return {
     justifyContent: 'flex-start',
@@ -420,10 +424,11 @@ export function estiloAnclaLogo(tema = {}, modo = 'arriba') {
 // criterio de "pegado + transform fijo en CSS" que estiloAnclaAlerta/Titulo,
 // para que el marcador se vea "más alto" en vez de tener un logo flotando
 // aparte. Distinta de estiloAnclaLogo (el modo 'fuera', que sí deja hueco).
-export function estiloAnclaLogoCaja(tema = {}, modo = 'arriba') {
-  const posX = Number.isFinite(tema?.posX) ? tema.posX : 50;
-  const posY = Number.isFinite(tema?.posY) ? tema.posY : 88;
-  const mitad = mitadCajaProporcional(tema);
+// `caja`: mismo reemplazo de la aproximación que en estiloAnclaLogo.
+export function estiloAnclaLogoCaja(tema = {}, modo = 'arriba', caja = null) {
+  const posX = caja ? caja.left + caja.width / 2 : (Number.isFinite(tema?.posX) ? tema.posX : 50);
+  const posY = caja ? caja.topAlto + caja.heightAlto / 2 : (Number.isFinite(tema?.posY) ? tema.posY : 88);
+  const mitad = caja ? { x: caja.width / 2, y: caja.heightAlto / 2 } : mitadCajaProporcional(tema);
   const y = modo === 'abajo' ? Math.min(100, posY + mitad.y) : Math.max(0, posY - mitad.y);
   return {
     justifyContent: 'flex-start',
@@ -445,10 +450,13 @@ export function estiloAnclaLogoCaja(tema = {}, modo = 'arriba') {
 //   cerca (se veía metido adentro del marcador).
 // - 'arriba': arriba del marcador, un poco separado hacia cada costado.
 // - 'centro': centro de la pantalla, sin relación con la caja.
-export function estiloAnclaPop(tema = {}, lado, posicion = 'costado') {
-  const posX = Number.isFinite(tema?.posX) ? tema.posX : 50;
-  const posY = Number.isFinite(tema?.posY) ? tema.posY : 88;
-  const mitad = mitadCajaProporcional(tema);
+// `caja` (opcional, real, medida): mismo reemplazo de la aproximación fija
+// que en estiloAnclaAlerta/estiloAnclaLogo — no se usa en 'centro'/'libre'
+// (no dependen de la caja).
+export function estiloAnclaPop(tema = {}, lado, posicion = 'costado', caja = null) {
+  const posX = caja ? caja.left + caja.width / 2 : (Number.isFinite(tema?.posX) ? tema.posX : 50);
+  const posY = caja ? caja.topAlto + caja.heightAlto / 2 : (Number.isFinite(tema?.posY) ? tema.posY : 88);
+  const mitad = caja ? { x: caja.width / 2, y: caja.heightAlto / 2 } : mitadCajaProporcional(tema);
 
   if (posicion === 'centro') {
     return { justifyContent: 'center', alignItems: 'center', paddingLeft: 0, paddingTop: 0 };

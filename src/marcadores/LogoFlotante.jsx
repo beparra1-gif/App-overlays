@@ -18,9 +18,10 @@ import './logoFlotante.css';
 //
 // `caja` (ver useCajaMarcador) es la medida REAL de la caja ya renderizada —
 // hace falta para "costados" (cada escudo va pegado al borde IZQUIERDO/
-// DERECHO real de la caja, no a una aproximación) y para "arriba"/"abajo" es
-// opcional: si no llega todavía (primer render), esos dos siguen sirviéndose
-// con la aproximación de siempre así no desaparecen un instante.
+// DERECHO real de la caja, no a una aproximación) y también se pasa a
+// estiloAnclaLogo/estiloAnclaLogoCaja para "arriba"/"abajo" — mientras no
+// llega todavía (primer render), esos dos se sirven con la aproximación de
+// siempre así no desaparecen un instante.
 export default function LogoFlotante({ equipoLocal, equipoVisita, config, plantillaId, caja }) {
   const posicion = config?.logoPosicion;
   if (posicion !== 'arriba' && posicion !== 'abajo' && posicion !== 'costados') return null;
@@ -140,7 +141,7 @@ export default function LogoFlotante({ equipoLocal, equipoVisita, config, planti
   }
 
   if (dentro) {
-    const estiloAncla = { position: 'fixed', inset: 0, display: 'flex', pointerEvents: 'none', ...estiloTema(config), '--pm-fuente': fuenteEfectiva(config, plantillaId), ...estiloAnclaLogoCaja(config, posicion) };
+    const estiloAncla = { position: 'fixed', inset: 0, display: 'flex', pointerEvents: 'none', ...estiloTema(config), '--pm-fuente': fuenteEfectiva(config, plantillaId), ...estiloAnclaLogoCaja(config, posicion, caja) };
     return (
       <div style={estiloAncla}>
         <div className={`lf-dentro lf-dentro-${posicion}`}>
@@ -157,7 +158,7 @@ export default function LogoFlotante({ equipoLocal, equipoVisita, config, planti
     );
   }
 
-  const estiloAncla = estiloAnclaLogo(config, posicion);
+  const estiloAncla = estiloAnclaLogo(config, posicion, caja);
   return (
     <div style={{ position: 'fixed', inset: 0, display: 'flex', pointerEvents: 'none', ...estiloAncla }}>
       <div style={{ display: 'flex', gap: 16, transform: 'translateX(-50%)' }}>

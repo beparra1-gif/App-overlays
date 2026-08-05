@@ -143,7 +143,7 @@ export default function PreviaCombinada({
         <div className="mini-preview-lienzo" ref={lienzoRef}>
           {conMarcador && (
             <>
-              <LogoMarcaAgua equipoLocal={partido.equipoLocal} equipoVisita={partido.equipoVisita} config={config} />
+              <LogoMarcaAgua equipoLocal={partido.equipoLocal} equipoVisita={partido.equipoVisita} config={config} caja={caja} />
               <Marcador partido={partido} config={config} />
               <LogoFlotante equipoLocal={partido.equipoLocal} equipoVisita={partido.equipoVisita} config={config} plantillaId={plantillaId} caja={caja} />
               <TituloMarcador config={config} plantillaId={plantillaId} caja={caja} suprimir={suprimirTitulo} />
@@ -155,6 +155,7 @@ export default function PreviaCombinada({
                   editable={animacionPuntosEditable}
                   onArrastrar={onArrastrarAnimacionPuntos}
                   contenedorRef={lienzoRef}
+                  caja={caja}
                 />
               )}
             </>

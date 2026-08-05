@@ -36,11 +36,11 @@ function contenidoIcono(icono, delta) {
   }
 }
 
-function Badge({ estado, lado, tema, posicion, escala, estiloAnim, icono }) {
+function Badge({ estado, lado, tema, posicion, escala, estiloAnim, icono, caja }) {
   if (!estado.pulso) return null;
   const estilo = {
     position: 'fixed', inset: 0, display: 'flex', pointerEvents: 'none',
-    ...estiloTema(tema), ...estiloAnclaPop(tema, lado, posicion), '--pm-pop-escala': escala,
+    ...estiloTema(tema), ...estiloAnclaPop(tema, lado, posicion, caja), '--pm-pop-escala': escala,
   };
   const clase = `pm-pop-suma ${estiloAnim ? `pm-pop-${estiloAnim}` : ''} pm-pop-lado-${lado}`.trim();
   return (
@@ -93,8 +93,12 @@ function MarcaArrastrable({ x, y, onArrastrar, contenedorRef }) {
 // se fuerzan dos pulsos fijos (2 y 3 puntos, uno por lado) para poder ver y
 // ajustar tamaño/posición/ícono/animación sin tener que anotar puntos de
 // verdad. `editable`/`onArrastrar`/`contenedorRef`: igual que en LogosLibres,
-// solo tienen efecto con posición "libre".
-export default function PopSumaPuntos({ partido, config, demo = false, editable = false, onArrastrar, contenedorRef }) {
+// solo tienen efecto con posición "libre". `caja` (ver useCajaMarcador): la
+// caja del marcador ya medida de verdad — sin ella, 'costado'/'arriba' se
+// anclaban con una aproximación fija que quedaba corrida en cuanto el
+// diseño se alejaba del tamaño "típico" que esa aproximación asume (mismo
+// bug ya corregido en Anuncios, ver estiloAnclaAlerta en utils.js).
+export default function PopSumaPuntos({ partido, config, demo = false, editable = false, onArrastrar, contenedorRef, caja }) {
   const localReal = usePulsoConDelta(partido.ptsLocal);
   const visitaReal = usePulsoConDelta(partido.ptsVisita);
   if (config?.mostrarAnimacionPuntos === false) return null;
@@ -111,8 +115,8 @@ export default function PopSumaPuntos({ partido, config, demo = false, editable 
 
   return (
     <>
-      <Badge estado={local} lado="local" tema={config} posicion={posicion} escala={escala} estiloAnim={estiloAnim} icono={icono} />
-      <Badge estado={visita} lado="visita" tema={config} posicion={posicion} escala={escala} estiloAnim={estiloAnim} icono={icono} />
+      <Badge estado={local} lado="local" tema={config} posicion={posicion} escala={escala} estiloAnim={estiloAnim} icono={icono} caja={caja} />
+      <Badge estado={visita} lado="visita" tema={config} posicion={posicion} escala={escala} estiloAnim={estiloAnim} icono={icono} caja={caja} />
       {editable && posicion === 'libre' && (
         <MarcaArrastrable x={libreX} y={libreY} onArrastrar={onArrastrar} contenedorRef={contenedorRef} />
       )}

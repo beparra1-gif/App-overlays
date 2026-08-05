@@ -40,10 +40,10 @@ export default function VistaMarcador({ partido, diseno, oculto = false, suprimi
         transform: oculto ? 'scale(0.94)' : 'scale(1)',
       }}
     >
-      <LogoMarcaAgua equipoLocal={partido.equipoLocal} equipoVisita={partido.equipoVisita} config={config} />
+      <LogoMarcaAgua equipoLocal={partido.equipoLocal} equipoVisita={partido.equipoVisita} config={config} caja={caja} />
       <Componente partido={partido} config={config} />
       <LogoFlotante equipoLocal={partido.equipoLocal} equipoVisita={partido.equipoVisita} config={config} plantillaId={plantillaId} caja={caja} />
-      <PopSumaPuntos partido={partido} config={config} />
+      <PopSumaPuntos partido={partido} config={config} caja={caja} />
       <TituloMarcador config={config} plantillaId={plantillaId} caja={caja} suprimir={suprimirTitulo} />
       <LogosLibres config={config} />
     </div>
