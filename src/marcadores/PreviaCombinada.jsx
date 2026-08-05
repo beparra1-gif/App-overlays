@@ -119,7 +119,15 @@ export default function PreviaCombinada({
   if (medidaAEncuadrar) {
     const zoomAncho = RELLENO / Math.max(1, medidaAEncuadrar.width);
     const zoomAlto = RELLENO / Math.max(1, medidaAEncuadrar.heightAlto);
-    const zoom = Math.max(0.4, Math.min(8, Math.min(zoomAncho, zoomAlto)));
+    // El tope de zoom era 8x — de sobra mientras "Tamaño general" solo
+    // llegaba hasta 50%. Ahora que baja hasta 5% (y estirar ancho/alto
+    // también), una caja bien achicada podía necesitar bastante más de 8x
+    // para llenar el `RELLENO`% del marco — se quedaba a mitad de camino,
+    // chica en un lienzo enorme, aunque el zoom SÍ se estuviera aplicando.
+    // El `Math.max(1, ...)` de arriba ya limita el caso extremo (una caja
+    // de <1% de ancho no pide más de ~74x), así que subir el tope acá no
+    // arriesga un zoom fuera de control.
+    const zoom = Math.max(0.4, Math.min(60, Math.min(zoomAncho, zoomAlto)));
     const cx = medidaAEncuadrar.left + medidaAEncuadrar.width / 2;
     const cy = medidaAEncuadrar.topAlto + medidaAEncuadrar.heightAlto / 2;
     estiloZoom = { transform: `translate(${50 - zoom * cx}%, ${50 - zoom * cy}%) scale(${zoom})` };

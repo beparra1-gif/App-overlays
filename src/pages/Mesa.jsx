@@ -301,6 +301,7 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
   // cuando haga falta, p. ej. al empezar cada cuarto).
   const [modalNomina, setModalNomina] = useState(null);
   const [modalQuinteto, setModalQuinteto] = useState(null);
+  const [modalConvocados, setModalConvocados] = useState(null);
   const [detalleJugadores, setDetalleJugadores] = useState(false);
   // Al disparar Nómina/Estadísticas: si se tapa el marcador base mientras
   // esa capa está en pantalla, o se lo deja visible debajo (por defecto).
@@ -467,11 +468,19 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
     return embebido ? <p className="texto-tenue">Cargando partido…</p> : <div className="pagina-centrada">Cargando partido…</div>;
   }
 
+  // Si hay convocados armados para este equipo (Mesa → "Elegir
+  // convocados"), el roster que se usa para JUGAR (banca/cancha/anotar) se
+  // achica a esa lista — el plantel completo (rosterLocalCompleto/
+  // rosterVisitaCompleto) sigue intacto, solo se usa acá para saber a quién
+  // mostrar. Sin convocatoria armada (array vacío, el default), juega el
+  // plantel completo, igual que siempre.
   const rosterConStats = (equipoKey) => {
     const rosterCompleto = equipoKey === 'local' ? rosterLocalCompleto : rosterVisitaCompleto;
     const rosterStats = equipoKey === 'local' ? partido.equipoLocal.roster : partido.equipoVisita.roster;
+    const convocados = equipoKey === 'local' ? partido.convocadosLocalIds : partido.convocadosVisitaIds;
     const statsPorId = new Map(rosterStats.map((j) => [j.id, j]));
-    return rosterCompleto.map((j) => ({ ...j, ...(statsPorId.get(j.id) || {}) }));
+    const base = convocados?.length ? rosterCompleto.filter((j) => convocados.includes(j.id)) : rosterCompleto;
+    return base.map((j) => ({ ...j, ...(statsPorId.get(j.id) || {}) }));
   };
 
   const enCanchaDelEquipo = (equipoKey) => {
@@ -492,6 +501,19 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
       quintetoLocalIds: equipoKey === 'local' ? ids : partido.quintetoLocalIds,
       quintetoVisitaIds: equipoKey === 'visita' ? ids : partido.quintetoVisitaIds,
     });
+  };
+
+  // Convocados: quiénes del plantel guardado juegan HOY (máx. 12 sugerido,
+  // se puede "elegir igual" con más si hace falta) — no toca el plantel
+  // real del equipo, solo filtra a quién se ve en banca/cancha/anotar (ver
+  // rosterConStats). Vacío = sin convocatoria armada, juega el plantel
+  // completo — "dejar a todos" es simplemente no tocar esto.
+  const cambiarConvocados = (equipoKey, ids) => {
+    const quintetoActual = equipoKey === 'local' ? partido.quintetoLocalIds : partido.quintetoVisitaIds;
+    if (ids.length > 0 && quintetoActual.some((id) => !ids.includes(id))) {
+      cambiarQuinteto(equipoKey, quintetoActual.filter((id) => ids.includes(id)));
+    }
+    emitirAccion('CONVOCADOS_ACTUALIZAR', { equipo: equipoKey, ids });
   };
 
   // Sacar un jugador de la nómina desde la Mesa (partido ya en curso) — si
@@ -718,6 +740,9 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
             <div className="mv-zona mv-zona-local">
               <div className="mv-zona-titulo-fila">
                 <p className="mv-zona-titulo">Roster Local ({rosterLocalCompleto.length}/12)</p>
+                <button type="button" className="mv-btn-nomina" onClick={() => setModalConvocados('local')}>
+                  🎽 {partido.convocadosLocalIds?.length ? `Convocados (${partido.convocadosLocalIds.length})` : 'Convocados: todos'}
+                </button>
                 <button type="button" className="mv-btn-nomina" onClick={() => setModalNomina('local')}>+ Nómina</button>
               </div>
               <div className="mv-split local">
@@ -821,6 +846,9 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
             <div className="mv-zona mv-zona-visita">
               <div className="mv-zona-titulo-fila">
                 <p className="mv-zona-titulo">Roster Visita ({rosterVisitaCompleto.length}/12)</p>
+                <button type="button" className="mv-btn-nomina" onClick={() => setModalConvocados('visita')}>
+                  🎽 {partido.convocadosVisitaIds?.length ? `Convocados (${partido.convocadosVisitaIds.length})` : 'Convocados: todos'}
+                </button>
                 <button type="button" className="mv-btn-nomina" onClick={() => setModalNomina('visita')}>+ Nómina</button>
               </div>
               <div className="mv-split">
@@ -925,11 +953,41 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
         <ModalRoster onCerrar={() => setModalQuinteto(null)}>
           <EquipoRoster
             equipo={modalQuinteto === 'local' ? partido.equipoLocal : partido.equipoVisita}
-            roster={modalQuinteto === 'local' ? rosterLocalCompleto : rosterVisitaCompleto}
+            roster={rosterConStats(modalQuinteto)}
             seleccionados={modalQuinteto === 'local' ? partido.quintetoLocalIds : partido.quintetoVisitaIds}
             onCambiarQuinteto={(ids) => cambiarQuinteto(modalQuinteto, ids)}
             permitirAgregar={false}
           />
+        </ModalRoster>
+      )}
+
+      {modalConvocados && (
+        <ModalRoster onCerrar={() => setModalConvocados(null)}>
+          <EquipoRoster
+            equipo={modalConvocados === 'local' ? partido.equipoLocal : partido.equipoVisita}
+            roster={modalConvocados === 'local' ? rosterLocalCompleto : rosterVisitaCompleto}
+            seleccionados={
+              (modalConvocados === 'local' ? partido.convocadosLocalIds : partido.convocadosVisitaIds)?.length
+                ? (modalConvocados === 'local' ? partido.convocadosLocalIds : partido.convocadosVisitaIds)
+                : (modalConvocados === 'local' ? rosterLocalCompleto : rosterVisitaCompleto).map((j) => j.id)
+            }
+            onCambiarQuinteto={(ids) => cambiarConvocados(modalConvocados, ids)}
+            permitirAgregar={false}
+            maxSeleccion={12}
+            toqueSuave
+            etiquetaSeleccion="convocados"
+          />
+          <p className="texto-tenue" style={{ margin: '8px 0 0', fontSize: 12 }}>
+            Máximo sugerido 12 (norma FIBA) — podés convocar a todo el plantel si hace falta.
+          </p>
+          <button
+            type="button"
+            className="btn-link"
+            style={{ marginTop: 4 }}
+            onClick={() => cambiarConvocados(modalConvocados, [])}
+          >
+            Dejar a todos convocados
+          </button>
         </ModalRoster>
       )}
     </div>

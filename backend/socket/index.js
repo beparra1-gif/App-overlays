@@ -21,6 +21,7 @@ import {
   reiniciarReloj,
   cambiarEstadoPartido,
   actualizarQuintetos,
+  actualizarConvocados,
   relojActual,
   puntosPorPeriodo,
   reiniciarPartido,
@@ -277,6 +278,12 @@ export function registrarSocketPartidos(io) {
               ? payload.quintetoVisitaIds.map(Number)
               : partido.quinteto_visita_ids;
             actualizado = await actualizarQuintetos(partido, { quintetoLocalIds, quintetoVisitaIds });
+            break;
+          }
+          case 'CONVOCADOS_ACTUALIZAR': {
+            if (!EQUIPOS_VALIDOS.includes(payload.equipo)) throw new Error('Equipo inválido');
+            const ids = Array.isArray(payload.ids) ? payload.ids.map(Number).filter(Number.isFinite) : [];
+            actualizado = await actualizarConvocados(partido, { equipo: payload.equipo, ids });
             break;
           }
           default:

@@ -48,18 +48,32 @@ export default function EquipoRoster({
   // (un toggle propio, ver EquipoFicha) porque ahí el partido todavía no
   // existe cuando se cargan los jugadores.
   partidoId,
+  // Tope de la selección múltiple (`seleccionable`) — 5 para el quinteto en
+  // cancha (el de siempre), 12 para elegir convocados (ver ModalConvocados
+  // en Mesa.jsx). Para convocados es un tope SUAVE: al llegar al tope
+  // aparece "Elegir igual" (mismo criterio que el tope FIBA de la nómina),
+  // así el usuario puede convocar a todo el plantel si lo necesita.
+  maxSeleccion = MAX_QUINTETO,
+  toqueSuave = false,
+  etiquetaSeleccion = 'quinteto',
 }) {
   const [dorsal, setDorsal] = useState('');
   const [nombreJugador, setNombreJugador] = useState('');
   const [soloEstePartido, setSoloEstePartido] = useState(false);
   const [forzarMasDeDoce, setForzarMasDeDoce] = useState(false);
+  // Si ya arranca con más seleccionados que el tope (p. ej. convocados
+  // precargado con el plantel completo, ver ModalConvocados en Mesa.jsx),
+  // no tiene sentido que los checkboxes nazcan deshabilitados — el usuario
+  // todavía no hizo nada, no hay "tope alcanzado" que anunciarle recién
+  // abriendo.
+  const [forzarMasSeleccion, setForzarMasSeleccion] = useState(() => seleccionados.length > maxSeleccion);
   const [error, setError] = useState('');
 
   const alternar = (jugadorId) => {
     if (!seleccionable) return;
     const yaEsta = seleccionados.includes(jugadorId);
     if (yaEsta) return onCambiarQuinteto(seleccionados.filter((id) => id !== jugadorId));
-    if (seleccionados.length >= MAX_QUINTETO) return;
+    if (seleccionados.length >= maxSeleccion && !(toqueSuave && forzarMasSeleccion)) return;
     onCambiarQuinteto([...seleccionados, jugadorId]);
   };
 
@@ -124,9 +138,14 @@ export default function EquipoRoster({
     <div className="tarjeta">
       <h3>
         {equipo.nombre}
-        {seleccionable && <span className="texto-tenue"> — quinteto {seleccionados.length}/{MAX_QUINTETO}</span>}
+        {seleccionable && <span className="texto-tenue"> — {etiquetaSeleccion} {seleccionados.length}/{maxSeleccion}</span>}
       </h3>
       {error && <p className="mensaje-error">{error}</p>}
+      {seleccionable && toqueSuave && seleccionados.length >= maxSeleccion && !forzarMasSeleccion && (
+        <div className="mensaje-error">
+          Llegaste a {maxSeleccion}. <button type="button" className="btn-link" onClick={() => setForzarMasSeleccion(true)}>Elegir igual</button>
+        </div>
+      )}
       <ul className="lista-seleccion">
         {roster.map((j) => (
           <li key={j.id} style={{ justifyContent: 'space-between' }}>
@@ -136,7 +155,7 @@ export default function EquipoRoster({
                   type="checkbox"
                   checked={seleccionados.includes(j.id)}
                   onChange={() => alternar(j.id)}
-                  disabled={!seleccionados.includes(j.id) && seleccionados.length >= MAX_QUINTETO}
+                  disabled={!seleccionados.includes(j.id) && seleccionados.length >= maxSeleccion && !(toqueSuave && forzarMasSeleccion)}
                 />
                 <span className="dorsal-chip">{j.dorsal ?? '-'}</span> {j.nombre}
               </label>

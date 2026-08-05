@@ -24,7 +24,14 @@ function totalesEquipo(roster) {
   );
 }
 
-async function cargarRoster(equipoId, partidoId, minutosPorJugador = new Map()) {
+// `convocadosIds` (opcional): si el partido tiene una lista de convocados
+// para este equipo (Mesa de control → "Elegir convocados", máx. 12
+// sugerido), el roster que se usa para JUGAR queda restringido a esa
+// lista — el plantel guardado del equipo (jugadores.equipo_id) sigue
+// intacto, esto no borra ni desengancha a nadie, solo decide quién
+// aparece acá para anotarle jugadas hoy. Array vacío = sin restricción
+// (todo el plantel juega), el comportamiento de siempre.
+async function cargarRoster(equipoId, partidoId, minutosPorJugador = new Map(), convocadosIds = []) {
   const resultado = await pool.query(
     `SELECT j.id, j.dorsal, j.nombre,
        COALESCE(SUM(CASE WHEN e.tipo = 'PUNTO' THEN e.puntos ELSE 0 END), 0)::int AS pts,
@@ -44,9 +51,10 @@ async function cargarRoster(equipoId, partidoId, minutosPorJugador = new Map()) 
      FROM jugadores j
      LEFT JOIN eventos_partido e ON e.jugador_id = j.id AND e.partido_id = $2
      WHERE j.equipo_id = $1 AND (j.temporal = false OR j.partido_id = $2)
+       AND (COALESCE(array_length($3::int[], 1), 0) = 0 OR j.id = ANY($3::int[]))
      GROUP BY j.id
      ORDER BY j.dorsal ASC NULLS LAST, j.nombre ASC`,
-    [equipoId, partidoId]
+    [equipoId, partidoId, convocadosIds]
   );
 
   return resultado.rows.map((j) => {
@@ -89,8 +97,8 @@ export async function construirEstado(partido) {
   const [equipoLocal, equipoVisita, rosterLocal, rosterVisita, patrocinadores] = await Promise.all([
     pool.query('SELECT id, nombre, color, logo_url FROM equipos WHERE id = $1', [partido.equipo_local_id]),
     pool.query('SELECT id, nombre, color, logo_url FROM equipos WHERE id = $1', [partido.equipo_visita_id]),
-    cargarRoster(partido.equipo_local_id, partido.id, minutosPorJugador),
-    cargarRoster(partido.equipo_visita_id, partido.id, minutosPorJugador),
+    cargarRoster(partido.equipo_local_id, partido.id, minutosPorJugador, partido.convocados_local_ids),
+    cargarRoster(partido.equipo_visita_id, partido.id, minutosPorJugador, partido.convocados_visita_ids),
     pool.query(
       'SELECT id, nombre, imagen_url, duracion_segundos FROM patrocinadores WHERE user_id = $1 AND activo = true ORDER BY orden ASC',
       [partido.user_id]
@@ -119,6 +127,8 @@ export async function construirEstado(partido) {
     posesion: partido.posesion,
     quintetoLocalIds: partido.quinteto_local_ids,
     quintetoVisitaIds: partido.quinteto_visita_ids,
+    convocadosLocalIds: partido.convocados_local_ids,
+    convocadosVisitaIds: partido.convocados_visita_ids,
     equipoLocal: { ...equipoLocal.rows[0], roster: rosterLocal, totales: totalesEquipo(rosterLocal) },
     equipoVisita: { ...equipoVisita.rows[0], roster: rosterVisita, totales: totalesEquipo(rosterVisita) },
     patrocinadores: patrocinadores.rows,
@@ -354,6 +364,21 @@ export async function actualizarQuintetos(partido, { quintetoLocalIds, quintetoV
   await registrarDiff('local', partido.quinteto_local_ids, quintetoLocalIds);
   await registrarDiff('visita', partido.quinteto_visita_ids, quintetoVisitaIds);
 
+  return resultado.rows[0];
+}
+
+// Convocados: quiénes del plantel guardado del equipo juegan ESTE partido —
+// no toca el plantel (jugadores.equipo_id sigue igual), solo filtra el
+// roster que se usa para anotar jugadas/elegir quinteto (ver cargarRoster).
+// Array vacío = sin convocatoria armada, juega el plantel completo (el
+// comportamiento de siempre) — es la opción "dejar a todos" que pide el
+// usuario, no un caso especial aparte.
+export async function actualizarConvocados(partido, { equipo, ids }) {
+  const columna = equipo === 'local' ? 'convocados_local_ids' : 'convocados_visita_ids';
+  const resultado = await pool.query(
+    `UPDATE partidos SET ${columna} = $1, actualizado_en = now() WHERE id = $2 RETURNING *`,
+    [ids, partido.id]
+  );
   return resultado.rows[0];
 }
 
