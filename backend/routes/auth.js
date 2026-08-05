@@ -109,7 +109,7 @@ router.post('/olvide-password', limiteRecuperacion, async (req, res) => {
         `INSERT INTO password_reset_tokens (user_id, token_hash, expira_en) VALUES ($1, $2, now() + interval '1 hour')`,
         [usuario.id, hashToken(tokenCrudo)]
       );
-      const origen = (process.env.FRONTEND_URL || 'http://localhost:5173').split(',')[0].trim();
+      const origen = (process.env.FRONTEND_URL || 'http://localhost:5183').split(',')[0].trim();
       const enlace = `${origen}/resetear-password?token=${tokenCrudo}`;
       await enviarEmail({
         para: email,
