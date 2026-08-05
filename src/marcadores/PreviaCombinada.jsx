@@ -145,7 +145,21 @@ export default function PreviaCombinada({
     // El `Math.max(1, ...)` de arriba ya limita el caso extremo (una caja
     // de <1% de ancho no pide más de ~74x), así que subir el tope acá no
     // arriesga un zoom fuera de control.
-    const zoom = Math.max(0.4, Math.min(60, Math.min(zoomAncho, zoomAlto)));
+    //
+    // Piso mínimo: en 'general' el "conjunto de todo lo activo" suele
+    // ocupar CASI todo el lienzo de verdad — un diseño típico tiene la
+    // nómina arriba, el marcador abajo y las estadísticas en el medio, así
+    // que la UNIÓN de las tres fácilmente pasa el 90% del alto. Encajar
+    // ESO en el `RELLENO`% del marco pedía ACHICAR (zoom < 1), quedando
+    // más lejos todavía que con el lienzo entero sin zoom — el problema
+    // que se estaba tratando de arreglar, empeorado. Por eso acá el piso
+    // es 1 (nunca alejar más que el tamaño real): si el conjunto ya ocupa
+    // la pantalla, alcanza con centrarlo, sin además achicarlo. Los otros
+    // modos (un solo elemento puntual, casi siempre chico) sí pueden
+    // necesitar alejar un poco si llegara a desbordar, por eso mantienen
+    // el piso más bajo de siempre.
+    const pisoZoom = modo === 'general' ? 1 : 0.4;
+    const zoom = Math.max(pisoZoom, Math.min(60, Math.min(zoomAncho, zoomAlto)));
     const cx = medidaAEncuadrar.left + medidaAEncuadrar.width / 2;
     const cy = medidaAEncuadrar.topAlto + medidaAEncuadrar.heightAlto / 2;
     estiloZoom = { transform: `translate(${50 - zoom * cx}%, ${50 - zoom * cy}%) scale(${zoom})` };
