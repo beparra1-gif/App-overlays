@@ -9,6 +9,7 @@ import OlvidePassword from './pages/OlvidePassword';
 import ResetearPassword from './pages/ResetearPassword';
 import Equipos from './pages/Equipos';
 import Disenos from './pages/Disenos';
+import Partidos from './pages/Partidos';
 import Mesa from './pages/Mesa';
 import MesaSimple from './pages/MesaSimple';
 import EscenaPublica from './pages/EscenaPublica';
@@ -36,6 +37,7 @@ export default function App() {
                   <Route path="/resetear-password" element={<ResetearPassword />} />
                   <Route path="/equipos" element={<ProtectedRoute><Equipos /></ProtectedRoute>} />
                   <Route path="/disenos" element={<ProtectedRoute><Disenos /></ProtectedRoute>} />
+                  <Route path="/partidos" element={<ProtectedRoute><Partidos /></ProtectedRoute>} />
                   <Route path="/mesa/:id" element={<ProtectedRoute><Mesa /></ProtectedRoute>} />
                   <Route path="/mesa/:id/simple" element={<ProtectedRoute><MesaSimple /></ProtectedRoute>} />
                   <Route path="/publicidad" element={<ProtectedRoute><Publicidad /></ProtectedRoute>} />

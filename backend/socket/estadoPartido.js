@@ -427,7 +427,38 @@ export async function minutosJugados(partido) {
 // public_token — es el mecanismo para "empezar de nuevo" sobre el mismo
 // diseño con el mismo enlace ya cargado en OBS, en vez de crear un partido
 // (y por lo tanto un enlace) distinto cada vez que se quiere jugar otro juego.
+// Guarda una foto fija del partido (marcador final + estadísticas completas
+// de cada jugador, mismo formato que arma construirEstado) antes de que se
+// pierda de verdad — hoy el único momento en que eso pasa es reiniciarPartido
+// (ver abajo), que borra eventos_partido para dejar el mismo enlace de OBS
+// listo para el próximo partido. Sin esto, "Reiniciar Partido" tiraba
+// las estadísticas completas del partido anterior sin ninguna forma de
+// volver a verlas. Si no hubo ninguna jugada todavía (partido recién creado,
+// nunca arrancó), no archiva nada — no tiene sentido guardar un 0-0 vacío.
+export async function archivarPartido(partido) {
+  const tieneEventos = await pool.query('SELECT 1 FROM eventos_partido WHERE partido_id = $1 LIMIT 1', [partido.id]);
+  if (tieneEventos.rows.length === 0) return null;
+
+  const estado = await construirEstado(partido);
+  const resumen = { ...estado, puntosPorPeriodo: await puntosPorPeriodo(partido.id) };
+  const resultado = await pool.query(
+    `INSERT INTO partidos_archivados
+       (user_id, partido_id, equipo_local_nombre, equipo_visita_nombre, equipo_local_color, equipo_visita_color, equipo_local_logo_url, equipo_visita_logo_url, pts_local, pts_visita, resumen)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb) RETURNING *`,
+    [
+      partido.user_id, partido.id,
+      estado.equipoLocal.nombre, estado.equipoVisita.nombre,
+      estado.equipoLocal.color, estado.equipoVisita.color,
+      estado.equipoLocal.logo_url, estado.equipoVisita.logo_url,
+      estado.ptsLocal, estado.ptsVisita,
+      JSON.stringify(resumen),
+    ]
+  );
+  return resultado.rows[0];
+}
+
 export async function reiniciarPartido(partido) {
+  await archivarPartido(partido);
   const relojInicial = (Number(partido.minutos_periodo) || 10) * 60;
   const resultado = await pool.query(
     `UPDATE partidos SET

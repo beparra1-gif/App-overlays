@@ -84,6 +84,10 @@ export const api = {
   actualizarQuintetos: (id, payload) => solicitud(`/partidos/${id}/quintetos`, { method: 'PUT', body: payload }),
   eliminarPartido: (id) => solicitud(`/partidos/${id}`, { method: 'DELETE' }),
 
+  listarPartidosArchivados: () => solicitud('/partidos-archivados'),
+  obtenerPartidoArchivado: (id) => solicitud(`/partidos-archivados/${id}`),
+  eliminarPartidoArchivado: (id) => solicitud(`/partidos-archivados/${id}`, { method: 'DELETE' }),
+
   obtenerMarcadorPublico: (token) => solicitud(`/public/partidos/${token}`, { autenticado: false }),
 
   listarPatrocinadores: () => solicitud('/patrocinadores'),

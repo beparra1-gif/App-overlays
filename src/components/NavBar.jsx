@@ -11,6 +11,7 @@ export default function NavBar() {
     <nav className="navbar">
       <span className="navbar-marca">App-overlays</span>
       <NavLink to="/disenos" className="navbar-link">Diseños</NavLink>
+      <NavLink to="/partidos" className="navbar-link">Partidos</NavLink>
       <NavLink to="/equipos" className="navbar-link">Equipos</NavLink>
       <NavLink to="/logos" className="navbar-link">Logos</NavLink>
       <NavLink to="/publicidad" className="navbar-link">Publicidad</NavLink>

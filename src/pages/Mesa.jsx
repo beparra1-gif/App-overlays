@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { api, getToken } from '../api/client';
 import { crearSocket } from '../socket';
 import EquipoRoster from '../components/EquipoRoster';
+import TablaEstadisticas from '../components/TablaEstadisticas';
 import './mesa.css';
 
 const TIPOS_FALTA = [
@@ -113,35 +114,11 @@ function ModalCambio({ banca, onElegir, onCerrar, forzado }) {
 }
 
 function ModalResumen({ partido, onCerrar }) {
-  const fila = (j) => (
-    <tr key={j.id}>
-      <td>{j.dorsal ?? '-'}</td>
-      <td style={{ textAlign: 'left' }}>{j.nombre}</td>
-      <td>{j.pts}</td>
-      <td>{j.reb}</td>
-      <td>{j.ast}</td>
-      <td>{j.stl}</td>
-      <td>{j.to}</td>
-      <td>{j.faltas}</td>
-      <td>{formatearReloj(j.segundosJugados)}</td>
-    </tr>
-  );
-
   return (
     <div className="modal-fondo" onClick={onCerrar}>
       <div className="tarjeta modal-caja" style={{ width: 'min(640px, 92vw)' }} onClick={(e) => e.stopPropagation()}>
         <h3>Resumen del partido</h3>
-        {[partido.equipoLocal, partido.equipoVisita].map((equipo) => (
-          <div key={equipo.id} style={{ marginBottom: 16 }}>
-            <strong>{equipo.nombre}</strong>
-            <table style={{ width: '100%', fontSize: 13, borderCollapse: 'collapse', marginTop: 6 }}>
-              <thead>
-                <tr className="texto-tenue"><th>#</th><th style={{ textAlign: 'left' }}>Jugador</th><th>PTS</th><th>REB</th><th>AST</th><th>ROB</th><th>PÉR</th><th>FAL</th><th>MIN</th></tr>
-              </thead>
-              <tbody>{equipo.roster.map(fila)}</tbody>
-            </table>
-          </div>
-        ))}
+        <TablaEstadisticas equipoLocal={partido.equipoLocal} equipoVisita={partido.equipoVisita} />
         <button className="btn-secundario" onClick={onCerrar}>Cerrar</button>
       </div>
     </div>

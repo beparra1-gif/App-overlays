@@ -61,7 +61,9 @@ async function crearEscenasPorDefecto(partidoId, disenoIdMarcador, configDiseno)
 router.get('/', async (req, res) => {
   try {
     const resultado = await pool.query(
-      `SELECT p.*, el.nombre AS equipo_local_nombre, ev.nombre AS equipo_visita_nombre
+      `SELECT p.*, el.nombre AS equipo_local_nombre, ev.nombre AS equipo_visita_nombre,
+              el.color AS equipo_local_color, ev.color AS equipo_visita_color,
+              el.logo_url AS equipo_local_logo_url, ev.logo_url AS equipo_visita_logo_url
        FROM partidos p
        JOIN equipos el ON el.id = p.equipo_local_id
        JOIN equipos ev ON ev.id = p.equipo_visita_id
