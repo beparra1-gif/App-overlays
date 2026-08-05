@@ -20,7 +20,7 @@ const upload = multer({
 router.get('/', authenticate, async (req, res) => {
   try {
     const resultado = await pool.query(
-      'SELECT id, nombre, filename, mime_type, creado_en FROM logos WHERE user_id = $1 ORDER BY creado_en DESC',
+      'SELECT id, nombre, filename, mime_type, categoria, creado_en FROM logos WHERE user_id = $1 ORDER BY creado_en DESC',
       [req.userId]
     );
     res.json({ logos: resultado.rows });
@@ -30,21 +30,29 @@ router.get('/', authenticate, async (req, res) => {
   }
 });
 
+// `categoria`: 'normal' (el escudo de siempre, el que se usa en el
+// marcador y en todos lados) o 'fondo' (una versión alternativa — p. ej.
+// blanco y negro — pensada específicamente para la marca de agua de
+// Nómina). Un logo "de fondo" puede compartir el MISMO nombre que uno
+// normal a propósito: así se emparejan solos por nombre (ver
+// logoFondoPara en backend/socket/estadoPartido.js), sin tener que elegir
+// nada a mano por diseño.
 router.post('/', authenticate, (req, res) => {
   upload.single('archivo')(req, res, async (err) => {
     if (err) return res.status(400).json({ error: err.message });
     if (!req.file) return res.status(400).json({ error: 'Falta el archivo' });
 
     const nombre = String(req.body?.nombre || req.file.originalname || 'logo').trim();
+    const categoria = req.body?.categoria === 'fondo' ? 'fondo' : 'normal';
     const extension = (req.file.originalname.split('.').pop() || 'png').toLowerCase();
     const filename = `${crypto.randomBytes(10).toString('hex')}.${extension}`;
 
     try {
       await pool.query(
-        'INSERT INTO logos (user_id, nombre, filename, mime_type, file_data) VALUES ($1, $2, $3, $4, $5)',
-        [req.userId, nombre, filename, req.file.mimetype, req.file.buffer]
+        'INSERT INTO logos (user_id, nombre, filename, mime_type, file_data, categoria) VALUES ($1, $2, $3, $4, $5, $6)',
+        [req.userId, nombre, filename, req.file.mimetype, req.file.buffer, categoria]
       );
-      res.status(201).json({ logo: { filename, nombre, mime_type: req.file.mimetype } });
+      res.status(201).json({ logo: { filename, nombre, mime_type: req.file.mimetype, categoria } });
     } catch (error) {
       console.error('[POST /logos]', error);
       res.status(500).json({ error: 'No se pudo guardar el logo' });

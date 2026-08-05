@@ -68,6 +68,7 @@ const CONFIG_INICIAL = {
   logoTamanoNomina: 40,
   logoOpacidadNomina: 100,
   nominaLogoFondoTamano: 130,
+  nominaUsarLogoFondoAlternativo: false,
   nominaDuracionSeg: 6,
   nominaEscala: 100,
   nominaTamanoTexto: 100,
@@ -1188,13 +1189,26 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
                     </select>
                   </label>
                   {config.nominaLogoPosicion === 'fondo' ? (
-                    <CampoRango
-                      etiqueta="Tamaño"
-                      valor={Number.isFinite(config.nominaLogoFondoTamano) ? config.nominaLogoFondoTamano : 130}
-                      min={5} max={220}
-                      onChange={(v) => cambiarConfig('nominaLogoFondoTamano', v)}
-                      ayuda="100% = alto de la nómina. Podés achicarlo o agrandarlo como quieras."
-                    />
+                    <>
+                      <CampoRango
+                        etiqueta="Tamaño"
+                        valor={Number.isFinite(config.nominaLogoFondoTamano) ? config.nominaLogoFondoTamano : 130}
+                        min={5} max={220}
+                        onChange={(v) => cambiarConfig('nominaLogoFondoTamano', v)}
+                        ayuda="100% = alto de la nómina. Podés achicarlo o agrandarlo como quieras."
+                      />
+                      <Toggle
+                        etiqueta="Usar logo alternativo (blanco y negro) en el fondo"
+                        checked={config.nominaUsarLogoFondoAlternativo}
+                        onChange={(v) => cambiarConfig('nominaUsarLogoFondoAlternativo', v)}
+                      />
+                      {config.nominaUsarLogoFondoAlternativo && (
+                        <p className="texto-tenue" style={{ margin: '-8px 0 0', fontSize: 12 }}>
+                          Busca en "Logos → Logos de fondo" uno con el MISMO título que el escudo de cada equipo — si no
+                          encuentra ninguno para ese club, sigue mostrando el logo de siempre.
+                        </p>
+                      )}
+                    </>
                   ) : (
                     <CampoRango etiqueta="Tamaño" valor={config.logoTamanoNomina} unidad="px" min={10} max={140} onChange={(v) => cambiarConfig('logoTamanoNomina', v)} />
                   )}

@@ -96,10 +96,11 @@ export const api = {
   eliminarPatrocinador: (id) => solicitud(`/patrocinadores/${id}`, { method: 'DELETE' }),
 
   listarLogos: () => solicitud('/logos'),
-  subirLogo: (archivo, nombre) => {
+  subirLogo: (archivo, nombre, categoria) => {
     const formData = new FormData();
     formData.append('archivo', archivo);
     formData.append('nombre', nombre || archivo.name);
+    if (categoria) formData.append('categoria', categoria);
     return subirArchivo('/logos', formData);
   },
   actualizarLogo: (id, payload) => solicitud(`/logos/${id}`, { method: 'PUT', body: payload }),

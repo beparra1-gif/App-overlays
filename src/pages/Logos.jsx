@@ -1,6 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 import { api, urlLogo } from '../api/client';
 
+// 'normal': el escudo de siempre — el que se usa en el marcador y en
+// todos lados. 'fondo': una versión alternativa (blanco y negro, u otra)
+// pensada específicamente para la marca de agua de Nómina — subila con el
+// MISMO título que la versión normal del mismo club, y en Nómina el
+// interruptor "Usar logo alternativo" la encuentra sola por ese nombre,
+// sin tener que elegir nada por diseño.
+const CATEGORIAS = [
+  { id: 'normal', etiqueta: 'Logos', ayuda: 'Los escudos de siempre — se usan en el marcador y en todos lados.' },
+  { id: 'fondo', etiqueta: 'Logos de fondo', ayuda: 'Versión alternativa (ej. blanco y negro) para la marca de agua de Nómina. Subila con el mismo título que el logo normal del club para que se emparejen solos.' },
+];
+
 export default function Logos() {
   const [logos, setLogos] = useState([]);
   const [error, setError] = useState('');
@@ -11,6 +22,7 @@ export default function Logos() {
   const [busqueda, setBusqueda] = useState('');
   const [editandoId, setEditandoId] = useState(null);
   const [tituloEditado, setTituloEditado] = useState('');
+  const [categoria, setCategoria] = useState('normal');
   const inputRef = useRef(null);
 
   const cargar = () => api.listarLogos().then((d) => setLogos(d.logos));
@@ -29,7 +41,7 @@ export default function Logos() {
     setError('');
     setSubiendo(true);
     try {
-      await api.subirLogo(archivo, titulo.trim() || archivo.name.replace(/\.[^.]+$/, ''));
+      await api.subirLogo(archivo, titulo.trim() || archivo.name.replace(/\.[^.]+$/, ''), categoria);
       inputRef.current.value = '';
       setTitulo('');
       cargar();
@@ -70,7 +82,8 @@ export default function Logos() {
     }
   };
 
-  const logosFiltrados = logos.filter((l) => l.nombre.toLowerCase().includes(busqueda.trim().toLowerCase()));
+  const logosDeCategoria = logos.filter((l) => (l.categoria || 'normal') === categoria);
+  const logosFiltrados = logosDeCategoria.filter((l) => l.nombre.toLowerCase().includes(busqueda.trim().toLowerCase()));
 
   return (
     <div className="pagina">
@@ -83,6 +96,20 @@ export default function Logos() {
       {error && <p className="mensaje-error">{error}</p>}
       {exito && <p className="mensaje-exito">{exito}</p>}
 
+      <div className="pestanas-personalizacion" style={{ marginBottom: 12 }}>
+        {CATEGORIAS.map((c) => (
+          <button
+            key={c.id}
+            type="button"
+            className={`pestana-btn ${categoria === c.id ? 'activa' : ''}`}
+            onClick={() => setCategoria(c.id)}
+          >
+            {c.etiqueta} {logos.length > 0 && `(${logos.filter((l) => (l.categoria || 'normal') === c.id).length})`}
+          </button>
+        ))}
+      </div>
+      <p className="texto-tenue" style={{ marginTop: -4 }}>{CATEGORIAS.find((c) => c.id === categoria)?.ayuda}</p>
+
       <form className="fila-form" onSubmit={subir}>
         <input ref={inputRef} type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" required />
         <input
@@ -91,10 +118,12 @@ export default function Logos() {
           onChange={(e) => setTitulo(e.target.value)}
           style={{ flex: 1, minWidth: 220 }}
         />
-        <button className="btn-primario" type="submit" disabled={subiendo}>{subiendo ? 'Subiendo…' : 'Subir logo'}</button>
+        <button className="btn-primario" type="submit" disabled={subiendo}>
+          {subiendo ? 'Subiendo…' : categoria === 'fondo' ? 'Subir logo de fondo' : 'Subir logo'}
+        </button>
       </form>
 
-      {logos.length > 0 && (
+      {logosDeCategoria.length > 0 && (
         <input
           placeholder="🔍 Buscar por título…"
           value={busqueda}
@@ -125,8 +154,12 @@ export default function Logos() {
             </div>
           </div>
         ))}
-        {logos.length === 0 && <p className="texto-tenue">Todavía no subiste ningún logo.</p>}
-        {logos.length > 0 && logosFiltrados.length === 0 && <p className="texto-tenue">Ningún logo coincide con "{busqueda}".</p>}
+        {logosDeCategoria.length === 0 && (
+          <p className="texto-tenue">
+            {categoria === 'fondo' ? 'Todavía no subiste ningún logo de fondo.' : 'Todavía no subiste ningún logo.'}
+          </p>
+        )}
+        {logosDeCategoria.length > 0 && logosFiltrados.length === 0 && <p className="texto-tenue">Ningún logo coincide con "{busqueda}".</p>}
       </div>
     </div>
   );

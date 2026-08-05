@@ -28,6 +28,12 @@ export default function VistaNomina({ partido, modo = 'ambos', claveAnimacion = 
   // = esa altura exacta, más se lo puede agrandar para que sobresalga).
   const logoDeFondo = mostrarLogo && (config?.nominaLogoPosicion || 'costado') === 'fondo';
   const opacidadLogo = (Number.isFinite(config?.logoOpacidadNomina) ? config.logoOpacidadNomina : 100) / 100;
+  // Con el interruptor prendido, se usa el logo "de fondo" (blanco y negro
+  // u otra variante) que quedó emparejado por nombre con el escudo normal
+  // del equipo (ver logoFondoPara en el backend) — si ese club no tiene
+  // ninguno cargado, cae solo en el logo de siempre, sin romper nada.
+  const usarLogoAlternativo = config?.nominaUsarLogoFondoAlternativo === true;
+  const logoFondoSrc = (equipo) => (usarLogoAlternativo && equipo.logoFondoUrl) || equipo.logo_url;
   // Antes tenía un piso de 100% ("nunca más chico que la altura de la
   // nómina") — ahora se puede achicar tanto como haga falta, el usuario
   // decide, sin ningún mínimo forzado desde acá.
@@ -85,7 +91,7 @@ export default function VistaNomina({ partido, modo = 'ambos', claveAnimacion = 
         {mostrarLocal && (
           <div className="nomina-equipo">
             {logoDeFondo && partido.equipoLocal.logo_url && (
-              <img className="nomina-logo-fondo" src={partido.equipoLocal.logo_url} alt="" style={{ height: `${altoLogoFondo}%`, maxWidth: maxAnchoLogoFondo, opacity: opacidadLogo }} />
+              <img className="nomina-logo-fondo" src={logoFondoSrc(partido.equipoLocal)} alt="" style={{ height: `${altoLogoFondo}%`, maxWidth: maxAnchoLogoFondo, opacity: opacidadLogo }} />
             )}
             <div className="nomina-encabezado-equipo" style={{ color: partido.equipoLocal.color }}>
               {mostrarLogo && !logoDeFondo && <LogoEquipo equipo={partido.equipoLocal} config={config} className="nomina-logo" contexto="nomina" />}
@@ -97,7 +103,7 @@ export default function VistaNomina({ partido, modo = 'ambos', claveAnimacion = 
         {mostrarVisita && (
           <div className="nomina-equipo nomina-visita">
             {logoDeFondo && partido.equipoVisita.logo_url && (
-              <img className="nomina-logo-fondo" src={partido.equipoVisita.logo_url} alt="" style={{ height: `${altoLogoFondo}%`, maxWidth: maxAnchoLogoFondo, opacity: opacidadLogo }} />
+              <img className="nomina-logo-fondo" src={logoFondoSrc(partido.equipoVisita)} alt="" style={{ height: `${altoLogoFondo}%`, maxWidth: maxAnchoLogoFondo, opacity: opacidadLogo }} />
             )}
             <div className="nomina-encabezado-equipo" style={{ color: partido.equipoVisita.color }}>
               {mostrarLogo && !logoDeFondo && <LogoEquipo equipo={partido.equipoVisita} config={config} className="nomina-logo" contexto="nomina" />}

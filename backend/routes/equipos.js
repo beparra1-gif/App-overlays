@@ -54,17 +54,27 @@ router.get('/', async (req, res) => {
   }
 });
 
+// "Local"/"Visita" son los nombres por defecto de un partido rápido (ver
+// EquipoFicha.jsx) — si nunca se tocó ese campo, el equipo que se crea
+// acá arranca como BORRADOR (no aparece en la lista de Equipos, aunque
+// sigue funcionando igual para jugar). Deja de serlo apenas el usuario lo
+// edita de verdad: le cambia el nombre (PUT /:id, más abajo) o le carga un
+// jugador (POST /:id/jugadores) — cualquiera de las dos es una señal clara
+// de que ya no es descartable.
+const NOMBRES_PLACEHOLDER = ['Local', 'Visita'];
+
 router.post('/', async (req, res) => {
   const nombre = String(req.body?.nombre || '').trim();
   const color = String(req.body?.color || '#0a84ff').trim();
   const logoUrl = req.body?.logo_url ? String(req.body.logo_url).trim() : null;
+  const borrador = NOMBRES_PLACEHOLDER.includes(nombre);
 
   if (!nombre) return res.status(400).json({ error: 'El nombre del equipo es obligatorio' });
 
   try {
     const resultado = await pool.query(
-      'INSERT INTO equipos (user_id, nombre, color, logo_url) VALUES ($1, $2, $3, $4) RETURNING *',
-      [req.userId, nombre, color, logoUrl]
+      'INSERT INTO equipos (user_id, nombre, color, logo_url, borrador) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+      [req.userId, nombre, color, logoUrl, borrador]
     );
     res.status(201).json({ equipo: resultado.rows[0] });
   } catch (error) {
@@ -80,11 +90,15 @@ router.put('/:id', async (req, res) => {
   const nombre = req.body?.nombre != null ? String(req.body.nombre).trim() : equipo.nombre;
   const color = req.body?.color != null ? String(req.body.color).trim() : equipo.color;
   const logoUrl = req.body?.logo_url != null ? String(req.body.logo_url).trim() : equipo.logo_url;
+  // Un borrador deja de serlo apenas se le pone un nombre de verdad —
+  // nunca al revés: si ya era un equipo real, renombrarlo a "Local" (poco
+  // probable, pero por las dudas) no lo vuelve a esconder.
+  const borrador = equipo.borrador && NOMBRES_PLACEHOLDER.includes(nombre);
 
   try {
     const resultado = await pool.query(
-      'UPDATE equipos SET nombre = $1, color = $2, logo_url = $3 WHERE id = $4 RETURNING *',
-      [nombre, color, logoUrl, equipo.id]
+      'UPDATE equipos SET nombre = $1, color = $2, logo_url = $3, borrador = $4 WHERE id = $5 RETURNING *',
+      [nombre, color, logoUrl, borrador, equipo.id]
     );
     await avisarPartidosDelEquipo(req.app.locals.io, equipo.id, req.userId);
     res.json({ equipo: resultado.rows[0] });
@@ -185,6 +199,10 @@ router.post('/:id/jugadores', async (req, res) => {
       'INSERT INTO jugadores (equipo_id, dorsal, nombre, temporal, partido_id) VALUES ($1, $2, $3, $4, $5) RETURNING *',
       [equipo.id, dorsal, nombre, temporal, partidoId]
     );
+    // Cargar una nómina (aunque sea de un solo jugador) es tan "guardar el
+    // equipo de verdad" como renombrarlo — si todavía era borrador, deja
+    // de serlo.
+    if (equipo.borrador) await pool.query('UPDATE equipos SET borrador = false WHERE id = $1', [equipo.id]);
     res.status(201).json({ jugador: resultado.rows[0] });
   } catch (error) {
     console.error('[POST /equipos/:id/jugadores]', error);

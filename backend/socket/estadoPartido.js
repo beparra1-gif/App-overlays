@@ -92,17 +92,46 @@ export async function cargarPartidoPorId(id) {
   return resultado.rows[0] || null;
 }
 
+// Busca un logo "de fondo" (categoria='fondo') que tenga el MISMO nombre
+// que el logo normal ya asignado al equipo — así un club con dos versiones
+// de su escudo (color + blanco y negro, p. ej.) no necesita elegir nada a
+// mano por diseño: el emparejamiento es automático, por nombre, cada vez
+// que se arma el estado del partido. `logoUrl` es la URL completa ya
+// guardada en `equipos.logo_url` (la arma el frontend con urlLogo(),
+// termina en `/logos/file/<filename>`) — para no necesitar saber acá la
+// URL base del backend, se reusa la MISMA URL cambiándole nada más el
+// nombre de archivo del final.
+async function logoFondoPara(logoUrl, userId) {
+  if (!logoUrl) return null;
+  const filename = logoUrl.split('/').pop();
+  if (!filename) return null;
+  const resultado = await pool.query(
+    `SELECT l2.filename FROM logos l1
+     JOIN logos l2 ON l2.nombre = l1.nombre AND l2.user_id = l1.user_id AND l2.categoria = 'fondo'
+     WHERE l1.filename = $1 AND l1.user_id = $2
+     LIMIT 1`,
+    [filename, userId]
+  );
+  if (resultado.rows.length === 0) return null;
+  return logoUrl.replace(/[^/]+$/, resultado.rows[0].filename);
+}
+
 export async function construirEstado(partido) {
   const minutosPorJugador = await minutosJugados(partido);
-  const [equipoLocal, equipoVisita, rosterLocal, rosterVisita, patrocinadores] = await Promise.all([
+  const [equipoLocal, equipoVisita] = await Promise.all([
     pool.query('SELECT id, nombre, color, logo_url FROM equipos WHERE id = $1', [partido.equipo_local_id]),
     pool.query('SELECT id, nombre, color, logo_url FROM equipos WHERE id = $1', [partido.equipo_visita_id]),
+  ]);
+
+  const [rosterLocal, rosterVisita, patrocinadores, logoFondoLocal, logoFondoVisita] = await Promise.all([
     cargarRoster(partido.equipo_local_id, partido.id, minutosPorJugador, partido.convocados_local_ids),
     cargarRoster(partido.equipo_visita_id, partido.id, minutosPorJugador, partido.convocados_visita_ids),
     pool.query(
       'SELECT id, nombre, imagen_url, duracion_segundos FROM patrocinadores WHERE user_id = $1 AND activo = true ORDER BY orden ASC',
       [partido.user_id]
     ),
+    logoFondoPara(equipoLocal.rows[0]?.logo_url, partido.user_id),
+    logoFondoPara(equipoVisita.rows[0]?.logo_url, partido.user_id),
   ]);
 
   return {
@@ -129,8 +158,8 @@ export async function construirEstado(partido) {
     quintetoVisitaIds: partido.quinteto_visita_ids,
     convocadosLocalIds: partido.convocados_local_ids,
     convocadosVisitaIds: partido.convocados_visita_ids,
-    equipoLocal: { ...equipoLocal.rows[0], roster: rosterLocal, totales: totalesEquipo(rosterLocal) },
-    equipoVisita: { ...equipoVisita.rows[0], roster: rosterVisita, totales: totalesEquipo(rosterVisita) },
+    equipoLocal: { ...equipoLocal.rows[0], roster: rosterLocal, totales: totalesEquipo(rosterLocal), logoFondoUrl: logoFondoLocal },
+    equipoVisita: { ...equipoVisita.rows[0], roster: rosterVisita, totales: totalesEquipo(rosterVisita), logoFondoUrl: logoFondoVisita },
     patrocinadores: patrocinadores.rows,
   };
 }

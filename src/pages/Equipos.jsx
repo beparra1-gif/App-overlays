@@ -182,7 +182,7 @@ export default function Equipos() {
       )}
 
       <div className="grilla-tarjetas">
-        {equipos.map((eq) => (
+        {equipos.filter((eq) => !eq.borrador).map((eq) => (
           <div className="tarjeta" key={eq.id} style={{ borderColor: eq.color }}>
             {editandoId === eq.id ? (
               <FilaEdicion
@@ -215,7 +215,7 @@ export default function Equipos() {
             )}
           </div>
         ))}
-        {equipos.length === 0 && <p className="texto-tenue">Todavía no creaste ningún equipo.</p>}
+        {equipos.filter((eq) => !eq.borrador).length === 0 && <p className="texto-tenue">Todavía no creaste ningún equipo.</p>}
       </div>
       <p className="texto-tenue" style={{ marginTop: 10, fontSize: 12 }}>
         Los equipos "En uso" son los que algún diseño tiene puestos ahora mismo en "Juego en vivo" — el resto son equipos
