@@ -708,3 +708,56 @@ export function useMedidaElemento(contenedorRef, selector, dependencias = []) {
 
   return medida;
 }
+
+// Como useMedidaElemento, pero mide la UNIÓN de varios selectores a la vez
+// — la usa la vista previa combinada en modo 'general' para encuadrar TODO
+// lo que esté activo (marcador + nómina + estadísticas + anuncios + logos
+// libres), no solo un elemento puntual. Cualquier selector sin match ese
+// momento (esa capa está apagada) se ignora, no rompe la unión.
+export function useMedidaConjunto(contenedorRef, selectores = [], dependencias = []) {
+  const [medida, setMedida] = useState(null);
+  const clave = selectores.join('|');
+
+  useEffect(() => {
+    const contenedor = contenedorRef.current;
+    if (!contenedor || selectores.length === 0) { setMedida(null); return undefined; }
+
+    const medir = () => {
+      const rectContenedor = contenedor.getBoundingClientRect();
+      if (rectContenedor.width === 0 || rectContenedor.height === 0) return;
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      for (const selector of selectores) {
+        contenedor.querySelectorAll(selector).forEach((el) => {
+          const r = el.getBoundingClientRect();
+          if (r.width === 0 || r.height === 0) return;
+          minX = Math.min(minX, r.left); minY = Math.min(minY, r.top);
+          maxX = Math.max(maxX, r.right); maxY = Math.max(maxY, r.bottom);
+        });
+      }
+      if (minX === Infinity) { setMedida(null); return; }
+      setMedida({
+        top: ((minY - rectContenedor.top) / rectContenedor.width) * 100,
+        left: ((minX - rectContenedor.left) / rectContenedor.width) * 100,
+        width: ((maxX - minX) / rectContenedor.width) * 100,
+        height: ((maxY - minY) / rectContenedor.width) * 100,
+        topAlto: ((minY - rectContenedor.top) / rectContenedor.height) * 100,
+        heightAlto: ((maxY - minY) / rectContenedor.height) * 100,
+      });
+    };
+
+    medir();
+    const remedido = setTimeout(medir, 450);
+    const observer = new ResizeObserver(medir);
+    observer.observe(contenedor);
+    selectores.forEach((selector) => contenedor.querySelectorAll(selector).forEach((el) => observer.observe(el)));
+    window.addEventListener('resize', medir);
+    return () => {
+      clearTimeout(remedido);
+      observer.disconnect();
+      window.removeEventListener('resize', medir);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clave, ...dependencias]);
+
+  return medida;
+}

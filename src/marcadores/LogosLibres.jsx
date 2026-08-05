@@ -42,6 +42,7 @@ export default function LogosLibres({ config, editable = false, onArrastrar, con
       {lista.map((logo) => (
         <img
           key={logo.id}
+          className="logo-libre-img"
           src={logo.logoUrl}
           alt=""
           draggable={false}

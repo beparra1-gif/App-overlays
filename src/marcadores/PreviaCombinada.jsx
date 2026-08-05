@@ -9,7 +9,7 @@ import TituloMarcador from './TituloMarcador';
 import LogosLibres from './LogosLibres';
 import PopSumaPuntos from './PopSumaPuntos';
 import { PARTIDO_DEMO, JUGADAS_DEMO } from './datosDemo';
-import { useCajaMarcador, useMedidaElemento } from './utils';
+import { useCajaMarcador, useMedidaElemento, useMedidaConjunto } from './utils';
 import './miniPreview.css';
 
 // Selector del contenido REAL a encuadrar en cada modo "un solo elemento" —
@@ -19,6 +19,18 @@ import './miniPreview.css';
 // pantalla" como se pidió. El marcador usa su propio hook (useCajaMarcador,
 // ya afinado en rondas anteriores) — acá solo van los otros tres.
 const SELECTOR_CONTENIDO = { nomina: '.nomina-fila', estadisticas: '.stats-caja', anuncios: '.anuncios-toast' };
+
+// Todos los selectores de contenido real que puede haber en el lienzo — se
+// usa en modo 'general' para encuadrar TODO lo que esté activo de una, en
+// vez de mostrar el lienzo 1920×1080 entero sin zoom (que dejaba todo
+// diminuto en un mar vacío si el diseño no ocupa la pantalla completa).
+const SELECTORES_TODO = ['.plantilla-marcador > :first-child', '.nomina-fila', '.stats-caja', '.anuncios-toast', '.logo-libre-img'];
+
+// Opacidad de una capa que NO es la que se está editando ahora mismo — se
+// deja ver (para poder alinear un diseño contra el otro) pero bien
+// discreta, y sin sus controles de arrastre (esos ya vienen apagados solos:
+// cada `xEditable` de más abajo solo se prende para la pestaña activa).
+const OPACIDAD_CONTEXTO = 0.14;
 
 // Todas las escenas activas se renderizan como hermanos dentro del mismo
 // lienzo escalado: cada una es internamente position:fixed;inset:0, así que
@@ -40,28 +52,24 @@ const SELECTOR_CONTENIDO = { nomina: '.nomina-fila', estadisticas: '.stats-caja'
 // nombre/color/logo (lo que se está tipeando puede ir un paso adelante de
 // lo que ya se guardó).
 //
-// `modo` decide QUÉ se ve en el lienzo — pensado para que la vista previa
-// siga a la pestaña que se está editando en vez de mostrar siempre las 4
-// capas superpuestas (así no hay que "leer" al marcador chiquito escondido
-// atrás de la nómina para saber si un cambio de color surtió efecto):
-// - 'general': el lienzo 1920×1080 COMPLETO, sin zoom, EXACTAMENTE como lo
-//   vería OBS apenas se carga el enlace — o sea, solo el marcador (+ logo/
-//   título/logos libres, que sí son permanentes). Nómina/Estadísticas/
-//   Anuncios NO se fuerzan acá aunque estén habilitadas para el diseño:
-//   en la transmisión real esas capas están ocultas hasta que la Mesa las
-//   dispara puntualmente (un pulso de nómina, una jugada) — mostrarlas acá
-//   siempre encendidas hacía que la "vista general" fuera en realidad un
-//   mashup de las 4 capas superpuestas que NUNCA se ve así de verdad en
-//   OBS, y de paso hacía que todo se viera amontonado y chico. Así, lo que
-//   se ve acá es lo mismo que vas a ver al pegar el enlace en OBS, sin
-//   sorpresas ni reajustes después.
-// - 'marcador': SOLO el marcador (+ logo/título), con zoom automático a la
-//   caja ya renderizada — así se ve grande incluso si está achicado o en una
-//   esquina, en vez del marcador diminuto perdido en un lienzo 1920×1080.
-// - 'nomina' / 'estadisticas' / 'anuncios': SOLO esa capa, siempre visible
-//   (sin importar si su interruptor "Mostrar..." está apagado — se está
-//   editando esa sección, tiene que verse mientras se ajusta) a tamaño
-//   normal, porque esas ya ocupan toda la pantalla por diseño.
+// `modo` decide qué capa queda RESALTADA (a tamaño real, editable, con
+// zoom si corresponde) — pero las otras tres NO desaparecen: quedan
+// dibujadas igual, bien tenues (OPACIDAD_CONTEXTO) y bloqueadas (sin sus
+// controles de arrastre), para poder ver cómo queda un diseño respecto a
+// los demás sin que compitan por la atención ni se puedan tocar por
+// accidente. Es el mismo criterio que un editor de diseño gráfico con
+// capas: una activa, el resto de fondo como referencia.
+// - 'general': las 4 capas a la vista, TODAS a opacidad plena, con zoom
+//   automático al conjunto de lo que esté activo (useMedidaConjunto) — así
+//   se ve grande y compuesto en vez de perdido en el lienzo 1920×1080
+//   entero. Es la foto completa del diseño, sin ninguna resaltada en
+//   particular.
+// - 'marcador': el marcador a opacidad plena (+ logo/título), con zoom
+//   automático a la caja ya renderizada — nómina/estadísticas/anuncios
+//   quedan de fondo, tenues, para chequear que no se pisen.
+// - 'nomina' / 'estadisticas' / 'anuncios': esa capa a opacidad plena y
+//   zoom a su propio contenido — sea cual sea su interruptor "Mostrar..."
+//   (se está editando, tiene que verse) — el resto queda de fondo.
 export default function PreviaCombinada({
   plantillaId, config, equipoLocalPreview, equipoVisitaPreview, partidoReal, modo = 'general',
   logosLibresEditable = false, onArrastrarLogoLibre,
@@ -78,6 +86,10 @@ export default function PreviaCombinada({
   const lienzoRef = useRef(null);
   const caja = useCajaMarcador(lienzoRef, [plantillaId, config]);
   const medidaContenido = useMedidaElemento(lienzoRef, SELECTOR_CONTENIDO[modo], [modo, plantillaId, config]);
+  // Solo hace falta calcularla en modo 'general' (las otras vistas ya
+  // encuadran a su propio contenido puntual) — pasar un array vacío en el
+  // resto evita un ResizeObserver de más sin ningún uso.
+  const medidaConjunto = useMedidaConjunto(lienzoRef, modo === 'general' ? SELECTORES_TODO : [], [modo, plantillaId, config]);
 
   const base = partidoReal || PARTIDO_DEMO;
   const partido = (equipoLocalPreview || equipoVisitaPreview)
@@ -114,7 +126,13 @@ export default function PreviaCombinada({
   // ajustado, se ve el lienzo completo (igual que Logos libres) para poder
   // arrastrar la marca a cualquier lado sin que quede fuera del encuadre.
   const anunciosLibre = modo === 'anuncios' && (config?.alertaPosicion || '') === 'libre';
-  const medidaAEncuadrar = anunciosLibre ? null : (modo === 'marcador' || modo === 'anuncios') ? caja : medidaContenido;
+  const medidaAEncuadrar = anunciosLibre
+    ? null
+    : modo === 'general'
+      ? medidaConjunto
+      : (modo === 'marcador' || modo === 'anuncios')
+        ? caja
+        : medidaContenido;
   let estiloZoom;
   if (medidaAEncuadrar) {
     const zoomAncho = RELLENO / Math.max(1, medidaAEncuadrar.width);
@@ -135,64 +153,79 @@ export default function PreviaCombinada({
     estiloZoom = { transform: 'none' };
   }
 
-  // 'anuncios' también dibuja el marcador (ver medidaAEncuadrar más arriba)
-  // — para que se pueda comparar el tamaño del aviso contra el marcador de
-  // verdad, en vez de verlo solo, flotando en un lienzo vacío.
-  const conMarcador = modo === 'general' || modo === 'marcador' || modo === 'anuncios';
-  const conNomina = modo === 'nomina';
-  const conEstadisticas = modo === 'estadisticas';
-  const conAnuncios = modo === 'anuncios';
+  // El marcador es siempre la referencia de fondo — se dibuja en todos los
+  // modos (a opacidad plena en 'general'/'marcador'/'anuncios', tenue en
+  // 'nomina'/'estadisticas'). Nómina/Estadísticas/Anuncios, en cambio, solo
+  // se dibujan si son la pestaña activa (tiene que verse SIEMPRE mientras
+  // se edita, esté o no habilitada) o si están habilitadas para el diseño
+  // (ahí aparecen como referencia tenue en las demás pestañas) — si están
+  // apagadas del todo, no tiene sentido mostrarlas ni de fondo.
+  const conNomina = modo === 'nomina' || Boolean(config?.mostrarNomina);
+  const conEstadisticas = modo === 'estadisticas' || Boolean(config?.mostrarEstadisticas);
+  const conAnuncios = modo === 'anuncios' || Boolean(config?.anunciarJugadas);
   // La animación de sumar puntos solo se dispara con un cambio de puntaje
   // real — sin esto la pestaña Marcador nunca la mostraba, así que se
-  // ajustaba a ciegas. Se fuerza visible (2 y 3 puntos, uno por lado) SOLO
-  // mientras se está editando esa pestaña puntual — en 'general' se deja
-  // apagada a propósito (ver el comentario de `modo` más arriba: esa vista
-  // tiene que ser fiel al estado de reposo real de OBS, y ahí esta
-  // animación tampoco está disparada la mayor parte del tiempo).
-  const mostrarDemoPuntos = modo === 'marcador';
-  const suprimirTitulo = conMarcador && conAnuncios && config?.anunciosTituloModo === 'reemplaza-titulo';
+  // ajustaba a ciegas. Se fuerza visible (2 y 3 puntos, uno por lado)
+  // mientras se edita esa pestaña puntual, y como referencia tenue en las
+  // demás si el diseño la tiene habilitada.
+  const mostrarDemoPuntos = modo === 'marcador' || Boolean(config?.mostrarAnimacionPuntos);
+  // Opacidad "capa activa vs. capa de fondo": en 'general' todo va a
+  // opacidad plena (es la foto completa, sin ninguna resaltada); en
+  // cualquier otro modo, solo la capa que coincide con la pestaña queda a
+  // opacidad plena — el resto se ve bien tenue, de referencia, sin
+  // competir por la atención ni poder tocarse (los `xEditable` de más
+  // abajo ya vienen apagados solos para lo que no es la pestaña activa).
+  const opacidadDe = (capa) => (modo === 'general' || modo === capa ? 1 : OPACIDAD_CONTEXTO);
+  const opacidadMarcador = modo === 'anuncios' ? 1 : opacidadDe('marcador');
+  const suprimirTitulo = (modo === 'general' || modo === 'anuncios') && conAnuncios && config?.anunciosTituloModo === 'reemplaza-titulo';
 
   return (
     <div className="mini-preview-marco mini-preview-grande">
       <div className="mini-preview-zoom" style={estiloZoom}>
         <div className="mini-preview-lienzo" ref={lienzoRef}>
-          {conMarcador && (
-            <>
-              <LogoMarcaAgua equipoLocal={partido.equipoLocal} equipoVisita={partido.equipoVisita} config={config} caja={caja} />
-              <Marcador partido={partido} config={config} />
-              <LogoFlotante equipoLocal={partido.equipoLocal} equipoVisita={partido.equipoVisita} config={config} plantillaId={plantillaId} caja={caja} />
-              <TituloMarcador config={config} plantillaId={plantillaId} caja={caja} suprimir={suprimirTitulo} />
-              {mostrarDemoPuntos && (
-                <PopSumaPuntos
-                  partido={partido}
-                  config={config}
-                  demo
-                  editable={animacionPuntosEditable}
-                  onArrastrar={onArrastrarAnimacionPuntos}
-                  contenedorRef={lienzoRef}
-                  caja={caja}
-                />
-              )}
-            </>
+          <div style={{ opacity: opacidadMarcador, transition: 'opacity .25s ease', pointerEvents: opacidadMarcador === 1 ? 'auto' : 'none' }}>
+            <LogoMarcaAgua equipoLocal={partido.equipoLocal} equipoVisita={partido.equipoVisita} config={config} caja={caja} />
+            <Marcador partido={partido} config={config} />
+            <LogoFlotante equipoLocal={partido.equipoLocal} equipoVisita={partido.equipoVisita} config={config} plantillaId={plantillaId} caja={caja} />
+            <TituloMarcador config={config} plantillaId={plantillaId} caja={caja} suprimir={suprimirTitulo} />
+            {mostrarDemoPuntos && (
+              <PopSumaPuntos
+                partido={partido}
+                config={config}
+                demo
+                editable={animacionPuntosEditable}
+                onArrastrar={onArrastrarAnimacionPuntos}
+                contenedorRef={lienzoRef}
+                caja={caja}
+              />
+            )}
+          </div>
+          {conNomina && (
+            <div style={{ opacity: opacidadDe('nomina'), transition: 'opacity .25s ease', pointerEvents: opacidadDe('nomina') === 1 ? 'auto' : 'none' }}>
+              <VistaNomina partido={partido} modo="ambos" config={config} plantillaId={plantillaId} />
+            </div>
           )}
-          {conNomina && <VistaNomina partido={partido} modo="ambos" config={config} plantillaId={plantillaId} />}
           {conEstadisticas && (
-            <VistaEstadisticas partido={partido} config={{ modo: 'equipo', equipo: 'local' }} tema={config} plantillaId={plantillaId} />
+            <div style={{ opacity: opacidadDe('estadisticas'), transition: 'opacity .25s ease', pointerEvents: opacidadDe('estadisticas') === 1 ? 'auto' : 'none' }}>
+              <VistaEstadisticas partido={partido} config={{ modo: 'equipo', equipo: 'local' }} tema={config} plantillaId={plantillaId} />
+            </div>
           )}
           {conAnuncios && (
-            <VistaAnuncios
-              jugadas={JUGADAS_DEMO}
-              config={config}
-              tema={config}
-              plantillaId={plantillaId}
-              colorLocal={partido.equipoLocal.color}
-              colorVisita={partido.equipoVisita.color}
-              caja={caja}
-              demo
-              editable={anunciosEditable}
-              onArrastrar={onArrastrarAnuncios}
-              contenedorRef={lienzoRef}
-            />
+            <div style={{ opacity: opacidadDe('anuncios'), transition: 'opacity .25s ease', pointerEvents: opacidadDe('anuncios') === 1 ? 'auto' : 'none' }}>
+              <VistaAnuncios
+                jugadas={JUGADAS_DEMO}
+                config={config}
+                tema={config}
+                plantillaId={plantillaId}
+                colorLocal={partido.equipoLocal.color}
+                colorVisita={partido.equipoVisita.color}
+                caja={caja}
+                demo
+                editable={anunciosEditable}
+                onArrastrar={onArrastrarAnuncios}
+                contenedorRef={lienzoRef}
+              />
+            </div>
           )}
           <LogosLibres config={config} editable={logosLibresEditable} onArrastrar={onArrastrarLogoLibre} contenedorRef={lienzoRef} />
         </div>
