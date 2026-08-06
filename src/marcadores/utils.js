@@ -657,3 +657,43 @@ export function useCajaMarcador(contenedorRef, dependencias = []) {
   return caja;
 }
 
+// Ancho de referencia del lienzo que arma cada plantilla: las 25 usan
+// SIEMPRE valores fijos en píxeles (56px los puntos, 40px el logo, etc. —
+// nunca vw/vh), calibrados a mano para un canvas de OBS de 1920×1080 (el
+// tamaño de Browser Source más común, y el que ya declaran los comentarios
+// de PreviaCombinada). Nada en el layout real depende de este número salvo
+// esta miniatura: la escena pública real (EscenaPublica.jsx) no tiene NINGÚN
+// transform — ahí el navegador/OBS decide el tamaño real según el ancho que
+// le hayan dado al Browser Source.
+export const LIENZO_ANCHO_REFERENCIA = 1920;
+
+// Convierte el ancho real (en px de pantalla) del recuadro chico de vista
+// previa en el factor de escala exacto para que el lienzo de adentro (fijo a
+// 1920×1080, ver miniPreview.css) quede mostrado a esa proporción — así una
+// caja diseñada con `font-size: 56px` se ve, en la miniatura, exactamente al
+// mismo % del ancho de pantalla que se vería en un Browser Source real de
+// 1920px, sea cual sea el ancho en que el recuadro chico termine layouteado
+// (el catálogo lo muestra angosto, "Personalizar tablero" lo muestra grande
+// — antes ambos usaban el mismo 0.25 fijo sin importar su propio ancho, lo
+// que en la práctica simulaba un canvas de un tamaño DISTINTO en cada lugar,
+// ninguno de los cuales era 1920 real — de ahí que todo se viera más chico
+// de lo que después se ve en OBS).
+export function useEscalaLienzo(marcoRef) {
+  const [escala, setEscala] = useState(0.25);
+
+  useEffect(() => {
+    const marco = marcoRef.current;
+    if (!marco) return undefined;
+    const medir = () => {
+      const ancho = marco.getBoundingClientRect().width;
+      if (ancho > 0) setEscala(ancho / LIENZO_ANCHO_REFERENCIA);
+    };
+    medir();
+    const observer = new ResizeObserver(medir);
+    observer.observe(marco);
+    return () => observer.disconnect();
+  }, [marcoRef]);
+
+  return escala;
+}
+

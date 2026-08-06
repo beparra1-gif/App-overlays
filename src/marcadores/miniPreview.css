@@ -11,14 +11,24 @@
    overlay real. Un `transform` en este contenedor crea un containing block
    nuevo para esos hijos fixed (comportamiento estándar de CSS), así que la
    plantilla completa queda encerrada y escalada dentro del marco chico en
-   vez de escapar hacia la ventana real del navegador. */
+   vez de escapar hacia la ventana real del navegador.
+   El lienzo mide SIEMPRE 1920×1080px reales (el tamaño de referencia con el
+   que están calibradas las 25 plantillas, todas en px fijos) — nunca un
+   porcentaje del propio marco. `--escala-lienzo` la calcula en JS
+   useEscalaLienzo() a partir del ancho real del marco (ver utils.js), así
+   que sea cual sea el tamaño en que este recuadro termine layouteado
+   (miniatura angosta del catálogo o el recuadro grande de "Personalizar
+   tablero"), lo que se ve adentro queda exactamente a la misma proporción
+   que un Browser Source real de 1920×1080 en OBS — ni más chico ni más
+   grande. El 0.25 del valor por defecto es solo el primer frame, antes de
+   que ResizeObserver mida el marco real. */
 .mini-preview-lienzo {
   position: absolute;
   top: 0;
   left: 0;
-  width: 400%;
-  height: 400%;
-  transform: scale(0.25);
+  width: 1920px;
+  height: 1080px;
+  transform: scale(var(--escala-lienzo, 0.25));
   transform-origin: top left;
 }
 

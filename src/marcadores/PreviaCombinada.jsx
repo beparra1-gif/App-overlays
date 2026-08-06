@@ -9,7 +9,7 @@ import TituloMarcador from './TituloMarcador';
 import LogosLibres from './LogosLibres';
 import PopSumaPuntos from './PopSumaPuntos';
 import { PARTIDO_DEMO, JUGADAS_DEMO } from './datosDemo';
-import { useCajaMarcador } from './utils';
+import { useCajaMarcador, useEscalaLienzo } from './utils';
 import './miniPreview.css';
 
 // Opacidad de una capa que NO es la que se está editando ahora mismo — se
@@ -84,6 +84,14 @@ export default function PreviaCombinada({
   // para anclarse al borde real de la caja del marcador.
   const lienzoRef = useRef(null);
   const caja = useCajaMarcador(lienzoRef, [plantillaId, config]);
+  // El marco (recuadro visible) puede terminar en cualquier ancho según el
+  // layout de la pantalla — la escala real del lienzo (1920×1080 fijo) se
+  // recalcula a partir de ESE ancho, no de un porcentaje fijo, para que lo
+  // que se vea acá sea proporcionalmente idéntico a un Browser Source real
+  // (ver useEscalaLienzo en utils.js — antes un 0.25 constante simulaba un
+  // canvas de un ancho distinto según cuán grande estuviera este recuadro).
+  const marcoRef = useRef(null);
+  const escalaLienzo = useEscalaLienzo(marcoRef);
 
   const base = partidoReal || PARTIDO_DEMO;
   const partido = (equipoLocalPreview || equipoVisitaPreview)
@@ -125,8 +133,8 @@ export default function PreviaCombinada({
   const suprimirTitulo = (modo === 'general' || modo === 'anuncios') && conAnuncios && config?.anunciosTituloModo === 'reemplaza-titulo';
 
   return (
-    <div className="mini-preview-marco mini-preview-grande">
-      <div className="mini-preview-lienzo" ref={lienzoRef}>
+    <div className="mini-preview-marco mini-preview-grande" ref={marcoRef}>
+      <div className="mini-preview-lienzo" ref={lienzoRef} style={{ '--escala-lienzo': escalaLienzo }}>
         <div style={{ opacity: opacidadMarcador, transition: 'opacity .25s ease', pointerEvents: opacidadMarcador === 1 ? 'auto' : 'none' }}>
           <LogoMarcaAgua equipoLocal={partido.equipoLocal} equipoVisita={partido.equipoVisita} config={config} caja={caja} />
           <Marcador partido={partido} config={config} />
