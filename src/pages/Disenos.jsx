@@ -684,13 +684,27 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
         <div className="fila-form" style={{ justifyContent: 'space-between' }}>
           <div className="grupo-titulo" style={{ margin: 0 }}>🏀 Juego en vivo</div>
           {partidoId && (
-            <div className="pestanas-personalizacion" style={{ margin: 0, maxWidth: 320 }}>
-              <button type="button" className={`pestana-btn ${mesaModo === 'amplia' ? 'activa' : ''}`} onClick={() => setMesaModo('amplia')}>
-                Mesa amplia
+            <div className="fila-form" style={{ margin: 0 }}>
+              <button
+                type="button"
+                className="btn-secundario btn-chico"
+                disabled={preparandoPartido}
+                title="Relee los equipos de la pestaña Equipos — si cambiaste el rival, arranca el marcador en 0-0 con los equipos nuevos. El enlace de OBS es siempre el mismo, no hace falta cambiarlo en OBS."
+                onClick={() => {
+                  if (!window.confirm('¿Empezar un partido nuevo? Si cambiaste algún equipo en "Equipos", el marcador arranca en 0-0 con los equipos nuevos (el anterior, si ya tenía jugadas, queda guardado en "Partidos"). El enlace de OBS sigue siendo el mismo de siempre.')) return;
+                  prepararPartido();
+                }}
+              >
+                🔄 Empezar partido nuevo
               </button>
-              <button type="button" className={`pestana-btn ${mesaModo === 'simple' ? 'activa' : ''}`} onClick={() => setMesaModo('simple')}>
-                Mesa simple
-              </button>
+              <div className="pestanas-personalizacion" style={{ margin: 0, maxWidth: 320 }}>
+                <button type="button" className={`pestana-btn ${mesaModo === 'amplia' ? 'activa' : ''}`} onClick={() => setMesaModo('amplia')}>
+                  Mesa amplia
+                </button>
+                <button type="button" className={`pestana-btn ${mesaModo === 'simple' ? 'activa' : ''}`} onClick={() => setMesaModo('simple')}>
+                  Mesa simple
+                </button>
+              </div>
             </div>
           )}
         </div>

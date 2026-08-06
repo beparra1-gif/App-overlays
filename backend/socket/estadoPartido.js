@@ -511,19 +511,32 @@ export async function archivarPartido(partido) {
   return resultado.rows[0];
 }
 
-export async function reiniciarPartido(partido) {
+// `cambios` (opcional): además del reinicio de siempre (marcador/faltas/
+// reloj/período/quintetos a cero), permite pisar equipos y quintetos — lo
+// usa POST /partidos cuando "Juego en vivo" se reabre con un RIVAL
+// distinto al que ya tenía el partido activo del diseño. Sin `cambios`
+// (el botón "↺ Reiniciar Partido" de la Mesa, que nunca cambia de equipos)
+// el comportamiento es EXACTAMENTE el de antes: se relee todo de `partido`.
+export async function reiniciarPartido(partido, cambios = {}) {
   await archivarPartido(partido);
-  const relojInicial = (Number(partido.minutos_periodo) || 10) * 60;
+  const minutosPeriodo = Number(cambios.minutosPeriodo) || Number(partido.minutos_periodo) || 10;
+  const minutosProrroga = Number(cambios.minutosProrroga) || Number(partido.minutos_prorroga) || 5;
+  const equipoLocalId = cambios.equipoLocalId || partido.equipo_local_id;
+  const equipoVisitaId = cambios.equipoVisitaId || partido.equipo_visita_id;
+  const quintetoLocalIds = cambios.quintetoLocalIds || [];
+  const quintetoVisitaIds = cambios.quintetoVisitaIds || [];
+  const relojInicial = minutosPeriodo * 60;
   const resultado = await pool.query(
     `UPDATE partidos SET
-       estado = 'en_curso', periodo = 1, reloj_segundos = $1, reloj_corriendo = false, reloj_referencia_en = NULL,
+       equipo_local_id = $1, equipo_visita_id = $2, quinteto_local_ids = $3, quinteto_visita_ids = $4,
+       minutos_periodo = $5, minutos_prorroga = $6,
+       estado = 'en_curso', periodo = 1, reloj_segundos = $7, reloj_corriendo = false, reloj_referencia_en = NULL,
        pts_local = 0, pts_visita = 0, faltas_local = 0, faltas_visita = 0,
        faltas_periodo_local = 0, faltas_periodo_visita = 0,
        timeouts_local = 3, timeouts_visita = 3, posesion = NULL,
-       quinteto_local_ids = '{}', quinteto_visita_ids = '{}',
        actualizado_en = now()
-     WHERE id = $2 RETURNING *`,
-    [relojInicial, partido.id]
+     WHERE id = $8 RETURNING *`,
+    [equipoLocalId, equipoVisitaId, quintetoLocalIds, quintetoVisitaIds, minutosPeriodo, minutosProrroga, relojInicial, partido.id]
   );
   await pool.query('DELETE FROM eventos_partido WHERE partido_id = $1', [partido.id]);
   return resultado.rows[0];

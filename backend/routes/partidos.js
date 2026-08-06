@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import pool from '../db.js';
 import { authenticate } from '../middleware/auth.js';
-import { construirEstado } from '../socket/estadoPartido.js';
+import { construirEstado, reiniciarPartido } from '../socket/estadoPartido.js';
 import { generarToken } from '../utils/token.js';
 
 const router = Router();
@@ -104,14 +104,39 @@ router.post('/', async (req, res) => {
 
       // Un diseño ya "activado" para jugar recuerda su partido: volver del
       // catálogo (o de cualquier lado) y reabrir "Juego en vivo" debe
-      // retomar el mismo marcador y el mismo enlace de OBS ya cargado, no
-      // arrancar uno nuevo de cero cada vez que se reabre la pantalla.
+      // retomar el MISMO enlace de OBS ya cargado, siempre — sea que se
+      // esté retomando el mismo partido en curso, o que se haya elegido un
+      // rival distinto (lo normal: cada partido real es contra otro
+      // equipo). Antes acá se devolvía la fila existente TAL CUAL sin mirar
+      // si equipo_local_id/equipo_visita_id habían cambiado — así que armar
+      // "Juego en vivo" contra un rival nuevo mostraba el marcador viejo (u
+      // otros equipos) hasta que alguien creaba un partido aparte a mano,
+      // lo que sí generaba un enlace distinto. Ahora, si los equipos
+      // cambiaron, se reutiliza esta MISMA fila (mismo id, mismo
+      // public_token) con reiniciarPartido: archiva el partido anterior (si
+      // tenía jugadas — aparece solo en "Partidos → Guardados") y deja el
+      // marcador en 0-0 con los equipos nuevos, sin tocar el enlace.
       const partidoActivoId = diseno.rows[0].partido_activo_id;
       if (partidoActivoId) {
         const existente = await partidoDelUsuario(partidoActivoId, req.userId);
         if (existente) {
           const escenasExistentes = await pool.query('SELECT * FROM escenas WHERE partido_id = $1 ORDER BY creado_en ASC', [existente.id]);
-          return res.status(200).json({ partido: existente, escenas: escenasExistentes.rows });
+          const mismoEmparejamiento = existente.equipo_local_id === equipoLocalId && existente.equipo_visita_id === equipoVisitaId;
+          if (mismoEmparejamiento) {
+            return res.status(200).json({ partido: existente, escenas: escenasExistentes.rows });
+          }
+          const partidoReiniciado = await reiniciarPartido(existente, {
+            equipoLocalId,
+            equipoVisitaId,
+            quintetoLocalIds,
+            quintetoVisitaIds,
+            minutosPeriodo: configDiseno?.minutosPeriodo,
+            minutosProrroga: configDiseno?.minutosProrroga,
+          });
+          // Si OBS ya tiene esta escena abierta (el enlace fijo, ver arriba),
+          // se entera del rival/marcador nuevo al instante, sin recargar.
+          req.app.locals.io?.to(`partido:${partidoReiniciado.public_token}`).emit('estado', await construirEstado(partidoReiniciado));
+          return res.status(200).json({ partido: partidoReiniciado, escenas: escenasExistentes.rows });
         }
       }
     }
