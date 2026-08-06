@@ -24,35 +24,41 @@ html:has(.plantilla-marcador) {
 }
 
 /* 1. Clásico */
+/* Tamaños calibrados a ~60% de los originales (medido a fondo: la caja
+   pasa de ocupar 27.8% del ancho / 12.7% del alto de un canvas de
+   1920×1080 real a ~17%/8%) — el original resultaba demasiado grande
+   compuesto sobre una cámara real en OBS, dejando poco lugar visible para
+   la imagen de fondo. Ver conversación: comparación directa contra
+   captura real de OBS, no solo la vista previa. */
 .pc-wrap {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-end;
   height: 100%;
-  padding: 40px;
+  padding: 28px;
   font-family: var(--pm-fuente, 'Orbitron', sans-serif);
 }
 .pc-caja {
   display: flex;
   align-items: center;
-  gap: 32px;
+  gap: 20px;
   background: var(--pm-tablero, rgba(10, 12, 20, 0.88));
   border: 2px solid var(--pm-banner, rgba(255, 255, 255, 0.15));
-  border-radius: 16px;
-  padding: 18px 36px;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+  border-radius: 12px;
+  padding: 12px 24px;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.45);
 }
-.pc-logo { display: block; margin: 0 auto 6px; object-fit: contain; opacity: var(--pm-logo-opacidad, 1); }
-.pc-equipo { display: flex; flex-direction: column; align-items: center; min-width: 120px; }
-.pc-nombre { font-size: calc(16px * var(--pm-escala-nombre, 1)); font-weight: 700; letter-spacing: .4px; text-transform: uppercase; }
-.pc-pts { font-size: calc(56px * var(--pm-escala-pts, 1)); font-weight: 900; line-height: 1.1; color: var(--pm-marcador, #fff); }
-.pc-faltas { color: #ff453a; font-size: 12px; font-weight: 700; }
+.pc-logo { display: block; margin: 0 auto 4px; object-fit: contain; opacity: var(--pm-logo-opacidad, 1); }
+.pc-equipo { display: flex; flex-direction: column; align-items: center; min-width: 80px; }
+.pc-nombre { font-size: calc(12px * var(--pm-escala-nombre, 1)); font-weight: 700; letter-spacing: .4px; text-transform: uppercase; }
+.pc-pts { font-size: calc(34px * var(--pm-escala-pts, 1)); font-weight: 900; line-height: 1.1; color: var(--pm-marcador, #fff); }
+.pc-faltas { color: #ff453a; font-size: 10px; font-weight: 700; }
 .pc-centro { display: flex; flex-direction: column; align-items: center; }
-.pc-reloj { background: rgba(255,255,255,.08); padding: 6px 16px; border-radius: 10px; font-size: 26px; font-weight: 900; }
-.pc-periodo { margin-top: 4px; font-size: 14px; color: #cfd3dc; }
-.pc-patrocinador { margin-top: 14px; background: rgba(10,12,20,.8); border-radius: 12px; padding: 8px 16px; }
-.pc-patrocinador img { max-height: 60px; max-width: 320px; }
+.pc-reloj { background: rgba(255,255,255,.08); padding: 4px 12px; border-radius: 8px; font-size: 17px; font-weight: 900; }
+.pc-periodo { margin-top: 3px; font-size: 11px; color: #cfd3dc; }
+.pc-patrocinador { margin-top: 10px; background: rgba(10,12,20,.8); border-radius: 10px; padding: 6px 12px; }
+.pc-patrocinador img { max-height: 40px; max-width: 220px; }
 
 /* 2. NBA League Pass */
 .pn-wrap {
