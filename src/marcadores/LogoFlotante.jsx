@@ -31,6 +31,15 @@ export default function LogoFlotante({ equipoLocal, equipoVisita, config, planti
   const opacidad = Number.isFinite(opacidadRaw) ? opacidadRaw / 100 : 1;
   const tamano = Number(config?.logoTamanoMarcador) || Number(config?.logoTamano) || 40;
   const dentro = (config?.logoCajaModo || 'dentro') !== 'fuera';
+  // Ajuste fino (px) para "arriba"/"abajo" flotante: el punto de partida
+  // sigue siendo el anclaje automático relativo a la caja (útil de
+  // entrada, se acomoda solo si después movés el marcador), pero antes no
+  // había forma de correrlo un poco a mano — quedaba SIEMPRE clavado ahí.
+  // Con esto el usuario lo nudgea con los sliders y el logo se queda
+  // exactamente en ese lugar (el offset se guarda en el diseño, no se
+  // recalcula solo).
+  const offsetX = Number(config?.logoFlotanteOffsetX) || 0;
+  const offsetY = Number(config?.logoFlotanteOffsetY) || 0;
 
   if (posicion === 'costados') {
     if (!caja) return null;
@@ -127,7 +136,13 @@ export default function LogoFlotante({ equipoLocal, equipoVisita, config, planti
       return (
         <div style={estiloPanel}>
           <div className="lf-costado">
-            <img src={equipo.logo_url} alt="" style={{ height: '60%', width: 'auto', maxWidth: 'none', objectFit: 'contain', opacity: opacidad }} />
+            {/* Antes fijo en 60% de la caja, SIN mirar `tamano` — el
+                slider "Tamaño" de arriba lo mostraba en la pantalla de
+                edición pero acá no tenía ningún efecto (el bug reportado:
+                "agrandar/achicar no hace nada" con el logo afuera de la
+                caja). Ahora usa el mismo `tamano` (px) que las demás
+                posiciones — un solo control, funciona en todas. */}
+            <img src={equipo.logo_url} alt="" style={{ height: tamano, width: 'auto', maxWidth: 'none', objectFit: 'contain', opacity: opacidad }} />
           </div>
         </div>
       );
@@ -141,7 +156,11 @@ export default function LogoFlotante({ equipoLocal, equipoVisita, config, planti
   }
 
   if (dentro) {
-    const estiloAncla = { position: 'fixed', inset: 0, display: 'flex', pointerEvents: 'none', ...estiloTema(config), '--pm-fuente': fuenteEfectiva(config, plantillaId), ...estiloAnclaLogoCaja(config, posicion, caja) };
+    const estiloAncla = {
+      position: 'fixed', inset: 0, display: 'flex', pointerEvents: 'none',
+      ...estiloTema(config), '--pm-fuente': fuenteEfectiva(config, plantillaId), ...estiloAnclaLogoCaja(config, posicion, caja),
+      transform: `translate(${offsetX}px, ${offsetY}px)`,
+    };
     return (
       <div style={estiloAncla}>
         <div className={`lf-dentro lf-dentro-${posicion}`}>
@@ -160,7 +179,7 @@ export default function LogoFlotante({ equipoLocal, equipoVisita, config, planti
 
   const estiloAncla = estiloAnclaLogo(config, posicion, caja);
   return (
-    <div style={{ position: 'fixed', inset: 0, display: 'flex', pointerEvents: 'none', ...estiloAncla }}>
+    <div style={{ position: 'fixed', inset: 0, display: 'flex', pointerEvents: 'none', ...estiloAncla, transform: `translate(${offsetX}px, ${offsetY}px)` }}>
       <div style={{ display: 'flex', gap: 16, transform: 'translateX(-50%)' }}>
         {equipoLocal?.logo_url && (
           <img src={equipoLocal.logo_url} alt="" style={{ height: tamano, width: 'auto', maxWidth: tamano * 1.8, objectFit: 'contain', opacity: opacidad }} />

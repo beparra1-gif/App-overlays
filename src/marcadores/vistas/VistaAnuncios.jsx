@@ -120,12 +120,17 @@ export default function VistaAnuncios({
   }
 
   const claseFamilia = `fam-${familiaAnimacion} ${claseModo} lado-${ladoTab} ${claseModoExtra}`.trim();
+  // Ajuste fino en px, encima del modo elegido — mismo criterio que
+  // Nómina/Estadísticas (ver nominaOffsetY en VistaNomina.jsx). No aplica
+  // en 'libre': ahí la posición ya es 100% manual (anunciosX/Y).
+  const offsetY = modoAlerta !== 'libre' ? Number(tema?.anunciosOffsetY) || 0 : 0;
   const estiloAncla = {
     ...estiloTema(tema),
     ...estiloTemaCapa(tema, 'anuncios'),
     '--pm-fuente': fuenteEfectiva(tema, plantillaId),
     ...(colorEquipo ? { '--anuncio-color-equipo': colorEquipo } : {}),
     ...estiloPosicion,
+    ...(offsetY ? { transform: `translateY(${offsetY}px)` } : {}),
   };
 
   const libreX = Number.isFinite(tema?.anunciosX) ? tema.anunciosX : 50;

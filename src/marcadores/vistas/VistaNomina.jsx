@@ -12,7 +12,7 @@ function conTitularesPrimero(roster, quintetoIds) {
   return [...titulares, ...banca];
 }
 
-export default function VistaNomina({ partido, modo = 'ambos', claveAnimacion = 0, config, plantillaId }) {
+export default function VistaNomina({ partido, modo = 'ambos', claveAnimacion = 0, config, plantillaId, saliendo = false }) {
   // Nómina COMPLETA (antes solo se mostraba el quinteto en cancha) — quien
   // está arrancando en cancha se distingue con una insignia en su fila, no
   // ocultando al resto del plantel.
@@ -23,9 +23,9 @@ export default function VistaNomina({ partido, modo = 'ambos', claveAnimacion = 
   const conEstadisticas = config?.nominaConEstadisticas === true;
   const mostrarLogo = config?.logoEnNomina !== false;
   // 'costado' (por defecto): chico, junto al nombre — comportamiento de
-  // siempre. 'fondo': grande, detrás de toda la nómina de ese equipo, como
-  // mínimo tan alto como la nómina misma (ver nominaLogoFondoTamano, 100%
-  // = esa altura exacta, más se lo puede agrandar para que sobresalga).
+  // siempre. 'fondo': grande, colgado justo abajo del título de ese
+  // equipo, detrás de toda la lista (ver nominaLogoFondoTamano, más abajo,
+  // y el comentario junto a altoLogoFondo).
   const logoDeFondo = mostrarLogo && (config?.nominaLogoPosicion || 'costado') === 'fondo';
   const opacidadLogo = (Number.isFinite(config?.logoOpacidadNomina) ? config.logoOpacidadNomina : 100) / 100;
   // Con el interruptor prendido, se usa el logo "de fondo" (blanco y negro
@@ -34,10 +34,17 @@ export default function VistaNomina({ partido, modo = 'ambos', claveAnimacion = 
   // ninguno cargado, cae solo en el logo de siempre, sin romper nada.
   const usarLogoAlternativo = config?.nominaUsarLogoFondoAlternativo === true;
   const logoFondoSrc = (equipo) => (usarLogoAlternativo && equipo.logoFondoUrl) || equipo.logo_url;
-  // Antes tenía un piso de 100% ("nunca más chico que la altura de la
-  // nómina") — ahora se puede achicar tanto como haga falta, el usuario
-  // decide, sin ningún mínimo forzado desde acá.
-  const altoLogoFondo = Number.isFinite(config?.nominaLogoFondoTamano) ? config.nominaLogoFondoTamano : 130;
+  // Antes se centraba en el alto de TODA la columna (título + lista de
+  // jugadores) — con un plantel de 3 quedaba centrado casi sobre el título;
+  // con uno de 12, mucho más abajo, prácticamente perdido. El ancla real
+  // ahora es el título (ver .nomina-logo-fondo en nomina.css: es hijo de
+  // .nomina-encabezado-equipo, no de .nomina-equipo), así que el tamaño
+  // también se independiza del alto de la columna: se mide en vh (alto de
+  // pantalla), no en % de un contenedor cuya altura cambiaba con la
+  // cantidad de jugadores. 100% ≈ 55vh (grande, pero con margen antes de
+  // chocar con el borde inferior); el tope de 220% del slider ya queda
+  // clampeado por CSS (max-height) para que nunca se salga de pantalla.
+  const altoLogoFondo = (Number.isFinite(config?.nominaLogoFondoTamano) ? config.nominaLogoFondoTamano : 130) * 0.55;
   const familia = familiaEfectiva(config, 'nomina', plantillaId);
   // Techo de ancho para el logo de fondo — antes, con un logo bien ancho (o
   // el tamaño llevado a 200%) podía crecer tanto que se metía en la zona del
@@ -56,9 +63,14 @@ export default function VistaNomina({ partido, modo = 'ambos', claveAnimacion = 
   const justifyContent = horizontal === 'izquierda' ? 'flex-start' : horizontal === 'derecha' ? 'flex-end' : 'center';
   const vertical = config?.nominaPosicionVertical || 'arriba';
   const alignItems = vertical === 'abajo' ? 'flex-end' : vertical === 'centro' ? 'center' : 'flex-start';
+  // Ajuste fino en px, ENCIMA de "Arriba/Centro/Abajo" — ese selector solo
+  // da 3 puntos fijos; esto deja correr la nómina de a poco desde ahí,
+  // sin tener que elegir un preset distinto para cada corrimiento chico.
+  const offsetY = Number(config?.nominaOffsetY) || 0;
   const estilo = {
     ...estiloTema(config), ...estiloTemaCapa(config, 'nomina'),
     alignItems, justifyContent, '--pm-fuente': fuenteEfectiva(config, plantillaId),
+    ...(offsetY ? { transform: `translateY(${offsetY}px)` } : {}),
   };
 
   // El delay del "entra deslizando" se achica con listas más largas (plantel
@@ -86,28 +98,31 @@ export default function VistaNomina({ partido, modo = 'ambos', claveAnimacion = 
   // arrancan parejas arriba" vive en .nomina-fila (adentro, siempre
   // flex-start), cada uno en su propio nivel de flex.
   return (
-    <div className={`nomina-overlay fam-${familia}`} key={claveAnimacion} style={estilo}>
+    <div className={`nomina-overlay fam-${familia} ${saliendo ? 'nomina-saliendo' : ''}`} key={claveAnimacion} style={estilo}>
       <div className="nomina-fila">
         {mostrarLocal && (
           <div className="nomina-equipo">
-            {logoDeFondo && partido.equipoLocal.logo_url && (
-              <img className="nomina-logo-fondo" src={logoFondoSrc(partido.equipoLocal)} alt="" style={{ height: `${altoLogoFondo}%`, maxWidth: maxAnchoLogoFondo, opacity: opacidadLogo }} />
-            )}
             <div className="nomina-encabezado-equipo" style={{ color: partido.equipoLocal.color }}>
               {mostrarLogo && !logoDeFondo && <LogoEquipo equipo={partido.equipoLocal} config={config} className="nomina-logo" contexto="nomina" />}
               <span className="nomina-titulo">{partido.equipoLocal.nombre}</span>
+              {/* Colgado del ENCABEZADO (no de .nomina-equipo, que incluye
+                  toda la lista) — así siempre arranca pegado justo debajo
+                  del título, sea cual sea la cantidad de jugadores. */}
+              {logoDeFondo && partido.equipoLocal.logo_url && (
+                <img className="nomina-logo-fondo" src={logoFondoSrc(partido.equipoLocal)} alt="" style={{ height: `${altoLogoFondo}vh`, maxWidth: maxAnchoLogoFondo, opacity: opacidadLogo }} />
+              )}
             </div>
             {rosterLocal.map(filaJugador(partido.quintetoLocalIds))}
           </div>
         )}
         {mostrarVisita && (
           <div className="nomina-equipo nomina-visita">
-            {logoDeFondo && partido.equipoVisita.logo_url && (
-              <img className="nomina-logo-fondo" src={logoFondoSrc(partido.equipoVisita)} alt="" style={{ height: `${altoLogoFondo}%`, maxWidth: maxAnchoLogoFondo, opacity: opacidadLogo }} />
-            )}
             <div className="nomina-encabezado-equipo" style={{ color: partido.equipoVisita.color }}>
               {mostrarLogo && !logoDeFondo && <LogoEquipo equipo={partido.equipoVisita} config={config} className="nomina-logo" contexto="nomina" />}
               <span className="nomina-titulo">{partido.equipoVisita.nombre}</span>
+              {logoDeFondo && partido.equipoVisita.logo_url && (
+                <img className="nomina-logo-fondo" src={logoFondoSrc(partido.equipoVisita)} alt="" style={{ height: `${altoLogoFondo}vh`, maxWidth: maxAnchoLogoFondo, opacity: opacidadLogo }} />
+              )}
             </div>
             {rosterVisita.map(filaJugador(partido.quintetoVisitaIds))}
           </div>

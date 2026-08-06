@@ -44,6 +44,8 @@ const CONFIG_INICIAL = {
   logoCostadoTamano: 100,
   logoOpacidadMarcador: 100,
   logoTamanoFondo: 30,
+  logoFlotanteOffsetX: 0,
+  logoFlotanteOffsetY: 0,
   escala: 1,
   estiramientoAncho: 100,
   estiramientoAlto: 100,
@@ -62,6 +64,7 @@ const CONFIG_INICIAL = {
   mostrarNomina: true,
   nominaPosicion: 'centro',
   nominaPosicionVertical: 'arriba',
+  nominaOffsetY: 0,
   nominaConEstadisticas: false,
   logoEnNomina: true,
   nominaLogoPosicion: 'costado',
@@ -83,6 +86,7 @@ const CONFIG_INICIAL = {
   // Estadísticas
   mostrarEstadisticas: true,
   estadisticasPosicion: 'centro',
+  estadisticasOffsetY: 0,
   mostrarDetalleJugadores: false,
   logoEnEstadisticas: true,
   logoTamanoEstadisticas: 56,
@@ -102,6 +106,7 @@ const CONFIG_INICIAL = {
   anunciarJugadas: true,
   alertaPosicion: '',
   alertaAnimacion: '',
+  anunciosOffsetY: 0,
   anunciarFaltas: true,
   anunciosDuracionSeg: 4,
   anunciosEscala: 100,
@@ -129,9 +134,10 @@ const OPCIONES_UBICACION = [
   { id: 'derecha', etiqueta: 'Derecha' },
 ];
 
-// La nómina siempre arranca pegada arriba (ver VistaNomina.jsx) — el alto
-// no es configurable a propósito, así que acá solo se ofrece el costado,
-// para no mostrar un control "Arriba/Abajo" que no haría nada.
+// El costado (izquierda/centro/derecha) usa este selector aparte —
+// "arriba/abajo" para la nómina se elige con nominaPosicionVertical (su
+// propio SelectorUbicacion, más abajo) más el ajuste fino en px, así que
+// acá no hace falta repetir esas dos opciones.
 const OPCIONES_UBICACION_NOMINA = [
   { id: 'izquierda', etiqueta: 'Izquierda' },
   { id: 'centro', etiqueta: 'Centro' },
@@ -995,6 +1001,22 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
                   onChange={(v) => cambiarConfig('logoCostadoTamano', v)}
                 />
               )}
+              {(config.logoPosicion === 'arriba' || config.logoPosicion === 'abajo') && (
+                <div className="fila-form">
+                  <CampoRango
+                    etiqueta="Ajuste fino (izquierda/derecha)"
+                    valor={Number.isFinite(config.logoFlotanteOffsetX) ? config.logoFlotanteOffsetX : 0}
+                    unidad="px" min={-300} max={300} step={5}
+                    onChange={(v) => cambiarConfig('logoFlotanteOffsetX', v)}
+                  />
+                  <CampoRango
+                    etiqueta="Ajuste fino (arriba/abajo)"
+                    valor={Number.isFinite(config.logoFlotanteOffsetY) ? config.logoFlotanteOffsetY : 0}
+                    unidad="px" min={-200} max={200} step={5}
+                    onChange={(v) => cambiarConfig('logoFlotanteOffsetY', v)}
+                  />
+                </div>
+              )}
               {config.logoPosicion === 'fondo' && (
                 <>
                   <CampoRango
@@ -1192,6 +1214,13 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
                   opciones={[{ id: 'arriba', etiqueta: 'Arriba' }, { id: 'centro', etiqueta: 'Centro' }, { id: 'abajo', etiqueta: 'Abajo' }]}
                 />
               </div>
+              <CampoRango
+                etiqueta="Ajuste fino de altura (arriba/abajo)"
+                valor={Number.isFinite(config.nominaOffsetY) ? config.nominaOffsetY : 0}
+                unidad="px" min={-300} max={300} step={5}
+                onChange={(v) => cambiarConfig('nominaOffsetY', v)}
+                ayuda="Corre la nómina de a poco, sin cambiar la ubicación general de arriba."
+              />
               <Toggle etiqueta="Logo del equipo" checked={config.logoEnNomina} onChange={(v) => cambiarConfig('logoEnNomina', v)} />
               {config.logoEnNomina && (
                 <div className="subgrupo">
@@ -1209,7 +1238,7 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
                         valor={Number.isFinite(config.nominaLogoFondoTamano) ? config.nominaLogoFondoTamano : 130}
                         min={5} max={220}
                         onChange={(v) => cambiarConfig('nominaLogoFondoTamano', v)}
-                        ayuda="100% = alto de la nómina. Podés achicarlo o agrandarlo como quieras."
+                        ayuda="Siempre arranca pegado justo abajo del título, sea cual sea el largo del plantel. Achicalo o agrandalo como quieras — hay un tope para que nunca se salga de pantalla."
                       />
                       <Toggle
                         etiqueta="Usar logo alternativo (blanco y negro) en el fondo"
@@ -1246,6 +1275,13 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
               <p className="texto-tenue" style={{ margin: '-4px 0 0' }}>
                 Aplica a "Ambos equipos" y a jugador — un solo equipo sale pegado a su propio lado.
               </p>
+              <CampoRango
+                etiqueta="Ajuste fino de altura (arriba/abajo)"
+                valor={Number.isFinite(config.estadisticasOffsetY) ? config.estadisticasOffsetY : 0}
+                unidad="px" min={-300} max={300} step={5}
+                onChange={(v) => cambiarConfig('estadisticasOffsetY', v)}
+                ayuda="Corre las estadísticas de a poco, sin cambiar la ubicación general elegida arriba."
+              />
               <Toggle etiqueta="Escudos de los equipos" checked={config.logoEnEstadisticas} onChange={(v) => cambiarConfig('logoEnEstadisticas', v)} />
               {config.logoEnEstadisticas && (
                 <div className="fila-form">
@@ -1276,6 +1312,15 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
                   <option value="libre">Posición libre (elegís el punto exacto)</option>
                 </select>
               </label>
+              {config.alertaPosicion !== 'libre' && (
+                <CampoRango
+                  etiqueta="Ajuste fino de altura (arriba/abajo)"
+                  valor={Number.isFinite(config.anunciosOffsetY) ? config.anunciosOffsetY : 0}
+                  unidad="px" min={-300} max={300} step={5}
+                  onChange={(v) => cambiarConfig('anunciosOffsetY', v)}
+                  ayuda="Corre el aviso de a poco, sin cambiar el modo elegido arriba."
+                />
+              )}
               {config.alertaPosicion === 'libre' && (
                 <>
                   <div className="fila-form">

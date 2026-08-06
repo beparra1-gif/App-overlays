@@ -61,19 +61,28 @@ html:has(.nomina-overlay) {
   flex-shrink: 0;
 }
 
-/* Logo "de fondo" (config.nominaLogoPosicion === 'fondo'): grande, centrado
-   detrás de toda la nómina de ese equipo — como mínimo tan alto como la
-   nómina misma (altura fija en %, ancho proporcional), con su propia
-   transparencia. Va DETRÁS del encabezado/filas (z-index) — las filas
-   siguen teniendo su propio fondo opaco encima, así que el logo se nota
-   sobre todo asomando por los costados y en el encabezado. */
+/* Logo "de fondo" (config.nominaLogoPosicion === 'fondo'): grande, colgado
+   justo abajo del TÍTULO de ese equipo — no del centro de toda la columna
+   (antes vivía dentro de .nomina-equipo con top:50%, así que se centraba
+   contra el alto de la lista completa: con 3 jugadores quedaba pegado casi
+   arriba del título, con 12 mucho más abajo — se corría solo según cuántos
+   jugadores tuviera cada plantel). Ahora es hijo de
+   .nomina-encabezado-equipo (posicionado con `position:relative` más
+   arriba) y ancla con `top:100%`: el punto de partida es SIEMPRE el borde
+   inferior del título, sea cual sea el largo del plantel. Va DETRÁS de las
+   filas (z-index) — las filas siguen teniendo su propio fondo opaco
+   encima, así que el logo se nota sobre todo asomando por los costados.
+   `max-height` es un techo de seguridad: por más que el slider de tamaño
+   se lleve al máximo, nunca se sale de la pantalla ni tapa el título de
+   arriba. */
 .nomina-logo-fondo {
   position: absolute;
-  top: 50%;
+  top: 100%;
   left: 50%;
-  transform: translate(-50%, -50%);
+  transform: translateX(-50%);
   width: auto;
   max-width: none;
+  max-height: 78vh;
   object-fit: contain;
   pointer-events: none;
   z-index: 0;
@@ -125,6 +134,21 @@ html:has(.nomina-overlay) {
 
 @keyframes nomina-entrada {
   to { opacity: 1; transform: translateX(0); }
+}
+
+/* Antes de sacar la nómina del DOM (ver el temporizador en dos pasos de
+   EscenaPublica.jsx) se le agrega esta clase, para que desaparezca con un
+   desvanecido en vez de cortarse de golpe — mismo criterio que ya tenía
+   Anuncios. Solo anima `opacity` (nunca `transform`): el ajuste fino
+   vertical (nominaOffsetY) ya pone su propio `transform` inline en
+   .nomina-overlay, y una animación de `transform` acá lo pisaría durante
+   estos últimos 450ms. */
+.nomina-overlay.nomina-saliendo {
+  animation: nomina-salida .45s ease forwards;
+}
+@keyframes nomina-salida {
+  from { opacity: 1; }
+  to { opacity: 0; }
 }
 
 .nomina-dorsal {

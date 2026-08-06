@@ -116,9 +116,13 @@ export default function VistaEstadisticas({ partido, config = {}, tema, plantill
   // modos "ambos" y "jugador" siguen usando la ubicación del diseño, como
   // ya la tenían.
   const ubicacion = modo === 'equipo' ? (config.equipo === 'visita' ? 'derecha' : 'izquierda') : tema?.estadisticasPosicion;
+  // Ajuste fino en px, encima del preset de ubicación — mismo criterio que
+  // Nómina (ver nominaOffsetY en VistaNomina.jsx).
+  const offsetY = Number(tema?.estadisticasOffsetY) || 0;
   const estilo = {
     ...estiloTema(tema), ...estiloTemaCapa(tema, 'estadisticas'), ...estiloUbicacion(ubicacion),
     '--pm-fuente': fuenteEfectiva(tema, plantillaId),
+    ...(offsetY ? { transform: `translateY(${offsetY}px)` } : {}),
   };
 
   if (modo === 'ambos') {

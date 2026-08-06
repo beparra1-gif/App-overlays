@@ -93,10 +93,18 @@ export default function EscenaPublica() {
   // respaldo razonable si todavía no se configuró.
   const duracionNominaMs = (Number(datos?.diseno?.config?.nominaDuracionSeg) || 6) * 1000;
   const duracionStatsMs = (Number(datos?.diseno?.config?.estadisticasDuracionSeg) || 7) * 1000;
+  // Antes se sacaba del DOM de un tirón (setNomina(null) directo) apenas se
+  // cumplía el tiempo — Anuncios ya se desvanece suave (ver `saliendo` en
+  // VistaAnuncios), Nómina desaparecía de golpe, sin ninguna transición.
+  // Dos pasos: primero se marca `saliendo` (VistaNomina agrega la clase
+  // CSS que dispara el fade), recién MÁS TARDE (cuando ya terminó de
+  // desvanecerse) se saca de verdad del DOM.
+  const DURACION_SALIDA_NOMINA_MS = 450;
   useEffect(() => {
     if (!nomina) return undefined;
-    const temporizador = setTimeout(() => setNomina(null), duracionNominaMs);
-    return () => clearTimeout(temporizador);
+    const salir = setTimeout(() => setNomina((n) => (n ? { ...n, saliendo: true } : n)), duracionNominaMs);
+    const sacar = setTimeout(() => setNomina(null), duracionNominaMs + DURACION_SALIDA_NOMINA_MS);
+    return () => { clearTimeout(salir); clearTimeout(sacar); };
   }, [nomina?.ts, duracionNominaMs]);
   useEffect(() => {
     if (!stats) return undefined;
@@ -157,7 +165,7 @@ export default function EscenaPublica() {
           </ErrorBoundary>
           {cfg.mostrarNomina && nomina && (
             <ErrorBoundary>
-              <VistaNomina key={nomina.ts} partido={datos.partido} modo={nomina.modo} claveAnimacion={nomina.ts} config={cfg} plantillaId={plantillaId} />
+              <VistaNomina key={nomina.ts} partido={datos.partido} modo={nomina.modo} claveAnimacion={nomina.ts} config={cfg} plantillaId={plantillaId} saliendo={nomina.saliendo} />
             </ErrorBoundary>
           )}
           {cfg.mostrarEstadisticas && stats && (

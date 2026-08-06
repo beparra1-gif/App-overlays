@@ -11,11 +11,9 @@ const MANO_POR_PUNTOS = { 1: '☝️', 2: '✌️', 3: '🤟' };
 
 // Contenido del cartel según config.animacionPuntosIcono — cada "familia" es
 // una forma de anunciar el punto, no una animación (eso es lo otro que ya se
-// elige, animacionPuntosEstilo): números de siempre, solo el gesto de la
-// mano, los dos juntos, o un ícono repetido tantas veces como puntos valga
-// la jugada (⭐⭐ para un doble, 🏀🏀🏀 para un triple).
+// elige, animacionPuntosEstilo): números de siempre, o solo el gesto de la
+// mano.
 function contenidoIcono(icono, delta) {
-  const repetir = (simbolo) => simbolo.repeat(Math.max(1, delta));
   switch (icono) {
     case 'dedos':
       return MANO_POR_PUNTOS[delta] || `+${delta}`;
@@ -26,14 +24,29 @@ function contenidoIcono(icono, delta) {
           {`+${delta}!!`}
         </>
       );
-    case 'estrellas':
-      return repetir('⭐');
-    case 'balones':
-      return repetir('🏀');
     case 'numero':
     default:
       return `+${delta}!!`;
   }
+}
+
+const SIMBOLO_POR_ICONO = { estrellas: '⭐', balones: '🏀' };
+
+// Icono repetido tantas veces como puntos valga la jugada (⭐⭐ para un
+// doble, 🏀🏀🏀 para un triple) — pero NO todos a la vez: cada uno aparece
+// por separado, uno detrás de otro, como si se fueran "sumando" en pantalla
+// (antes salían los 2-3 símbolos pegados en un solo texto, con una única
+// animación para el bloque entero — se veían todos de golpe). Cada ícono
+// tiene su propio pop-in (mismo timing para los 3 estilos, la variación de
+// animacionPuntosEstilo ya la eligió el usuario para el modo numérico) con
+// un `animation-delay` escalonado; el contenedor entero (`.pm-pop-suma`) no
+// lleva animación propia acá, cada símbolo se anima solo.
+function IconosSecuencia({ icono, delta }) {
+  const simbolo = SIMBOLO_POR_ICONO[icono];
+  const cantidad = Math.max(1, delta);
+  return Array.from({ length: cantidad }).map((_, i) => (
+    <span key={i} className="pm-pop-icono" style={{ animationDelay: `${i * 0.26}s` }}>{simbolo}</span>
+  ));
 }
 
 function Badge({ estado, lado, tema, posicion, escala, estiloAnim, icono, caja }) {
@@ -42,10 +55,13 @@ function Badge({ estado, lado, tema, posicion, escala, estiloAnim, icono, caja }
     position: 'fixed', inset: 0, display: 'flex', pointerEvents: 'none',
     ...estiloTema(tema), ...estiloAnclaPop(tema, lado, posicion, caja), '--pm-pop-escala': escala,
   };
-  const clase = `pm-pop-suma ${estiloAnim ? `pm-pop-${estiloAnim}` : ''} pm-pop-lado-${lado}`.trim();
+  const esSecuencia = icono === 'estrellas' || icono === 'balones';
+  const clase = `pm-pop-suma ${esSecuencia ? 'pm-pop-secuencia' : (estiloAnim ? `pm-pop-${estiloAnim}` : '')} pm-pop-lado-${lado}`.trim();
   return (
     <div style={estilo}>
-      <div className={clase} key={estado.clave}>{contenidoIcono(icono, estado.delta)}</div>
+      <div className={clase} key={estado.clave}>
+        {esSecuencia ? <IconosSecuencia icono={icono} delta={estado.delta} /> : contenidoIcono(icono, estado.delta)}
+      </div>
     </div>
   );
 }
