@@ -16,14 +16,14 @@ export default function PildoraDoble({ partido, config }) {
         <div className="pd-pildora" style={{ '--pd-color': partido.equipoLocal.color }}>
           <LogoEquipo equipo={partido.equipoLocal} config={config} className="pd-logo" />
           <span className="pd-nombre">{partido.equipoLocal.nombre}</span>
-          {mostrar(config, 'mostrarFaltas') && <span className="pd-faltas">F{indicadorFaltas(partido.faltasLocal, config?.estiloFaltas)}</span>}
+          {mostrar(config, 'mostrarFaltas') && <span className="pd-faltas">F{indicadorFaltas(partido.faltasPeriodoLocal, config?.estiloFaltas)}</span>}
           {mostrar(config, 'mostrarPosesion') && partido.posesion === 'local' && <span className="pd-posesion">●</span>}
           <span className={`pd-pts ${pulsoLocal ? 'pm-pulso' : ''}`}>{partido.ptsLocal}</span>
         </div>
         <div className="pd-pildora" style={{ '--pd-color': partido.equipoVisita.color }}>
           <LogoEquipo equipo={partido.equipoVisita} config={config} className="pd-logo" />
           <span className="pd-nombre">{partido.equipoVisita.nombre}</span>
-          {mostrar(config, 'mostrarFaltas') && <span className="pd-faltas">F{indicadorFaltas(partido.faltasVisita, config?.estiloFaltas)}</span>}
+          {mostrar(config, 'mostrarFaltas') && <span className="pd-faltas">F{indicadorFaltas(partido.faltasPeriodoVisita, config?.estiloFaltas)}</span>}
           {mostrar(config, 'mostrarPosesion') && partido.posesion === 'visita' && <span className="pd-posesion">●</span>}
           <span className={`pd-pts ${pulsoVisita ? 'pm-pulso' : ''}`}>{partido.ptsVisita}</span>
         </div>

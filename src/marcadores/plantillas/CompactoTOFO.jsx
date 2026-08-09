@@ -13,7 +13,7 @@ export default function CompactoTOFO({ partido, config }) {
           <LogoEquipo equipo={partido.equipoLocal} config={config} className="ct-logo" />
           <span className="ct-nombre">{partido.equipoLocal.nombre}</span>
           {mostrar(config, 'mostrarFaltas') && (
-            <span className="ct-badges">TO {partido.timeoutsLocal ?? 0} · FO {partido.faltasPeriodoLocal ?? indicadorFaltas(partido.faltasLocal, config?.estiloFaltas)}</span>
+            <span className="ct-badges">TO {partido.timeoutsLocal ?? 0} · FO {indicadorFaltas(partido.faltasPeriodoLocal, config?.estiloFaltas)}</span>
           )}
           <span className={`ct-pts ${pulsoLocal ? 'pm-pulso' : ''}`}>{partido.ptsLocal}</span>
           {mostrar(config, 'mostrarPosesion') && partido.posesion === 'local' && <span className="ct-posesion">◀</span>}
@@ -22,7 +22,7 @@ export default function CompactoTOFO({ partido, config }) {
           <LogoEquipo equipo={partido.equipoVisita} config={config} className="ct-logo" />
           <span className="ct-nombre">{partido.equipoVisita.nombre}</span>
           {mostrar(config, 'mostrarFaltas') && (
-            <span className="ct-badges">TO {partido.timeoutsVisita ?? 0} · FO {partido.faltasPeriodoVisita ?? indicadorFaltas(partido.faltasVisita, config?.estiloFaltas)}</span>
+            <span className="ct-badges">TO {partido.timeoutsVisita ?? 0} · FO {indicadorFaltas(partido.faltasPeriodoVisita, config?.estiloFaltas)}</span>
           )}
           <span className={`ct-pts ${pulsoVisita ? 'pm-pulso' : ''}`}>{partido.ptsVisita}</span>
           {mostrar(config, 'mostrarPosesion') && partido.posesion === 'visita' && <span className="ct-posesion">▶</span>}

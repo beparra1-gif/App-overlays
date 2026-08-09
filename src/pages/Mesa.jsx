@@ -717,7 +717,15 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
 
           {/* Barra de marcador: los puntajes quedan siempre pegados al reloj
               central (a la derecha en Local, a la izquierda en Visita),
-              nombre/logo hacia el borde exterior de la pantalla. */}
+              nombre/logo hacia el borde exterior de la pantalla. Las "F"
+              que se ven acá (y en el marcador real, todas las plantillas)
+              son faltasPeriodoLocal/Visita — las del PERÍODO actual (se
+              reinician solas en cada cuarto/prórroga, ver fijarPeriodo en
+              el backend), no el total del partido — es lo que de verdad
+              importa para saber cuándo el rival entra en bonus. El total
+              del partido completo (faltasLocal/Visita) sigue existiendo
+              en el estado por si hace falta en otro lado, pero ya no se
+              muestra como el contador de "F" en ningún lugar. */}
           <div className="mv-scorebar">
             <div className={`mv-equipo-box ${destacarTimeoutLocal ? 'mv-box-destacado' : ''}`} style={{ border: `1px solid ${partido.equipoLocal.color}88`, background: `${partido.equipoLocal.color}14` }}>
               <div className="mv-equipo-fila">
@@ -738,7 +746,7 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
                 />
               </div>
               <div className="mv-equipo-pie">
-                <span className="mv-faltas">F: {partido.faltasLocal}</span>
+                <span className="mv-faltas">F: {partido.faltasPeriodoLocal}</span>
               </div>
             </div>
 
@@ -798,7 +806,7 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
                 <BotonTimeout restantes={partido.timeoutsVisita} destacado={destacarTimeoutVisita} onClick={() => emitirAccion('TIMEOUT', { equipo: 'visita' })} />
               </div>
               <div className="mv-equipo-pie">
-                <span className="mv-faltas">F: {partido.faltasVisita}</span>
+                <span className="mv-faltas">F: {partido.faltasPeriodoVisita}</span>
               </div>
             </div>
           </div>

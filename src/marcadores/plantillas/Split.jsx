@@ -14,7 +14,7 @@ export default function Split({ partido, config }) {
           <LogoEquipo equipo={partido.equipoLocal} config={config} className="psp-logo" />
           <div className="psp-nombre">{partido.equipoLocal.nombre}</div>
           <div className={`psp-pts ${pulsoLocal ? 'pm-pulso' : ''}`}>{partido.ptsLocal}</div>
-          {mostrar(config, 'mostrarFaltas') && <div className="psp-nombre">F {indicadorFaltas(partido.faltasLocal, config?.estiloFaltas)}</div>}
+          {mostrar(config, 'mostrarFaltas') && <div className="psp-nombre">F {indicadorFaltas(partido.faltasPeriodoLocal, config?.estiloFaltas)}</div>}
         </div>
         <div className="psp-centro">
           {mostrar(config, 'mostrarReloj') && <span className="psp-reloj">{formatearReloj(partido.relojSegundos)}</span>}
@@ -27,7 +27,7 @@ export default function Split({ partido, config }) {
           <LogoEquipo equipo={partido.equipoVisita} config={config} className="psp-logo" />
           <div className="psp-nombre">{partido.equipoVisita.nombre}</div>
           <div className={`psp-pts ${pulsoVisita ? 'pm-pulso' : ''}`}>{partido.ptsVisita}</div>
-          {mostrar(config, 'mostrarFaltas') && <div className="psp-nombre">F {indicadorFaltas(partido.faltasVisita, config?.estiloFaltas)}</div>}
+          {mostrar(config, 'mostrarFaltas') && <div className="psp-nombre">F {indicadorFaltas(partido.faltasPeriodoVisita, config?.estiloFaltas)}</div>}
         </div>
       </div>
       <PatrocinadorBanner patrocinadores={partido.patrocinadores} className="pc-patrocinador" />

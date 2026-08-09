@@ -14,7 +14,7 @@ export default function Streetball({ partido, config }) {
           <LogoEquipo equipo={partido.equipoLocal} config={config} className="ps-logo" />
           <div className="ps-nombre" style={{ color: partido.equipoLocal.color }}>{partido.equipoLocal.nombre}</div>
           <div className={`ps-pts ${pulsoLocal ? 'pm-pulso' : ''}`}>{partido.ptsLocal}</div>
-          {mostrar(config, 'mostrarFaltas') && <div className="ps-nombre">F {indicadorFaltas(partido.faltasLocal, config?.estiloFaltas)}</div>}
+          {mostrar(config, 'mostrarFaltas') && <div className="ps-nombre">F {indicadorFaltas(partido.faltasPeriodoLocal, config?.estiloFaltas)}</div>}
         </div>
         <div style={{ textAlign: 'center' }}>
           {mostrar(config, 'mostrarReloj') && <div className="ps-reloj">{formatearReloj(partido.relojSegundos)}</div>}
@@ -24,7 +24,7 @@ export default function Streetball({ partido, config }) {
           <LogoEquipo equipo={partido.equipoVisita} config={config} className="ps-logo" />
           <div className="ps-nombre" style={{ color: partido.equipoVisita.color }}>{partido.equipoVisita.nombre}</div>
           <div className={`ps-pts ${pulsoVisita ? 'pm-pulso' : ''}`}>{partido.ptsVisita}</div>
-          {mostrar(config, 'mostrarFaltas') && <div className="ps-nombre">F {indicadorFaltas(partido.faltasVisita, config?.estiloFaltas)}</div>}
+          {mostrar(config, 'mostrarFaltas') && <div className="ps-nombre">F {indicadorFaltas(partido.faltasPeriodoVisita, config?.estiloFaltas)}</div>}
         </div>
       </div>
     </div>

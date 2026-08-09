@@ -17,7 +17,7 @@ export default function SlantDynamic({ partido, config }) {
         <div className="psl-centro">
           {mostrar(config, 'mostrarReloj') && <span className="psl-reloj">{formatearReloj(partido.relojSegundos)}</span>}
           <span>{etiquetaPeriodo(partido.periodo)}</span>
-          {mostrar(config, 'mostrarFaltas') && <span style={{ fontSize: 11 }}>F {indicadorFaltas(partido.faltasLocal, config?.estiloFaltas)}-{indicadorFaltas(partido.faltasVisita, config?.estiloFaltas)}</span>}
+          {mostrar(config, 'mostrarFaltas') && <span style={{ fontSize: 11 }}>F {indicadorFaltas(partido.faltasPeriodoLocal, config?.estiloFaltas)}-{indicadorFaltas(partido.faltasPeriodoVisita, config?.estiloFaltas)}</span>}
         </div>
         <div className="psl-lado" style={{ background: partido.equipoVisita.color }}>
           <LogoEquipo equipo={partido.equipoVisita} config={config} className="psl-logo" />

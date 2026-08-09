@@ -17,14 +17,14 @@ export default function EuroDivider({ partido, config }) {
           <div className="eu-fila">
             {mostrar(config, 'mostrarPosesion') && partido.posesion === 'local' && <span className="eu-posesion">▸</span>}
             <span className="eu-nombre">{partido.equipoLocal.nombre}</span>
-            {mostrar(config, 'mostrarFaltas') && <span className="eu-faltas">F{indicadorFaltas(partido.faltasLocal, config?.estiloFaltas)}</span>}
+            {mostrar(config, 'mostrarFaltas') && <span className="eu-faltas">F{indicadorFaltas(partido.faltasPeriodoLocal, config?.estiloFaltas)}</span>}
             <span className={`eu-pts ${pulsoLocal ? 'pm-pulso' : ''}`}>{partido.ptsLocal}</span>
             <LogoEquipo equipo={partido.equipoLocal} config={config} className="eu-logo" />
           </div>
           <div className="eu-fila">
             {mostrar(config, 'mostrarPosesion') && partido.posesion === 'visita' && <span className="eu-posesion">▸</span>}
             <span className="eu-nombre">{partido.equipoVisita.nombre}</span>
-            {mostrar(config, 'mostrarFaltas') && <span className="eu-faltas">F{indicadorFaltas(partido.faltasVisita, config?.estiloFaltas)}</span>}
+            {mostrar(config, 'mostrarFaltas') && <span className="eu-faltas">F{indicadorFaltas(partido.faltasPeriodoVisita, config?.estiloFaltas)}</span>}
             <span className={`eu-pts ${pulsoVisita ? 'pm-pulso' : ''}`}>{partido.ptsVisita}</span>
             <LogoEquipo equipo={partido.equipoVisita} config={config} className="eu-logo" />
           </div>

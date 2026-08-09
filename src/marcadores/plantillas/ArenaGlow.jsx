@@ -15,7 +15,7 @@ export default function ArenaGlow({ partido, config }) {
           <LogoEquipo equipo={partido.equipoLocal} config={config} className="pa-logo" />
           <div className="pa-nombre">{partido.equipoLocal.nombre}</div>
           <div className={`pa-pts ${pulsoLocal ? 'pm-pulso' : ''}`}>{partido.ptsLocal}</div>
-          {mostrar(config, 'mostrarFaltas') && <div className="pa-nombre">F {indicadorFaltas(partido.faltasLocal, config?.estiloFaltas)}</div>}
+          {mostrar(config, 'mostrarFaltas') && <div className="pa-nombre">F {indicadorFaltas(partido.faltasPeriodoLocal, config?.estiloFaltas)}</div>}
         </div>
         <div style={{ textAlign: 'center' }}>
           {mostrar(config, 'mostrarReloj') && <div className="pa-reloj">{formatearReloj(partido.relojSegundos)}</div>}
@@ -25,7 +25,7 @@ export default function ArenaGlow({ partido, config }) {
           <LogoEquipo equipo={partido.equipoVisita} config={config} className="pa-logo" />
           <div className="pa-nombre">{partido.equipoVisita.nombre}</div>
           <div className={`pa-pts ${pulsoVisita ? 'pm-pulso' : ''}`}>{partido.ptsVisita}</div>
-          {mostrar(config, 'mostrarFaltas') && <div className="pa-nombre">F {indicadorFaltas(partido.faltasVisita, config?.estiloFaltas)}</div>}
+          {mostrar(config, 'mostrarFaltas') && <div className="pa-nombre">F {indicadorFaltas(partido.faltasPeriodoVisita, config?.estiloFaltas)}</div>}
         </div>
       </div>
       <PatrocinadorBanner patrocinadores={partido.patrocinadores} className="pc-patrocinador" />

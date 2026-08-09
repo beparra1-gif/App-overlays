@@ -24,7 +24,7 @@ export default function Ncaa({ partido, config }) {
         </div>
         <div className="pu-pie">
           <span>{etiquetaPeriodo(partido.periodo)}</span>
-          {mostrar(config, 'mostrarFaltas') && <span>F {indicadorFaltas(partido.faltasLocal, config?.estiloFaltas)}-{indicadorFaltas(partido.faltasVisita, config?.estiloFaltas)}</span>}
+          {mostrar(config, 'mostrarFaltas') && <span>F {indicadorFaltas(partido.faltasPeriodoLocal, config?.estiloFaltas)}-{indicadorFaltas(partido.faltasPeriodoVisita, config?.estiloFaltas)}</span>}
           {mostrar(config, 'mostrarReloj') && <span>{formatearReloj(partido.relojSegundos)}</span>}
         </div>
       </div>

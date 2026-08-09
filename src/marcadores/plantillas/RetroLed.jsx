@@ -11,7 +11,7 @@ export default function RetroLed({ partido, config }) {
         <div style={{ textAlign: 'center' }}>
           <div className="pled-nombre">{partido.equipoLocal.nombre}</div>
           <div className={`pled-pts ${pulsoLocal ? 'pm-pulso' : ''}`}>{String(partido.ptsLocal).padStart(2, '0')}</div>
-          {mostrar(config, 'mostrarFaltas') && <div className="pled-nombre">F{indicadorFaltas(partido.faltasLocal, config?.estiloFaltas)}</div>}
+          {mostrar(config, 'mostrarFaltas') && <div className="pled-nombre">F{indicadorFaltas(partido.faltasPeriodoLocal, config?.estiloFaltas)}</div>}
         </div>
         <div style={{ textAlign: 'center' }}>
           {mostrar(config, 'mostrarReloj') && <div className="pled-reloj">{formatearReloj(partido.relojSegundos)}</div>}
@@ -20,7 +20,7 @@ export default function RetroLed({ partido, config }) {
         <div style={{ textAlign: 'center' }}>
           <div className="pled-nombre">{partido.equipoVisita.nombre}</div>
           <div className={`pled-pts ${pulsoVisita ? 'pm-pulso' : ''}`}>{String(partido.ptsVisita).padStart(2, '0')}</div>
-          {mostrar(config, 'mostrarFaltas') && <div className="pled-nombre">F{indicadorFaltas(partido.faltasVisita, config?.estiloFaltas)}</div>}
+          {mostrar(config, 'mostrarFaltas') && <div className="pled-nombre">F{indicadorFaltas(partido.faltasPeriodoVisita, config?.estiloFaltas)}</div>}
         </div>
       </div>
     </div>

@@ -208,14 +208,14 @@ export default function MesaSimple({ partidoId: partidoIdProp, embebido = false,
           <div className="ms-fila">
             <div className="ms-contador" style={{ flex: 1 }}>
               <span>{partido.equipoLocal.nombre}</span>
-              <span className="ms-contador-valor">{partido.faltasLocal}</span>
+              <span className="ms-contador-valor">{partido.faltasPeriodoLocal}</span>
               <button className="ms-pill" onClick={() => emitirAccion('FALTA', { equipo: 'local' })}>+ Falta</button>
             </div>
           </div>
           <div className="ms-fila" style={{ marginTop: 6 }}>
             <div className="ms-contador" style={{ flex: 1 }}>
               <span>{partido.equipoVisita.nombre}</span>
-              <span className="ms-contador-valor">{partido.faltasVisita}</span>
+              <span className="ms-contador-valor">{partido.faltasPeriodoVisita}</span>
               <button className="ms-pill" onClick={() => emitirAccion('FALTA', { equipo: 'visita' })}>+ Falta</button>
             </div>
           </div>

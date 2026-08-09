@@ -13,7 +13,7 @@ export default function OutlineBold({ partido, config }) {
           <LogoEquipo equipo={partido.equipoLocal} config={config} className="po-logo" />
           <div className="po-nombre">{partido.equipoLocal.nombre}</div>
           <div className={`po-pts ${pulsoLocal ? 'pm-pulso' : ''}`}>{partido.ptsLocal}</div>
-          {mostrar(config, 'mostrarFaltas') && <div className="po-nombre">F {indicadorFaltas(partido.faltasLocal, config?.estiloFaltas)}</div>}
+          {mostrar(config, 'mostrarFaltas') && <div className="po-nombre">F {indicadorFaltas(partido.faltasPeriodoLocal, config?.estiloFaltas)}</div>}
         </div>
         <div className="po-reloj">
           {mostrar(config, 'mostrarReloj') && formatearReloj(partido.relojSegundos)}
@@ -23,7 +23,7 @@ export default function OutlineBold({ partido, config }) {
           <LogoEquipo equipo={partido.equipoVisita} config={config} className="po-logo" />
           <div className="po-nombre">{partido.equipoVisita.nombre}</div>
           <div className={`po-pts ${pulsoVisita ? 'pm-pulso' : ''}`}>{partido.ptsVisita}</div>
-          {mostrar(config, 'mostrarFaltas') && <div className="po-nombre">F {indicadorFaltas(partido.faltasVisita, config?.estiloFaltas)}</div>}
+          {mostrar(config, 'mostrarFaltas') && <div className="po-nombre">F {indicadorFaltas(partido.faltasPeriodoVisita, config?.estiloFaltas)}</div>}
         </div>
       </div>
     </div>

@@ -29,7 +29,7 @@ export default function BroadcastBonus({ partido, config }) {
       </div>
       {mostrarTicker && (
         <div className="bb-ticker">
-          {mostrar(config, 'mostrarFaltas') && <span>Faltas de equipo {indicadorFaltas(partido.faltasLocal, config?.estiloFaltas)}-{indicadorFaltas(partido.faltasVisita, config?.estiloFaltas)}</span>}
+          {mostrar(config, 'mostrarFaltas') && <span>Faltas de equipo {indicadorFaltas(partido.faltasPeriodoLocal, config?.estiloFaltas)}-{indicadorFaltas(partido.faltasPeriodoVisita, config?.estiloFaltas)}</span>}
           {mostrar(config, 'mostrarFaltas') && mostrar(config, 'mostrarPosesion') && <span> · </span>}
           {mostrar(config, 'mostrarPosesion') && (
             <span>Posesión: {partido.posesion === 'visita' ? partido.equipoVisita.nombre : partido.equipoLocal.nombre}</span>

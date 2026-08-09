@@ -13,7 +13,7 @@ export default function CircleFocus({ partido, config }) {
           <LogoEquipo equipo={partido.equipoLocal} config={config} className="pcf-logo" />
           <div className="pcf-nombre">{partido.equipoLocal.nombre}</div>
           <div className={`pcf-pts-lado ${pulsoLocal ? 'pm-pulso' : ''}`}>{partido.ptsLocal}</div>
-          {mostrar(config, 'mostrarFaltas') && <div className="pcf-periodo">F {indicadorFaltas(partido.faltasLocal, config?.estiloFaltas)}</div>}
+          {mostrar(config, 'mostrarFaltas') && <div className="pcf-periodo">F {indicadorFaltas(partido.faltasPeriodoLocal, config?.estiloFaltas)}</div>}
         </div>
         <div className="pcf-circulo">
           <span className="pcf-marcador">{etiquetaPeriodo(partido.periodo)}</span>
@@ -23,7 +23,7 @@ export default function CircleFocus({ partido, config }) {
           <LogoEquipo equipo={partido.equipoVisita} config={config} className="pcf-logo" />
           <div className="pcf-nombre">{partido.equipoVisita.nombre}</div>
           <div className={`pcf-pts-lado ${pulsoVisita ? 'pm-pulso' : ''}`}>{partido.ptsVisita}</div>
-          {mostrar(config, 'mostrarFaltas') && <div className="pcf-periodo">F {indicadorFaltas(partido.faltasVisita, config?.estiloFaltas)}</div>}
+          {mostrar(config, 'mostrarFaltas') && <div className="pcf-periodo">F {indicadorFaltas(partido.faltasPeriodoVisita, config?.estiloFaltas)}</div>}
         </div>
       </div>
     </div>

@@ -14,7 +14,7 @@ export default function Clasico({ partido, config }) {
           <LogoEquipo equipo={partido.equipoLocal} config={config} className="pc-logo" />
           <span className="pc-nombre" style={{ color: partido.equipoLocal.color }}>{partido.equipoLocal.nombre}</span>
           <span className={`pc-pts ${pulsoLocal ? 'pm-pulso' : ''}`}>{partido.ptsLocal}</span>
-          {mostrar(config, 'mostrarFaltas') && <span className="pc-faltas">F {indicadorFaltas(partido.faltasLocal, config?.estiloFaltas)}</span>}
+          {mostrar(config, 'mostrarFaltas') && <span className="pc-faltas">F {indicadorFaltas(partido.faltasPeriodoLocal, config?.estiloFaltas)}</span>}
         </div>
         <div className="pc-centro">
           {mostrar(config, 'mostrarReloj') && <span className="pc-reloj">{formatearReloj(partido.relojSegundos)}</span>}
@@ -24,7 +24,7 @@ export default function Clasico({ partido, config }) {
           <LogoEquipo equipo={partido.equipoVisita} config={config} className="pc-logo" />
           <span className="pc-nombre" style={{ color: partido.equipoVisita.color }}>{partido.equipoVisita.nombre}</span>
           <span className={`pc-pts ${pulsoVisita ? 'pm-pulso' : ''}`}>{partido.ptsVisita}</span>
-          {mostrar(config, 'mostrarFaltas') && <span className="pc-faltas">F {indicadorFaltas(partido.faltasVisita, config?.estiloFaltas)}</span>}
+          {mostrar(config, 'mostrarFaltas') && <span className="pc-faltas">F {indicadorFaltas(partido.faltasPeriodoVisita, config?.estiloFaltas)}</span>}
         </div>
       </div>
       <PatrocinadorBanner patrocinadores={partido.patrocinadores} className="pc-patrocinador" />

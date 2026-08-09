@@ -14,7 +14,7 @@ export default function Neon({ partido, config }) {
           <LogoEquipo equipo={partido.equipoLocal} config={config} className="pne-logo" />
           <div className="pne-nombre">{partido.equipoLocal.nombre}</div>
           <div className={`pne-pts ${pulsoLocal ? 'pm-pulso' : ''}`}>{partido.ptsLocal}</div>
-          {mostrar(config, 'mostrarFaltas') && <div className="pne-nombre">F {indicadorFaltas(partido.faltasLocal, config?.estiloFaltas)}</div>}
+          {mostrar(config, 'mostrarFaltas') && <div className="pne-nombre">F {indicadorFaltas(partido.faltasPeriodoLocal, config?.estiloFaltas)}</div>}
         </div>
         <div style={{ textAlign: 'center' }}>
           {mostrar(config, 'mostrarReloj') && <div className="pne-reloj">{formatearReloj(partido.relojSegundos)}</div>}
@@ -24,7 +24,7 @@ export default function Neon({ partido, config }) {
           <LogoEquipo equipo={partido.equipoVisita} config={config} className="pne-logo" />
           <div className="pne-nombre">{partido.equipoVisita.nombre}</div>
           <div className={`pne-pts ${pulsoVisita ? 'pm-pulso' : ''}`}>{partido.ptsVisita}</div>
-          {mostrar(config, 'mostrarFaltas') && <div className="pne-nombre">F {indicadorFaltas(partido.faltasVisita, config?.estiloFaltas)}</div>}
+          {mostrar(config, 'mostrarFaltas') && <div className="pne-nombre">F {indicadorFaltas(partido.faltasPeriodoVisita, config?.estiloFaltas)}</div>}
         </div>
       </div>
       <PatrocinadorBanner patrocinadores={partido.patrocinadores} className="pc-patrocinador" />

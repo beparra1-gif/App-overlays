@@ -15,7 +15,7 @@ export default function LowerThird({ partido, config }) {
         <span className={`pl-pts ${pulsoVisita ? 'pm-pulso' : ''}`}>{partido.ptsVisita}</span>
         <span className="pl-nombre">{partido.equipoVisita.nombre}</span>
         {mostrar(config, 'mostrarLogo') && partido.equipoVisita.logo_url && <img className="pl-logo" src={partido.equipoVisita.logo_url} alt="" />}
-        {mostrar(config, 'mostrarFaltas') && <span className="pl-nombre">F {indicadorFaltas(partido.faltasLocal, config?.estiloFaltas)}-{indicadorFaltas(partido.faltasVisita, config?.estiloFaltas)}</span>}
+        {mostrar(config, 'mostrarFaltas') && <span className="pl-nombre">F {indicadorFaltas(partido.faltasPeriodoLocal, config?.estiloFaltas)}-{indicadorFaltas(partido.faltasPeriodoVisita, config?.estiloFaltas)}</span>}
         <span className="pl-nombre">{etiquetaPeriodo(partido.periodo)}{mostrar(config, 'mostrarReloj') ? ` · ${formatearReloj(partido.relojSegundos)}` : ''}</span>
       </div>
     </div>

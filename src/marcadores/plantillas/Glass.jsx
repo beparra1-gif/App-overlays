@@ -14,7 +14,7 @@ export default function Glass({ partido, config }) {
           <LogoEquipo equipo={partido.equipoLocal} config={config} className="pg-logo" />
           <div className="pg-nombre">{partido.equipoLocal.nombre}</div>
           <div className={`pg-pts ${pulsoLocal ? 'pm-pulso' : ''}`}>{partido.ptsLocal}</div>
-          {mostrar(config, 'mostrarFaltas') && <div className="pg-nombre">F {indicadorFaltas(partido.faltasLocal, config?.estiloFaltas)}</div>}
+          {mostrar(config, 'mostrarFaltas') && <div className="pg-nombre">F {indicadorFaltas(partido.faltasPeriodoLocal, config?.estiloFaltas)}</div>}
         </div>
         <div className="pg-reloj">
           {mostrar(config, 'mostrarReloj') ? `${formatearReloj(partido.relojSegundos)} · ` : ''}{etiquetaPeriodo(partido.periodo)}
@@ -23,7 +23,7 @@ export default function Glass({ partido, config }) {
           <LogoEquipo equipo={partido.equipoVisita} config={config} className="pg-logo" />
           <div className="pg-nombre">{partido.equipoVisita.nombre}</div>
           <div className={`pg-pts ${pulsoVisita ? 'pm-pulso' : ''}`}>{partido.ptsVisita}</div>
-          {mostrar(config, 'mostrarFaltas') && <div className="pg-nombre">F {indicadorFaltas(partido.faltasVisita, config?.estiloFaltas)}</div>}
+          {mostrar(config, 'mostrarFaltas') && <div className="pg-nombre">F {indicadorFaltas(partido.faltasPeriodoVisita, config?.estiloFaltas)}</div>}
         </div>
       </div>
       <PatrocinadorBanner patrocinadores={partido.patrocinadores} className="pc-patrocinador" />

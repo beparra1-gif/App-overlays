@@ -23,7 +23,7 @@ export default function Ticker({ partido, config }) {
         {mostrar(config, 'mostrarFaltas') && (
           <>
             <span className="pt-sep">·</span>
-            <span>F {indicadorFaltas(partido.faltasLocal, config?.estiloFaltas)}-{indicadorFaltas(partido.faltasVisita, config?.estiloFaltas)}</span>
+            <span>F {indicadorFaltas(partido.faltasPeriodoLocal, config?.estiloFaltas)}-{indicadorFaltas(partido.faltasPeriodoVisita, config?.estiloFaltas)}</span>
           </>
         )}
         <span className="pt-sep">·</span>

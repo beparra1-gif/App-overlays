@@ -16,7 +16,7 @@ export default function EspnTicker({ partido, config }) {
         <div className="pe-centro">
           <span>{etiquetaPeriodo(partido.periodo)}</span>
           {mostrar(config, 'mostrarReloj') && <span>{formatearReloj(partido.relojSegundos)}</span>}
-          {mostrar(config, 'mostrarFaltas') && <span>F {indicadorFaltas(partido.faltasLocal, config?.estiloFaltas)}-{indicadorFaltas(partido.faltasVisita, config?.estiloFaltas)}</span>}
+          {mostrar(config, 'mostrarFaltas') && <span>F {indicadorFaltas(partido.faltasPeriodoLocal, config?.estiloFaltas)}-{indicadorFaltas(partido.faltasPeriodoVisita, config?.estiloFaltas)}</span>}
         </div>
         <div className="pe-bloque" style={{ borderRight: `6px solid ${partido.equipoVisita.color}` }}>
           <span className={`pe-pts ${pulsoVisita ? 'pm-pulso' : ''}`}>{partido.ptsVisita}</span>
