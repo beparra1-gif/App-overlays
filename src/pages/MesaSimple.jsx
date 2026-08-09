@@ -132,31 +132,37 @@ export default function MesaSimple({ partidoId: partidoIdProp, embebido = false,
         </div>
 
         <div className="ms-centro">
-          {editandoReloj ? (
-            <span className="ms-reloj-edit">
-              <input
-                type="number" inputMode="numeric" min="0" max="99" autoFocus
-                value={minutosRelojEdit}
-                onChange={(e) => setMinutosRelojEdit(e.target.value.replace(/[^0-9]/g, '').slice(0, 2))}
-                onKeyDown={(e) => { if (e.key === 'Enter') confirmarEdicionReloj(); if (e.key === 'Escape') cancelarEdicionReloj(); }}
-                title="Minutos"
-              />
-              :
-              <input
-                type="number" inputMode="numeric" min="0" max="59"
-                value={segundosRelojEdit}
-                onChange={(e) => setSegundosRelojEdit(e.target.value.replace(/[^0-9]/g, '').slice(0, 2))}
-                onKeyDown={(e) => { if (e.key === 'Enter') confirmarEdicionReloj(); if (e.key === 'Escape') cancelarEdicionReloj(); }}
-                title="Segundos"
-              />
-              <button type="button" className="ms-reloj-edit-btn ok" title="Guardar" onClick={confirmarEdicionReloj}>✓</button>
-              <button type="button" className="ms-reloj-edit-btn cancelar" title="Cancelar" onClick={cancelarEdicionReloj}>✕</button>
-            </span>
-          ) : (
-            <span className="ms-reloj" onClick={empezarEdicionReloj} title="Tocar para editar el reloj a mano" style={{ cursor: 'pointer' }}>
-              {formatearReloj(partido.relojSegundos)}
-            </span>
-          )}
+          <div className="ms-reloj-control">
+            <div className="ms-reloj-flechas">
+              <button type="button" className="ms-reloj-flecha" title="Sumar 10 segundos" onClick={() => emitirAccion('RELOJ_AJUSTAR', { segundos: 10 })}>▲</button>
+              <button type="button" className="ms-reloj-flecha" title="Restar 10 segundos" onClick={() => emitirAccion('RELOJ_AJUSTAR', { segundos: -10 })}>▼</button>
+            </div>
+            {editandoReloj ? (
+              <span className="ms-reloj-edit">
+                <input
+                  type="number" inputMode="numeric" min="0" max="99" autoFocus
+                  value={minutosRelojEdit}
+                  onChange={(e) => setMinutosRelojEdit(e.target.value.replace(/[^0-9]/g, '').slice(0, 2))}
+                  onKeyDown={(e) => { if (e.key === 'Enter') confirmarEdicionReloj(); if (e.key === 'Escape') cancelarEdicionReloj(); }}
+                  title="Minutos"
+                />
+                :
+                <input
+                  type="number" inputMode="numeric" min="0" max="59"
+                  value={segundosRelojEdit}
+                  onChange={(e) => setSegundosRelojEdit(e.target.value.replace(/[^0-9]/g, '').slice(0, 2))}
+                  onKeyDown={(e) => { if (e.key === 'Enter') confirmarEdicionReloj(); if (e.key === 'Escape') cancelarEdicionReloj(); }}
+                  title="Segundos"
+                />
+                <button type="button" className="ms-reloj-edit-btn ok" title="Guardar" onClick={confirmarEdicionReloj}>✓</button>
+                <button type="button" className="ms-reloj-edit-btn cancelar" title="Cancelar" onClick={cancelarEdicionReloj}>✕</button>
+              </span>
+            ) : (
+              <button type="button" className="ms-reloj" onClick={empezarEdicionReloj} title="Tocar para editar el reloj a mano">
+                {formatearReloj(partido.relojSegundos)}
+              </button>
+            )}
+          </div>
           <span className="ms-periodo">{etiquetaPeriodo(partido.periodo)}</span>
           <button className="ms-pill" onClick={() => emitirAccion('POSESION_TOGGLE')} title="Cambiar posesión">⇄ Posesión</button>
         </div>

@@ -728,7 +728,37 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
 
             <div className="mv-centro">
               <span className="mv-chip-competicion">Partido en curso</span>
-              <div><span className="mv-reloj-chip">{formatearReloj(partido.relojSegundos)}</span></div>
+              <div className="mv-reloj-control">
+                <div className="mv-reloj-flechas">
+                  <button type="button" className="mv-reloj-flecha" title="Sumar 10 segundos" onClick={() => emitirAccion('RELOJ_AJUSTAR', { segundos: 10 })}>▲</button>
+                  <button type="button" className="mv-reloj-flecha" title="Restar 10 segundos" onClick={() => emitirAccion('RELOJ_AJUSTAR', { segundos: -10 })}>▼</button>
+                </div>
+                {editandoReloj ? (
+                  <span className="mv-reloj-edit">
+                    <input
+                      type="number" inputMode="numeric" min="0" max="99" autoFocus
+                      value={minutosRelojEdit}
+                      onChange={(e) => setMinutosRelojEdit(e.target.value.replace(/[^0-9]/g, '').slice(0, 2))}
+                      onKeyDown={(e) => { if (e.key === 'Enter') confirmarEdicionReloj(); if (e.key === 'Escape') cancelarEdicionReloj(); }}
+                      title="Minutos"
+                    />
+                    :
+                    <input
+                      type="number" inputMode="numeric" min="0" max="59"
+                      value={segundosRelojEdit}
+                      onChange={(e) => setSegundosRelojEdit(e.target.value.replace(/[^0-9]/g, '').slice(0, 2))}
+                      onKeyDown={(e) => { if (e.key === 'Enter') confirmarEdicionReloj(); if (e.key === 'Escape') cancelarEdicionReloj(); }}
+                      title="Segundos"
+                    />
+                    <button type="button" className="mv-pts-edit-btn ok" title="Guardar" onClick={confirmarEdicionReloj}>✓</button>
+                    <button type="button" className="mv-pts-edit-btn cancelar" title="Cancelar" onClick={cancelarEdicionReloj}>✕</button>
+                  </span>
+                ) : (
+                  <button type="button" className="mv-reloj-chip" onClick={empezarEdicionReloj} title="Tocar para editar el reloj a mano">
+                    {formatearReloj(partido.relojSegundos)}
+                  </button>
+                )}
+              </div>
               <h4 className="mv-periodo-label">{etiquetaPeriodo(partido.periodo)}</h4>
               <button className="mv-btn-posesion" onClick={() => emitirAccion('POSESION_TOGGLE')} title="Cambiar posesión">⇄</button>
             </div>
@@ -799,35 +829,7 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
             <div className="mv-zona mv-zona-centro">
               <div className="mv-control-card">
                 <h6>Control de Partido</h6>
-                <div className="mv-control-meta">
-                  {etiquetaPeriodo(partido.periodo)} ·{' '}
-                  {editandoReloj ? (
-                    <span className="mv-reloj-edit">
-                      <input
-                        type="number" inputMode="numeric" min="0" max="99" autoFocus
-                        value={minutosRelojEdit}
-                        onChange={(e) => setMinutosRelojEdit(e.target.value.replace(/[^0-9]/g, '').slice(0, 2))}
-                        onKeyDown={(e) => { if (e.key === 'Enter') confirmarEdicionReloj(); if (e.key === 'Escape') cancelarEdicionReloj(); }}
-                        title="Minutos"
-                      />
-                      :
-                      <input
-                        type="number" inputMode="numeric" min="0" max="59"
-                        value={segundosRelojEdit}
-                        onChange={(e) => setSegundosRelojEdit(e.target.value.replace(/[^0-9]/g, '').slice(0, 2))}
-                        onKeyDown={(e) => { if (e.key === 'Enter') confirmarEdicionReloj(); if (e.key === 'Escape') cancelarEdicionReloj(); }}
-                        title="Segundos"
-                      />
-                      <button type="button" className="mv-pts-edit-btn ok" title="Guardar" onClick={confirmarEdicionReloj}>✓</button>
-                      <button type="button" className="mv-pts-edit-btn cancelar" title="Cancelar" onClick={cancelarEdicionReloj}>✕</button>
-                    </span>
-                  ) : (
-                    <>
-                      {formatearReloj(partido.relojSegundos)}
-                      <button type="button" className="mv-pts-corregir" title="Editar el reloj a mano (minutos y segundos)" onClick={empezarEdicionReloj}>✎</button>
-                    </>
-                  )}
-                </div>
+                <div className="mv-control-meta">{etiquetaPeriodo(partido.periodo)}</div>
                 <div className="mv-control-grid">
                   <div className="mv-control-lado">
                     <button className="mv-pill" onClick={() => emitirAccion('RELOJ_AJUSTAR', { segundos: 60 })}>+1:00</button>

@@ -140,16 +140,15 @@
 .mv-pts-edit-btn.ok { background: var(--mv-verde); color: #06210f; }
 .mv-pts-edit-btn.cancelar { background: rgba(255, 255, 255, .1); color: var(--mv-texto-tenue); }
 
-/* Edición manual del reloj (minutos:segundos) dentro de .mv-control-meta —
-   mismo patrón que la corrección de puntaje (.mv-pts-edit) pero a la escala
-   chica de esa línea de texto (15px), no los 22px pensados para un dígito
-   de marcador grande. */
+/* Edición manual del reloj (minutos:segundos), en .mv-reloj-control junto a
+   las flechas ▲/▼ — mismo patrón que la corrección de puntaje
+   (.mv-pts-edit), a juego con el tamaño más grande del reloj de arriba. */
 .mv-reloj-edit { display: inline-flex; align-items: center; gap: 4px; }
 .mv-reloj-edit input {
-  width: 32px; font-size: 14px; font-family: 'Orbitron', monospace; text-align: center;
-  background: var(--mv-input); border: 1px solid var(--mv-azul); border-radius: 6px; color: #fff; padding: 1px 2px;
+  width: 38px; font-size: 20px; font-family: 'Orbitron', monospace; text-align: center;
+  background: var(--mv-input); border: 1px solid var(--mv-azul); border-radius: 6px; color: #fff; padding: 2px 3px;
 }
-.mv-reloj-edit .mv-pts-edit-btn { width: 20px; height: 20px; font-size: 11px; }
+.mv-reloj-edit .mv-pts-edit-btn { width: 24px; height: 24px; font-size: 12px; }
 
 .mv-equipo-pie { display: flex; justify-content: center; align-items: center; margin-top: 4px; }
 .mv-faltas { font-size: 10px; color: var(--mv-rojo); font-weight: 800; }
@@ -184,10 +183,24 @@
   padding: 3px 8px; color: #cfe7ff; font-size: 9px; font-weight: 800;
   background: rgba(0,122,255,.18); border: 1px solid rgba(0,122,255,.38);
 }
+/* El reloj es ahora el control principal de arriba (antes solo mostraba
+   el número, sin poder tocarlo — la edición vivía más abajo, en "Control
+   de Partido", duplicada) — más grande para leerse cómodo de un vistazo,
+   con flechas ▲/▼ al costado para sumar/restar 10s de a poco (además de
+   poder tocar el número para escribir el minuto:segundo exacto). */
+.mv-reloj-control { display: flex; align-items: center; gap: 6px; margin-top: 4px; }
 .mv-reloj-chip {
-  display: inline-block; margin-top: 4px; font-size: 13px; color: var(--mv-verde); font-weight: 900;
-  background: rgba(52,199,89,.1); padding: 4px 10px; border-radius: 10px; border: 1px solid var(--mv-verde);
+  display: inline-block; font-size: 24px; color: var(--mv-verde); font-weight: 900;
+  font-family: 'Orbitron', monospace; font-variant-numeric: tabular-nums;
+  background: rgba(52,199,89,.1); padding: 4px 14px; border-radius: 10px; border: 1px solid var(--mv-verde);
+  cursor: pointer;
 }
+.mv-reloj-flechas { display: flex; flex-direction: column; gap: 3px; }
+.mv-reloj-flecha {
+  width: 24px; height: 20px; border-radius: 6px; border: 1px solid var(--mv-borde);
+  background: rgba(255,255,255,.06); color: var(--mv-texto-tenue); font-size: 10px; line-height: 1; cursor: pointer;
+}
+.mv-reloj-flecha:hover { color: #fff; background: rgba(255,255,255,.14); }
 .mv-periodo-label { margin: 4px 0 0; color: #fff; font-size: 13px; }
 .mv-centro .mv-btn-posesion { margin-top: 6px; }
 .mv-btn-posesion {

@@ -87,8 +87,24 @@
   font-size: 34px;
   font-weight: 900;
   font-variant-numeric: tabular-nums;
+  background: none;
+  border: none;
+  color: var(--texto);
+  cursor: pointer;
+  padding: 0;
 }
 .ms-periodo { font-size: 12px; font-weight: 800; color: var(--texto-tenue); text-transform: uppercase; }
+
+/* Flechas ▲/▼ para sumar/restar 10s de a poco, al costado del número —
+   complementan poder tocar el reloj para escribir el minuto:segundo
+   exacto (.ms-reloj-edit, más abajo). */
+.ms-reloj-control { display: flex; align-items: center; gap: 8px; }
+.ms-reloj-flechas { display: flex; flex-direction: column; gap: 3px; }
+.ms-reloj-flecha {
+  width: 26px; height: 22px; border-radius: 6px; border: 1px solid var(--borde);
+  background: var(--fondo); color: var(--texto-tenue); font-size: 11px; line-height: 1; cursor: pointer;
+}
+.ms-reloj-flecha:hover { color: var(--texto); background: rgba(128,128,128,.15); }
 
 /* Edición manual del reloj (tocar el número para escribir minutos:segundos
    a mano) — misma familia tipográfica que .ms-reloj, a una escala que
