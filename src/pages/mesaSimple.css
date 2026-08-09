@@ -90,6 +90,18 @@
 }
 .ms-periodo { font-size: 12px; font-weight: 800; color: var(--texto-tenue); text-transform: uppercase; }
 
+/* Edición manual del reloj (tocar el número para escribir minutos:segundos
+   a mano) — misma familia tipográfica que .ms-reloj, a una escala que
+   entre cómoda como par de inputs chicos en vez de un solo número grande. */
+.ms-reloj-edit { display: flex; align-items: center; gap: 4px; font-family: 'Orbitron', monospace; }
+.ms-reloj-edit input {
+  width: 40px; font-size: 20px; font-family: 'Orbitron', monospace; text-align: center;
+  background: var(--fondo); border: 1px solid #0a84ff; border-radius: 8px; color: var(--texto); padding: 2px 4px;
+}
+.ms-reloj-edit-btn { width: 28px; height: 28px; border-radius: 8px; border: none; font-weight: 900; cursor: pointer; flex-shrink: 0; }
+.ms-reloj-edit-btn.ok { background: #34c759; color: #06210f; }
+.ms-reloj-edit-btn.cancelar { background: rgba(128, 128, 128, .2); color: var(--texto-tenue); }
+
 .ms-seccion {
   background: var(--tarjeta);
   border: 1px solid var(--borde);

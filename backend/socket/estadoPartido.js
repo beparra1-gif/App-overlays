@@ -313,21 +313,41 @@ export async function pausarReloj(partido) {
   return resultado.rows[0];
 }
 
-export async function ajustarReloj(partido, deltaSegundos) {
-  const actual = relojActual(partido);
-  const nuevo = Math.max(0, actual + deltaSegundos);
+// Escribe un valor de reloj YA CALCULADO (no un delta) — compartido entre
+// ajustarReloj (actual + delta) y fijarReloj (un valor absoluto tipeado a
+// mano en la Mesa). Si el reloj está corriendo, reloj_referencia_en se
+// reinicia a "ahora" con el nuevo valor como base, para que la cuenta
+// regresiva siga desde ahí sin saltos; si está pausado, solo se guarda el
+// número — el mismo criterio que ya tenía ajustarReloj.
+async function escribirReloj(partido, nuevoValor) {
   if (partido.reloj_corriendo) {
     const resultado = await pool.query(
       `UPDATE partidos SET reloj_segundos = $1, reloj_referencia_en = now(), actualizado_en = now() WHERE id = $2 RETURNING *`,
-      [nuevo, partido.id]
+      [nuevoValor, partido.id]
     );
     return resultado.rows[0];
   }
   const resultado = await pool.query(
     `UPDATE partidos SET reloj_segundos = $1, actualizado_en = now() WHERE id = $2 RETURNING *`,
-    [nuevo, partido.id]
+    [nuevoValor, partido.id]
   );
   return resultado.rows[0];
+}
+
+export async function ajustarReloj(partido, deltaSegundos) {
+  const actual = relojActual(partido);
+  const nuevo = Math.max(0, actual + deltaSegundos);
+  return escribirReloj(partido, nuevo);
+}
+
+// Fija el reloj a un tiempo EXACTO elegido a mano (minutos:segundos
+// tipeados en la Mesa) — a diferencia de ajustarReloj (que suma/resta
+// desde lo que ya había), acá no importa cuánto quedaba antes. El tope de
+// 5999s (~99:59) es solo defensivo, para que un typo no deje el reloj en
+// un valor absurdo.
+export async function fijarReloj(partido, totalSegundos) {
+  const nuevo = Math.max(0, Math.min(5999, Math.floor(totalSegundos)));
+  return escribirReloj(partido, nuevo);
 }
 
 // Elegir el cuarto/prórroga que se está jugando desde una lista (reemplaza

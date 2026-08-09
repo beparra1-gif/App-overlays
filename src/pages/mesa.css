@@ -140,6 +140,17 @@
 .mv-pts-edit-btn.ok { background: var(--mv-verde); color: #06210f; }
 .mv-pts-edit-btn.cancelar { background: rgba(255, 255, 255, .1); color: var(--mv-texto-tenue); }
 
+/* Edición manual del reloj (minutos:segundos) dentro de .mv-control-meta —
+   mismo patrón que la corrección de puntaje (.mv-pts-edit) pero a la escala
+   chica de esa línea de texto (15px), no los 22px pensados para un dígito
+   de marcador grande. */
+.mv-reloj-edit { display: inline-flex; align-items: center; gap: 4px; }
+.mv-reloj-edit input {
+  width: 32px; font-size: 14px; font-family: 'Orbitron', monospace; text-align: center;
+  background: var(--mv-input); border: 1px solid var(--mv-azul); border-radius: 6px; color: #fff; padding: 1px 2px;
+}
+.mv-reloj-edit .mv-pts-edit-btn { width: 20px; height: 20px; font-size: 11px; }
+
 .mv-equipo-pie { display: flex; justify-content: center; align-items: center; margin-top: 4px; }
 .mv-faltas { font-size: 10px; color: var(--mv-rojo); font-weight: 800; }
 

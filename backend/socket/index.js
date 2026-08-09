@@ -17,6 +17,7 @@ import {
   iniciarReloj,
   pausarReloj,
   ajustarReloj,
+  fijarReloj,
   fijarPeriodo,
   reiniciarReloj,
   cambiarEstadoPartido,
@@ -249,6 +250,12 @@ export function registrarSocketPartidos(io) {
             const delta = Number(payload.segundos);
             if (!Number.isFinite(delta)) throw new Error('Ajuste de reloj inválido');
             actualizado = await ajustarReloj(partido, delta);
+            break;
+          }
+          case 'RELOJ_FIJAR': {
+            const totalSegundos = Number(payload.segundos);
+            if (!Number.isFinite(totalSegundos) || totalSegundos < 0) throw new Error('Tiempo de reloj inválido');
+            actualizado = await fijarReloj(partido, totalSegundos);
             break;
           }
           case 'PERIODO_FIJAR': {

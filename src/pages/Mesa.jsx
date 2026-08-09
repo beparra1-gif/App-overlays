@@ -296,6 +296,13 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
   const [copiadoFooter, setCopiadoFooter] = useState(null);
   const [editandoPuntos, setEditandoPuntos] = useState(null);
   const [valorPuntosEdit, setValorPuntosEdit] = useState('');
+  // Edición manual del reloj (minutos:segundos) — antes solo se podía
+  // sumar/restar de a 1:00 completo con los botones +1:00/-1:00, sin forma
+  // de dejarlo en un valor exacto (p. ej. "quedaban 3:27" al reanudar tras
+  // una revisión de jugada).
+  const [editandoReloj, setEditandoReloj] = useState(false);
+  const [minutosRelojEdit, setMinutosRelojEdit] = useState('');
+  const [segundosRelojEdit, setSegundosRelojEdit] = useState('');
   // null | 'local' | 'visita' — cuál equipo tiene abierta la ventana
   // flotante de nómina/quinteto (una por vez, se puede volver a abrir
   // cuando haga falta, p. ej. al empezar cada cuarto).
@@ -429,6 +436,20 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
     setEditandoPuntos(null);
   };
   const cancelarCorreccionPuntos = () => setEditandoPuntos(null);
+
+  const empezarEdicionReloj = () => {
+    const totalActual = partido.relojSegundos;
+    setMinutosRelojEdit(String(Math.floor(totalActual / 60)));
+    setSegundosRelojEdit(String(totalActual % 60).padStart(2, '0'));
+    setEditandoReloj(true);
+  };
+  const confirmarEdicionReloj = () => {
+    const minutos = Math.max(0, Number(minutosRelojEdit) || 0);
+    const segundos = Math.max(0, Math.min(59, Number(segundosRelojEdit) || 0));
+    emitirAccion('RELOJ_FIJAR', { segundos: minutos * 60 + segundos });
+    setEditandoReloj(false);
+  };
+  const cancelarEdicionReloj = () => setEditandoReloj(false);
 
   // Vuelve el marcador/faltas/reloj/estadísticas a cero SIN crear un partido
   // nuevo — el enlace de transmisión (mismo public_token) no cambia, así que
@@ -778,7 +799,35 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
             <div className="mv-zona mv-zona-centro">
               <div className="mv-control-card">
                 <h6>Control de Partido</h6>
-                <div className="mv-control-meta">{etiquetaPeriodo(partido.periodo)} · {formatearReloj(partido.relojSegundos)}</div>
+                <div className="mv-control-meta">
+                  {etiquetaPeriodo(partido.periodo)} ·{' '}
+                  {editandoReloj ? (
+                    <span className="mv-reloj-edit">
+                      <input
+                        type="number" inputMode="numeric" min="0" max="99" autoFocus
+                        value={minutosRelojEdit}
+                        onChange={(e) => setMinutosRelojEdit(e.target.value.replace(/[^0-9]/g, '').slice(0, 2))}
+                        onKeyDown={(e) => { if (e.key === 'Enter') confirmarEdicionReloj(); if (e.key === 'Escape') cancelarEdicionReloj(); }}
+                        title="Minutos"
+                      />
+                      :
+                      <input
+                        type="number" inputMode="numeric" min="0" max="59"
+                        value={segundosRelojEdit}
+                        onChange={(e) => setSegundosRelojEdit(e.target.value.replace(/[^0-9]/g, '').slice(0, 2))}
+                        onKeyDown={(e) => { if (e.key === 'Enter') confirmarEdicionReloj(); if (e.key === 'Escape') cancelarEdicionReloj(); }}
+                        title="Segundos"
+                      />
+                      <button type="button" className="mv-pts-edit-btn ok" title="Guardar" onClick={confirmarEdicionReloj}>✓</button>
+                      <button type="button" className="mv-pts-edit-btn cancelar" title="Cancelar" onClick={cancelarEdicionReloj}>✕</button>
+                    </span>
+                  ) : (
+                    <>
+                      {formatearReloj(partido.relojSegundos)}
+                      <button type="button" className="mv-pts-corregir" title="Editar el reloj a mano (minutos y segundos)" onClick={empezarEdicionReloj}>✎</button>
+                    </>
+                  )}
+                </div>
                 <div className="mv-control-grid">
                   <div className="mv-control-lado">
                     <button className="mv-pill" onClick={() => emitirAccion('RELOJ_AJUSTAR', { segundos: 60 })}>+1:00</button>

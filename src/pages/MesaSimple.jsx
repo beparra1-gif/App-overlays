@@ -21,6 +21,11 @@ export default function MesaSimple({ partidoId: partidoIdProp, embebido = false,
   const [partido, setPartido] = useState(null);
   const [error, setError] = useState('');
   const [enPantallaCompleta, setEnPantallaCompleta] = useState(false);
+  // Edición manual del reloj (minutos:segundos) — mismo mecanismo que Mesa
+  // amplia (RELOJ_FIJAR), solo cambia la presentación acá.
+  const [editandoReloj, setEditandoReloj] = useState(false);
+  const [minutosRelojEdit, setMinutosRelojEdit] = useState('');
+  const [segundosRelojEdit, setSegundosRelojEdit] = useState('');
   const socketRef = useRef(null);
   const wrapRef = useRef(null);
 
@@ -65,6 +70,20 @@ export default function MesaSimple({ partidoId: partidoIdProp, embebido = false,
     if (!socketRef.current || !partido) return;
     socketRef.current.emit('accion', { publicToken: partido.publicToken, tipo, token: getToken(), payload });
   };
+
+  const empezarEdicionReloj = () => {
+    const totalActual = partido.relojSegundos;
+    setMinutosRelojEdit(String(Math.floor(totalActual / 60)));
+    setSegundosRelojEdit(String(totalActual % 60).padStart(2, '0'));
+    setEditandoReloj(true);
+  };
+  const confirmarEdicionReloj = () => {
+    const minutos = Math.max(0, Number(minutosRelojEdit) || 0);
+    const segundos = Math.max(0, Math.min(59, Number(segundosRelojEdit) || 0));
+    emitirAccion('RELOJ_FIJAR', { segundos: minutos * 60 + segundos });
+    setEditandoReloj(false);
+  };
+  const cancelarEdicionReloj = () => setEditandoReloj(false);
 
   const reiniciarPartido = () => {
     if (!window.confirm('¿Reiniciar el partido? Vuelve el marcador, faltas, reloj y estadísticas a cero. El enlace de transmisión no cambia.')) return;
@@ -113,7 +132,31 @@ export default function MesaSimple({ partidoId: partidoIdProp, embebido = false,
         </div>
 
         <div className="ms-centro">
-          <span className="ms-reloj">{formatearReloj(partido.relojSegundos)}</span>
+          {editandoReloj ? (
+            <span className="ms-reloj-edit">
+              <input
+                type="number" inputMode="numeric" min="0" max="99" autoFocus
+                value={minutosRelojEdit}
+                onChange={(e) => setMinutosRelojEdit(e.target.value.replace(/[^0-9]/g, '').slice(0, 2))}
+                onKeyDown={(e) => { if (e.key === 'Enter') confirmarEdicionReloj(); if (e.key === 'Escape') cancelarEdicionReloj(); }}
+                title="Minutos"
+              />
+              :
+              <input
+                type="number" inputMode="numeric" min="0" max="59"
+                value={segundosRelojEdit}
+                onChange={(e) => setSegundosRelojEdit(e.target.value.replace(/[^0-9]/g, '').slice(0, 2))}
+                onKeyDown={(e) => { if (e.key === 'Enter') confirmarEdicionReloj(); if (e.key === 'Escape') cancelarEdicionReloj(); }}
+                title="Segundos"
+              />
+              <button type="button" className="ms-reloj-edit-btn ok" title="Guardar" onClick={confirmarEdicionReloj}>✓</button>
+              <button type="button" className="ms-reloj-edit-btn cancelar" title="Cancelar" onClick={cancelarEdicionReloj}>✕</button>
+            </span>
+          ) : (
+            <span className="ms-reloj" onClick={empezarEdicionReloj} title="Tocar para editar el reloj a mano" style={{ cursor: 'pointer' }}>
+              {formatearReloj(partido.relojSegundos)}
+            </span>
+          )}
           <span className="ms-periodo">{etiquetaPeriodo(partido.periodo)}</span>
           <button className="ms-pill" onClick={() => emitirAccion('POSESION_TOGGLE')} title="Cambiar posesión">⇄ Posesión</button>
         </div>
