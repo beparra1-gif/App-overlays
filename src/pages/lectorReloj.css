@@ -1,0 +1,43 @@
+.lr-pagina { max-width: 640px; margin: 0 auto; }
+.lr-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.lr-header h1 { margin: 0; font-size: 22px; }
+
+.lr-video-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #0a0c12;
+  border-radius: 14px;
+  overflow: hidden;
+  margin: 16px 0;
+  border: 1px solid var(--borde);
+}
+.lr-video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.lr-video-vacio {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  color: var(--texto-tenue); background: rgba(0,0,0,.3);
+}
+
+/* Guía central: acá adentro tiene que quedar encuadrado el reloj físico —
+   mismo rectángulo (proporción) que se recorta de verdad del video antes
+   de mandarlo al OCR (ver GUIA_ANCHO/GUIA_ALTO en LectorReloj.jsx), así lo
+   que el operador ve encuadrado es EXACTAMENTE lo que se está leyendo. */
+.lr-guia {
+  position: absolute;
+  top: 37%; left: 19%; width: 62%; height: 26%;
+  border: 3px dashed #34c759;
+  border-radius: 10px;
+  pointer-events: none;
+  box-shadow: 0 0 0 999px rgba(0,0,0,.35);
+}
+
+.lr-controles { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+
+.lr-lectura { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
+.lr-lectura-item {
+  flex: 1; min-width: 180px; display: flex; flex-direction: column; gap: 4px;
+  background: var(--tarjeta); border: 1px solid var(--borde); border-radius: 12px; padding: 12px 16px;
+}
+.lr-lectura-valor { font-family: 'Orbitron', monospace; font-size: 28px; font-variant-numeric: tabular-nums; color: var(--texto); }
+.lr-lectura-valor.lr-estable { color: #34c759; }
+.lr-lectura-cruda { font-size: 11px; }

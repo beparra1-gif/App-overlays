@@ -599,6 +599,17 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
     setTimeout(() => setCopiadoFooter(null), 2000);
   };
 
+  // El lector de reloj por cámara está pensado para abrirse en OTRO celular
+  // (alguien apunta esa cámara al reloj físico de la cancha mientras vos
+  // seguís con marcador/estadísticas acá) — copiar el enlace es más útil
+  // que un link para abrir en la misma pestaña, ya que hay que mandárselo a
+  // ese otro dispositivo (WhatsApp, etc.).
+  const copiarLinkLectorReloj = () => {
+    navigator.clipboard?.writeText(`${window.location.origin}/mesa/${id}/reloj-camara`);
+    setCopiadoFooter('reloj-camara');
+    setTimeout(() => setCopiadoFooter(null), 2000);
+  };
+
   const escenaMarcadorActual = escenas.find((e) => e.tipo === 'marcador');
 
   const reproducirNomina = (modo) => emitirAccion('NOMINA_REPRODUCIR', { modo, ocultarMarcador });
@@ -631,6 +642,11 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
         <div className={`mv-wrap ${enPantallaCompleta ? 'mv-pantalla-completa' : ''}`} ref={mesaEnVivoRef}>
           <div className="mv-topbar">
             {!embebido && <Link className="mv-pill" to={`/mesa/${id}/simple`}>📋 Mesa simple</Link>}
+            {!embebido && (
+              <button className="mv-pill" onClick={copiarLinkLectorReloj} title="Enlace para abrir en otro celular y leer el reloj físico de la cancha con esa cámara">
+                {copiadoFooter === 'reloj-camara' ? '✓ Enlace copiado' : '📷 Copiar enlace del lector de reloj'}
+              </button>
+            )}
             <button className="mv-pill" onClick={alternarPantallaCompleta}>
               {enPantallaCompleta ? '✕ Salir de Pantalla Completa' : '⛶ Pantalla Completa'}
             </button>
