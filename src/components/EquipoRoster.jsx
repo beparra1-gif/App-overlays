@@ -39,6 +39,17 @@ export default function EquipoRoster({
   permitirEliminar = false,
   onEliminarJugador,
   onJugadorEliminado,
+  // Editar nombre/dorsal de un jugador ya cargado — apagado por defecto,
+  // mismo criterio que permitirEliminar. `onEditarJugador` (opcional):
+  // quién persiste el cambio; por defecto pega contra el backend de
+  // verdad (PUT /jugadores/:id), salvo que el jugador todavía esté
+  // "pendiente" (sin guardar, ver EquipoFicha) — ahí no hay nada que
+  // actualizar en la base, solo se corrige la fila en memoria.
+  // `onJugadorEditado` avisa al padre con el jugador ya actualizado, mismo
+  // patrón que `onJugadorAgregado`/`onJugadorEliminado`.
+  permitirEditar = false,
+  onEditarJugador,
+  onJugadorEditado,
   // Solo lo pasa la Mesa de control (un partido ya en curso, con id real):
   // habilita el checkbox "Solo para este partido" en el form de agregar, y
   // es lo que se manda como `partido_id` si se marca — el backend lo
@@ -68,6 +79,10 @@ export default function EquipoRoster({
   // abriendo.
   const [forzarMasSeleccion, setForzarMasSeleccion] = useState(() => seleccionados.length > maxSeleccion);
   const [error, setError] = useState('');
+  const [editandoId, setEditandoId] = useState(null);
+  const [dorsalEdit, setDorsalEdit] = useState('');
+  const [nombreEdit, setNombreEdit] = useState('');
+  const [guardandoEdicion, setGuardandoEdicion] = useState(false);
 
   const alternar = (jugadorId) => {
     if (!seleccionable) return;
@@ -134,6 +149,39 @@ export default function EquipoRoster({
 
   const alcanzoTopeFiba = roster.length >= MAX_FIBA && !forzarMasDeDoce;
 
+  const iniciarEdicion = (jugador) => {
+    setError('');
+    setEditandoId(jugador.id);
+    setDorsalEdit(jugador.dorsal ?? '');
+    setNombreEdit(jugador.nombre);
+  };
+  const cancelarEdicion = () => setEditandoId(null);
+
+  const guardarEdicion = async (jugador, e) => {
+    e.preventDefault();
+    const nombreLimpio = nombreEdit.trim();
+    if (!nombreLimpio) return setError('Ponele nombre al jugador');
+    setError('');
+    setGuardandoEdicion(true);
+    try {
+      const datos = { nombre: nombreLimpio, dorsal: dorsalEdit === '' ? null : dorsalEdit };
+      // Un jugador "pendiente" (ver EquipoFicha) todavía no existe en la
+      // base — no hay nada que actualizar ahí, solo corregir la fila en
+      // memoria con lo recién tipeado.
+      const actualizado = jugador.pendiente
+        ? { ...jugador, ...datos }
+        : onEditarJugador
+          ? await onEditarJugador(jugador, datos)
+          : (await api.actualizarJugador(jugador.id, datos)).jugador;
+      onJugadorEditado?.(actualizado);
+      setEditandoId(null);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setGuardandoEdicion(false);
+    }
+  };
+
   return (
     <div className="tarjeta">
       <h3>
@@ -149,7 +197,14 @@ export default function EquipoRoster({
       <ul className="lista-seleccion">
         {roster.map((j) => (
           <li key={j.id} style={{ justifyContent: 'space-between' }}>
-            {seleccionable ? (
+            {editandoId === j.id ? (
+              <form className="fila-form" style={{ flex: 1, margin: 0 }} onSubmit={(e) => guardarEdicion(j, e)}>
+                <input placeholder="Dorsal" value={dorsalEdit} onChange={(e) => setDorsalEdit(e.target.value)} style={{ width: 70 }} autoFocus />
+                <input placeholder="Nombre" value={nombreEdit} onChange={(e) => setNombreEdit(e.target.value)} required style={{ flex: 1, minWidth: 100 }} />
+                <button className="btn-secundario btn-chico" type="submit" disabled={guardandoEdicion}>{guardandoEdicion ? '…' : '✓ Guardar'}</button>
+                <button className="btn-link" type="button" onClick={cancelarEdicion}>Cancelar</button>
+              </form>
+            ) : seleccionable ? (
               <label>
                 <input
                   type="checkbox"
@@ -166,8 +221,15 @@ export default function EquipoRoster({
                 {j.temporal && <span className="texto-tenue" style={{ fontSize: 11 }}> (solo este partido)</span>}
               </span>
             )}
-            {permitirEliminar && (
-              <button type="button" className="btn-link" onClick={() => eliminarJugador(j)} title="Sacar de la nómina">✕</button>
+            {editandoId !== j.id && (permitirEditar || permitirEliminar) && (
+              <span style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+                {permitirEditar && (
+                  <button type="button" className="btn-link" onClick={() => iniciarEdicion(j)} title="Editar nombre/número">✏️</button>
+                )}
+                {permitirEliminar && (
+                  <button type="button" className="btn-link" onClick={() => eliminarJugador(j)} title="Sacar de la nómina">✕</button>
+                )}
+              </span>
             )}
           </li>
         ))}

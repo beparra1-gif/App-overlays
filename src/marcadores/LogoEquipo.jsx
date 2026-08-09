@@ -30,5 +30,16 @@ export default function LogoEquipo({ equipo, config, className, contexto = 'marc
   // adentro con relleno invisible a los costados (o arriba/abajo) cuando no
   // era cuadrado; así, cualquier logo queda a la misma altura que el resto
   // sin ese marco vacío.
-  return <img src={equipo.logo_url} alt="" className={className} style={{ height: tam, width: 'auto', maxWidth: tam * 1.8, objectFit: 'contain', opacity: opacidad }} />;
+  // `--logo-opacidad-final`: la nómina anima la entrada de este logo (ver
+  // .nomina-logo en nomina.css) — una animación CSS con `forwards` pisa el
+  // `opacity` inline para siempre una vez que termina, así que el keyframe
+  // necesita conocer la transparencia YA CONFIGURADA (no un 1 fijo) para
+  // no ignorar lo que el usuario eligió en "Transparencia". Sin efecto en
+  // marcador/estadísticas (nada ahí lee esta variable).
+  return (
+    <img
+      src={equipo.logo_url} alt="" className={className}
+      style={{ height: tam, width: 'auto', maxWidth: tam * 1.8, objectFit: 'contain', opacity: opacidad, '--logo-opacidad-final': opacidad }}
+    />
+  );
 }

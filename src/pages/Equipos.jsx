@@ -7,6 +7,14 @@ function PanelJugadores({ equipo, onCerrar }) {
   const [nombre, setNombre] = useState('');
   const [dorsal, setDorsal] = useState('');
   const [error, setError] = useState('');
+  // Edición en línea de una fila ya cargada — antes solo se podía agregar o
+  // borrar; un typo en el nombre o el dorsal obligaba a borrar el jugador
+  // entero y cargarlo de nuevo (perdiendo sus jugadas/estadísticas ya
+  // anotadas si tenía alguna en un partido).
+  const [editandoId, setEditandoId] = useState(null);
+  const [dorsalEdit, setDorsalEdit] = useState('');
+  const [nombreEdit, setNombreEdit] = useState('');
+  const [guardandoEdicion, setGuardandoEdicion] = useState(false);
 
   const cargar = () => api.listarJugadores(equipo.id).then((d) => setJugadores(d.jugadores));
 
@@ -30,6 +38,30 @@ function PanelJugadores({ equipo, onCerrar }) {
     cargar();
   };
 
+  const iniciarEdicion = (j) => {
+    setError('');
+    setEditandoId(j.id);
+    setDorsalEdit(j.dorsal ?? '');
+    setNombreEdit(j.nombre);
+  };
+  const cancelarEdicion = () => setEditandoId(null);
+  const guardarEdicion = async (id, e) => {
+    e.preventDefault();
+    const limpio = nombreEdit.trim();
+    if (!limpio) return setError('Ponele nombre al jugador');
+    setError('');
+    setGuardandoEdicion(true);
+    try {
+      await api.actualizarJugador(id, { nombre: limpio, dorsal: dorsalEdit === '' ? null : dorsalEdit });
+      setEditandoId(null);
+      cargar();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setGuardandoEdicion(false);
+    }
+  };
+
   return (
     <div className="panel-jugadores">
       <div className="panel-jugadores-header">
@@ -45,9 +77,21 @@ function PanelJugadores({ equipo, onCerrar }) {
       <ul className="lista-jugadores">
         {jugadores.map((j) => (
           <li key={j.id}>
-            <span className="dorsal-chip">{j.dorsal ?? '-'}</span>
-            {j.nombre}
-            <button className="btn-link" onClick={() => eliminar(j.id)}>Eliminar</button>
+            {editandoId === j.id ? (
+              <form className="fila-form" style={{ flex: 1, margin: 0 }} onSubmit={(e) => guardarEdicion(j.id, e)}>
+                <input placeholder="Dorsal" value={dorsalEdit} onChange={(e) => setDorsalEdit(e.target.value)} style={{ width: 70 }} autoFocus />
+                <input placeholder="Nombre" value={nombreEdit} onChange={(e) => setNombreEdit(e.target.value)} required style={{ flex: 1, minWidth: 100 }} />
+                <button className="btn-secundario btn-chico" type="submit" disabled={guardandoEdicion}>{guardandoEdicion ? '…' : '✓ Guardar'}</button>
+                <button className="btn-link" type="button" onClick={cancelarEdicion}>Cancelar</button>
+              </form>
+            ) : (
+              <>
+                <span className="dorsal-chip">{j.dorsal ?? '-'}</span>
+                {j.nombre}
+                <button className="btn-link" onClick={() => iniciarEdicion(j)}>Editar</button>
+                <button className="btn-link" onClick={() => eliminar(j.id)}>Eliminar</button>
+              </>
+            )}
           </li>
         ))}
         {jugadores.length === 0 && <li className="texto-tenue">Sin jugadores todavía</li>}

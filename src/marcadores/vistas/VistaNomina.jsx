@@ -76,10 +76,19 @@ export default function VistaNomina({ partido, modo = 'ambos', claveAnimacion = 
   // El delay del "entra deslizando" se achica con listas más largas (plantel
   // completo, hasta 12) para que no tarde años en aparecer el último — antes
   // solo eran 5 (el quinteto), 0.15s por fila alcanzaba.
+  //
+  // Orden de entrada de toda la ficha: título → logo (con su propia
+  // animación, ver .nomina-logo/.nomina-logo-fondo en nomina.css) → recién
+  // ahí la lista de jugadores — antes las filas arrancaban a los 0s, al
+  // mismo tiempo que el título/logo, así que todo aparecía junto en vez de
+  // leerse como una secuencia. Si no hay logo (mostrarLogo apagado), no
+  // tiene sentido hacer esperar a las filas por una animación que no va a
+  // pasar — arrancan apenas termina el título.
+  const retrasoBaseFilas = mostrarLogo ? 0.55 : 0.3;
   const filaJugador = (quintetoIds) => (j, idx) => {
     const enCancha = quintetoIds.includes(j.id);
     return (
-      <div className={`nomina-jugador ${conEstadisticas ? 'con-stats' : ''} ${enCancha ? 'en-cancha' : ''}`} key={j.id} style={{ animationDelay: `${Math.min(idx, 12) * 0.07}s` }}>
+      <div className={`nomina-jugador ${conEstadisticas ? 'con-stats' : ''} ${enCancha ? 'en-cancha' : ''}`} key={j.id} style={{ animationDelay: `${retrasoBaseFilas + Math.min(idx, 12) * 0.07}s` }}>
         <span className="nomina-dorsal">{j.dorsal ?? '-'}</span>
         <span className="nomina-nombre">{j.nombre}</span>
         {enCancha && <span className="nomina-insignia" title="En cancha">★</span>}
@@ -109,7 +118,7 @@ export default function VistaNomina({ partido, modo = 'ambos', claveAnimacion = 
                   toda la lista) — así siempre arranca pegado justo debajo
                   del título, sea cual sea la cantidad de jugadores. */}
               {logoDeFondo && partido.equipoLocal.logo_url && (
-                <img className="nomina-logo-fondo" src={logoFondoSrc(partido.equipoLocal)} alt="" style={{ height: `${altoLogoFondo}vh`, maxWidth: maxAnchoLogoFondo, opacity: opacidadLogo }} />
+                <img className="nomina-logo-fondo" src={logoFondoSrc(partido.equipoLocal)} alt="" style={{ height: `${altoLogoFondo}vh`, maxWidth: maxAnchoLogoFondo, opacity: opacidadLogo, '--logo-opacidad-final': opacidadLogo }} />
               )}
             </div>
             {rosterLocal.map(filaJugador(partido.quintetoLocalIds))}
@@ -121,7 +130,7 @@ export default function VistaNomina({ partido, modo = 'ambos', claveAnimacion = 
               {mostrarLogo && !logoDeFondo && <LogoEquipo equipo={partido.equipoVisita} config={config} className="nomina-logo" contexto="nomina" />}
               <span className="nomina-titulo">{partido.equipoVisita.nombre}</span>
               {logoDeFondo && partido.equipoVisita.logo_url && (
-                <img className="nomina-logo-fondo" src={logoFondoSrc(partido.equipoVisita)} alt="" style={{ height: `${altoLogoFondo}vh`, maxWidth: maxAnchoLogoFondo, opacity: opacidadLogo }} />
+                <img className="nomina-logo-fondo" src={logoFondoSrc(partido.equipoVisita)} alt="" style={{ height: `${altoLogoFondo}vh`, maxWidth: maxAnchoLogoFondo, opacity: opacidadLogo, '--logo-opacidad-final': opacidadLogo }} />
               )}
             </div>
             {rosterVisita.map(filaJugador(partido.quintetoVisitaIds))}

@@ -56,9 +56,23 @@ html:has(.nomina-overlay) {
   border-bottom: 3px solid currentColor;
 }
 
+/* Secuencia de entrada de toda la ficha del equipo: primero el TÍTULO
+   (.nomina-titulo, más abajo), después el LOGO (acá y en .nomina-logo-fondo,
+   con un delay que arranca mientras el título todavía está terminando de
+   entrar) y recién al final la lista de jugadores (.nomina-jugador, el
+   animationDelay de cada fila ya arranca corrido — ver retrasoBaseFilas en
+   VistaNomina.jsx) — así se lee como un solo gesto ordenado en vez de que
+   todo aparezca junto de golpe. */
 .nomina-logo {
   object-fit: contain;
   flex-shrink: 0;
+  opacity: 0;
+  animation: nomina-logo-entrada .4s cubic-bezier(.34, 1.56, .64, 1) .22s forwards;
+}
+@keyframes nomina-logo-entrada {
+  from { opacity: 0; transform: scale(.6); }
+  60% { opacity: var(--logo-opacidad-final, 1); transform: scale(1.08); }
+  to { opacity: var(--logo-opacidad-final, 1); transform: scale(1); }
 }
 
 /* Logo "de fondo" (config.nominaLogoPosicion === 'fondo'): grande, colgado
@@ -86,6 +100,17 @@ html:has(.nomina-overlay) {
   object-fit: contain;
   pointer-events: none;
   z-index: 0;
+  opacity: 0;
+  animation: nomina-logofondo-entrada .55s cubic-bezier(.34, 1.56, .64, 1) .22s forwards;
+}
+/* El `transform` de cada paso SIEMPRE incluye translateX(-50%) — si el
+   keyframe solo animara `scale()`, pisaría el centrado horizontal de la
+   regla de arriba mientras dura la animación (y `forwards` lo dejaría
+   perdido para siempre al terminar). */
+@keyframes nomina-logofondo-entrada {
+  from { opacity: 0; transform: translateX(-50%) scale(.7); }
+  60% { opacity: var(--logo-opacidad-final, 1); transform: translateX(-50%) scale(1.05); }
+  to { opacity: var(--logo-opacidad-final, 1); transform: translateX(-50%) scale(1); }
 }
 
 .nomina-titulo {
@@ -95,6 +120,12 @@ html:has(.nomina-overlay) {
   color: var(--nomina-titulo, inherit);
   font-weight: var(--nomina-titulo-peso, 400);
   font-family: var(--nomina-titulo-fuente, inherit);
+  opacity: 0;
+  animation: nomina-titulo-entrada .3s ease forwards;
+}
+@keyframes nomina-titulo-entrada {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* Grilla fija por fila — mismo ancho de columna (dorsal/nombre/stats) en
