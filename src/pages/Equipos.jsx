@@ -104,17 +104,42 @@ function PanelJugadores({ equipo, onCerrar }) {
   );
 }
 
+// Categoría (Sub-15, Primera, etc.) y rama (femenino/masculino) son datos
+// PROPIOS del equipo — se cargan y se ven acá, en la tarjeta de "Equipos",
+// pero nunca viajan a los selectores de "elegir equipo" que usan la Mesa de
+// control o el reinicio de partido: ahí solo se muestra el nombre (ver
+// SelectorEquipoReinicio en Mesa.jsx y el desplegable de EquipoFicha.jsx).
+function CamposCategoriaRama({ categoria, rama, onCambiarCategoria, onCambiarRama }) {
+  return (
+    <>
+      <input
+        placeholder="Categoría (opcional, ej. Sub-15)"
+        value={categoria}
+        onChange={(e) => onCambiarCategoria(e.target.value)}
+        style={{ maxWidth: 180 }}
+      />
+      <select value={rama} onChange={(e) => onCambiarRama(e.target.value)} style={{ maxWidth: 150 }}>
+        <option value="">Rama (opcional)</option>
+        <option value="femenino">Femenino</option>
+        <option value="masculino">Masculino</option>
+      </select>
+    </>
+  );
+}
+
 function FilaEdicion({ equipo, logos, onLogoSubido, onGuardar, onCancelar }) {
   const [nombre, setNombre] = useState(equipo.nombre);
   const [color, setColor] = useState(equipo.color);
   const [logoUrl, setLogoUrl] = useState(equipo.logo_url || '');
+  const [categoria, setCategoria] = useState(equipo.categoria || '');
+  const [rama, setRama] = useState(equipo.rama || '');
   const [error, setError] = useState('');
 
   const guardar = async (e) => {
     e.preventDefault();
     setError('');
     try {
-      await onGuardar({ nombre: nombre.trim(), color, logo_url: logoUrl || null });
+      await onGuardar({ nombre: nombre.trim(), color, logo_url: logoUrl || null, categoria: categoria.trim() || null, rama: rama || null });
     } catch (err) {
       setError(err.message);
     }
@@ -126,6 +151,7 @@ function FilaEdicion({ equipo, logos, onLogoSubido, onGuardar, onCancelar }) {
       <input value={nombre} onChange={(e) => setNombre(e.target.value)} required />
       <input type="color" value={color} onChange={(e) => setColor(e.target.value)} />
       <SelectorLogo logos={logos} value={logoUrl} onChange={setLogoUrl} onLogoSubido={onLogoSubido} />
+      <CamposCategoriaRama categoria={categoria} rama={rama} onCambiarCategoria={setCategoria} onCambiarRama={setRama} />
       <button className="btn-primario" type="submit">Guardar</button>
       <button className="btn-secundario" type="button" onClick={onCancelar}>Cancelar</button>
     </form>
@@ -138,6 +164,8 @@ export default function Equipos() {
   const [nombre, setNombre] = useState('');
   const [color, setColor] = useState('#0a84ff');
   const [logoUrl, setLogoUrl] = useState('');
+  const [categoria, setCategoria] = useState('');
+  const [rama, setRama] = useState('');
   const [error, setError] = useState('');
   const [exito, setExito] = useState('');
   const [equipoAbierto, setEquipoAbierto] = useState(null);
@@ -159,9 +187,11 @@ export default function Equipos() {
     e.preventDefault();
     setError('');
     try {
-      await api.crearEquipo({ nombre, color, logo_url: logoUrl || null });
+      await api.crearEquipo({ nombre, color, logo_url: logoUrl || null, categoria: categoria.trim() || null, rama: rama || null });
       setNombre('');
       setLogoUrl('');
+      setCategoria('');
+      setRama('');
       cargar();
       avisar('Equipo creado ✓');
     } catch (err) {
@@ -221,6 +251,7 @@ export default function Equipos() {
         <input placeholder="Nombre del equipo" value={nombre} onChange={(e) => setNombre(e.target.value)} required />
         <input type="color" value={color} onChange={(e) => setColor(e.target.value)} />
         <SelectorLogo logos={logos} value={logoUrl} onChange={setLogoUrl} onLogoSubido={agregarLogoALista} />
+        <CamposCategoriaRama categoria={categoria} rama={rama} onCambiarCategoria={setCategoria} onCambiarRama={setRama} />
         <button className="btn-primario" type="submit">Crear equipo</button>
       </form>
       {logos.length === 0 && (
@@ -249,6 +280,11 @@ export default function Equipos() {
                   <strong>{eq.nombre}</strong>
                   {eq.en_uso && <span className="chip-en-uso" title="Es el equipo que un diseño tiene puesto ahora mismo">🟢 En uso</span>}
                 </div>
+                {(eq.categoria || eq.rama) && (
+                  <p className="texto-tenue" style={{ fontSize: 12, margin: '2px 0' }}>
+                    {[eq.categoria, eq.rama === 'femenino' ? 'Femenino' : eq.rama === 'masculino' ? 'Masculino' : null].filter(Boolean).join(' · ')}
+                  </p>
+                )}
                 <p className="texto-tenue">{eq.jugadores_count} jugador(es)</p>
                 <div className="tarjeta-acciones">
                   <button className="btn-secundario" onClick={() => setEquipoAbierto(eq)}>Nómina</button>

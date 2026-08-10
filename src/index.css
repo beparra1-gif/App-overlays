@@ -464,6 +464,24 @@ select {
   transform: translateX(18px);
 }
 
+/* 3 opciones para la nómina de un equipo (EquipoFicha.jsx): sin nómina,
+   nueva (entrada manual) o copiada de otro equipo ya guardado — mismo
+   patrón simple de radios que .mv-reinicio-modos en Mesa.jsx. */
+.modo-nomina-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--borde);
+  font-size: 14px;
+}
+.modo-nomina-selector label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
 .seccion-titulo {
   font-size: 13px;
   text-transform: uppercase;

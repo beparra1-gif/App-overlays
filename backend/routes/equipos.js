@@ -74,19 +74,31 @@ router.get('/', async (req, res) => {
 // jugador (POST /:id/jugadores) — cualquiera de las dos es una señal clara
 // de que ya no es descartable.
 const NOMBRES_PLACEHOLDER = ['Local', 'Visita'];
+// Categoría (Sub-15, Primera, etc.) es texto libre — cada liga/club usa las
+// suyas. Rama sí queda cerrada a estas dos: son datos propios del equipo,
+// solo para organizarlo en "Equipos" (chips en la tarjeta) — nunca se
+// muestran en los selectores de "elegir equipo" de la Mesa/reinicio, que
+// siguen mostrando nada más que el nombre.
+const RAMAS_VALIDAS = ['femenino', 'masculino'];
+const limpiarRama = (valor) => {
+  const r = String(valor || '').trim().toLowerCase();
+  return RAMAS_VALIDAS.includes(r) ? r : null;
+};
 
 router.post('/', async (req, res) => {
   const nombre = String(req.body?.nombre || '').trim();
   const color = String(req.body?.color || '#0a84ff').trim();
   const logoUrl = req.body?.logo_url ? String(req.body.logo_url).trim() : null;
+  const categoria = req.body?.categoria ? String(req.body.categoria).trim() : null;
+  const rama = limpiarRama(req.body?.rama);
   const borrador = NOMBRES_PLACEHOLDER.includes(nombre);
 
   if (!nombre) return res.status(400).json({ error: 'El nombre del equipo es obligatorio' });
 
   try {
     const resultado = await pool.query(
-      'INSERT INTO equipos (user_id, nombre, color, logo_url, borrador) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-      [req.userId, nombre, color, logoUrl, borrador]
+      'INSERT INTO equipos (user_id, nombre, color, logo_url, categoria, rama, borrador) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
+      [req.userId, nombre, color, logoUrl, categoria, rama, borrador]
     );
     res.status(201).json({ equipo: resultado.rows[0] });
   } catch (error) {
@@ -102,6 +114,8 @@ router.put('/:id', async (req, res) => {
   const nombre = req.body?.nombre != null ? String(req.body.nombre).trim() : equipo.nombre;
   const color = req.body?.color != null ? String(req.body.color).trim() : equipo.color;
   const logoUrl = req.body?.logo_url != null ? String(req.body.logo_url).trim() : equipo.logo_url;
+  const categoria = req.body?.categoria != null ? (String(req.body.categoria).trim() || null) : equipo.categoria;
+  const rama = req.body?.rama !== undefined ? limpiarRama(req.body.rama) : equipo.rama;
   // Un borrador deja de serlo apenas se le pone un nombre de verdad —
   // nunca al revés: si ya era un equipo real, renombrarlo a "Local" (poco
   // probable, pero por las dudas) no lo vuelve a esconder.
@@ -109,8 +123,8 @@ router.put('/:id', async (req, res) => {
 
   try {
     const resultado = await pool.query(
-      'UPDATE equipos SET nombre = $1, color = $2, logo_url = $3, borrador = $4 WHERE id = $5 RETURNING *',
-      [nombre, color, logoUrl, borrador, equipo.id]
+      'UPDATE equipos SET nombre = $1, color = $2, logo_url = $3, categoria = $4, rama = $5, borrador = $6 WHERE id = $7 RETURNING *',
+      [nombre, color, logoUrl, categoria, rama, borrador, equipo.id]
     );
     await avisarPartidosDelEquipo(req.app.locals.io, equipo.id, req.userId);
     res.json({ equipo: resultado.rows[0] });
@@ -226,6 +240,38 @@ router.post('/:id/jugadores', async (req, res) => {
   } catch (error) {
     console.error('[POST /equipos/:id/jugadores]', error);
     res.status(500).json({ error: 'No se pudo agregar el jugador' });
+  }
+});
+
+// "Elegir nómina de los equipos guardados" (EquipoFicha.jsx): en vez de
+// tipear de nuevo un plantel que ya está cargado en OTRO equipo guardado
+// (el mismo club, una categoría/rama distinta, por ejemplo), se copia acá
+// — cada jugador copiado queda como una fila NUEVA, propia de este equipo
+// (mismo dorsal/nombre, sin arrastrar jugadas ni estadísticas del equipo de
+// origen), así que de acá en más se edita totalmente independiente del
+// plantel que se copió.
+router.post('/:id/copiar-nomina', async (req, res) => {
+  const equipo = await equipoDelUsuario(req.params.id, req.userId);
+  if (!equipo) return res.status(404).json({ error: 'Equipo no encontrado' });
+
+  const origen = await equipoDelUsuario(req.body?.desde_equipo_id, req.userId);
+  if (!origen) return res.status(404).json({ error: 'El equipo de origen no existe' });
+  if (origen.id === equipo.id) return res.status(400).json({ error: 'Elegí un equipo distinto para copiar la nómina' });
+
+  try {
+    const resultado = await pool.query(
+      `INSERT INTO jugadores (equipo_id, dorsal, nombre, temporal, partido_id)
+       SELECT $1, dorsal, nombre, false, NULL FROM jugadores WHERE equipo_id = $2 AND temporal = false
+       RETURNING *`,
+      [equipo.id, origen.id]
+    );
+    if (resultado.rows.length === 0) return res.status(400).json({ error: 'Ese equipo todavía no tiene nómina cargada' });
+    if (equipo.borrador) await pool.query('UPDATE equipos SET borrador = false WHERE id = $1', [equipo.id]);
+    await avisarRosterActualizado(req.app.locals.io, equipo.id, req.userId);
+    res.status(201).json({ jugadores: resultado.rows });
+  } catch (error) {
+    console.error('[POST /equipos/:id/copiar-nomina]', error);
+    res.status(500).json({ error: 'No se pudo copiar la nómina' });
   }
 });
 

@@ -90,10 +90,17 @@ const EquipoFicha = forwardRef(function EquipoFicha({ titulo, valorDefecto, equi
   const [roster, setRoster] = useState([]);
   const [error, setError] = useState('');
   const [resolviendo, setResolviendo] = useState(false);
-  // Nómina apagada por defecto (juego rápido sin plantel) — se prende sola
-  // si el equipo elegido ya tenía jugadores cargados de antes, o a mano con
-  // el toggle de abajo.
-  const [nominaHabilitada, setNominaHabilitada] = useState(false);
+  // 'sin' | 'nueva' | 'existente' — apagado ('sin') por defecto (juego
+  // rápido sin plantel); pasa solo a 'nueva' si el equipo elegido ya tenía
+  // jugadores cargados de antes, o a mano con los radios de abajo.
+  const [modoNomina, setModoNomina] = useState('sin');
+  // Equipo elegido como origen para "Elegir de los equipos guardados" — se
+  // copia su plantel (dorsal+nombre) al equipo de ESTA ficha, ver
+  // copiarNominaDesde. Útil cuando ya existe un plantel cargado en otro
+  // equipo guardado (otra categoría/rama del mismo club, por ejemplo) y no
+  // tiene sentido volver a tipearlo.
+  const [equipoOrigenId, setEquipoOrigenId] = useState('');
+  const [copiandoNomina, setCopiandoNomina] = useState(false);
   // "Solo para este partido": los jugadores que se agreguen MIENTRAS este
   // toggle esté prendido no se guardan en el plantel reusable del equipo —
   // quedan atados nada más a este partido puntual (invitados, suplentes de
@@ -110,7 +117,7 @@ const EquipoFicha = forwardRef(function EquipoFicha({ titulo, valorDefecto, equi
     api.listarJugadores(equipoActivo.id).then(({ jugadores }) => {
       if (!activo) return;
       setRoster(jugadores);
-      if (jugadores.length > 0) setNominaHabilitada(true);
+      if (jugadores.length > 0) setModoNomina('nueva');
     }).catch(() => {});
     return () => { activo = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -216,7 +223,7 @@ const EquipoFicha = forwardRef(function EquipoFicha({ titulo, valorDefecto, equi
     setEquipoId(equipo.id);
     const { jugadores } = await api.listarJugadores(equipo.id);
     setRoster(jugadores);
-    if (jugadores.length > 0) setNominaHabilitada(true);
+    if (jugadores.length > 0) setModoNomina('nueva');
     return equipo;
   };
 
@@ -298,17 +305,41 @@ const EquipoFicha = forwardRef(function EquipoFicha({ titulo, valorDefecto, equi
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nombre, color, logoUrl]);
 
-  // Activar el toggle es lo único que hace falta para cargar nómina — si el
-  // equipo todavía no estaba resuelto (no hubo match ni se creó), se resuelve
-  // acá mismo, sin un botón de "confirmar" aparte.
-  const alternarNomina = async (activar) => {
-    if (!activar) return setNominaHabilitada(false);
-    if (equipoId) return setNominaHabilitada(true);
+  // Elegir "Nómina nueva" o "Elegir de los equipos guardados" es lo único
+  // que hace falta para que el equipo quede resuelto — si todavía no había
+  // match ni se había creado, se resuelve acá mismo, sin un botón de
+  // "confirmar" aparte. "Sin nómina" no necesita ningún equipo resuelto
+  // (podés dejarlo así hasta último momento).
+  const elegirModoNomina = async (modo) => {
+    setError('');
+    setModoNomina(modo);
+    if (modo === 'sin' || equipoId) return;
     try {
-      const equipo = await resolver();
-      if (equipo) setNominaHabilitada(true);
+      await resolver();
     } catch {
       // el error ya quedó mostrado por resolver()
+    }
+  };
+
+  // "Elegir de los equipos guardados": copia el plantel completo (dorsal +
+  // nombre) del equipo elegido AL equipo de esta ficha — queda como nómina
+  // propia, editable independiente de ahí en más (ver POST /equipos/:id/
+  // copiar-nomina). Útil cuando el plantel ya está cargado en otro equipo
+  // guardado (otra categoría/rama del mismo club, por ejemplo) y no tiene
+  // sentido volver a tipearlo a mano.
+  const copiarNominaDesde = async (idTexto) => {
+    const id = Number(idTexto);
+    if (!id || !equipoId) return;
+    setEquipoOrigenId(idTexto);
+    setError('');
+    setCopiandoNomina(true);
+    try {
+      const { jugadores } = await api.copiarNomina(equipoId, id);
+      setRoster((r) => [...r, ...jugadores]);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setCopiandoNomina(false);
     }
   };
 
@@ -369,12 +400,37 @@ const EquipoFicha = forwardRef(function EquipoFicha({ titulo, valorDefecto, equi
 
       <SelectorColorEquipo color={color} onChange={setColor} />
 
-      <label className="toggle-switch">
-        <input type="checkbox" checked={nominaHabilitada} disabled={resolviendo} onChange={(e) => alternarNomina(e.target.checked)} />
-        {resolviendo ? 'Preparando…' : 'Agregar nómina (número y nombre de cada jugador/a)'}
-      </label>
+      <div className="modo-nomina-selector">
+        <label>
+          <input type="radio" name={`nomina-${titulo}`} checked={modoNomina === 'sin'} disabled={resolviendo} onChange={() => elegirModoNomina('sin')} />
+          Sin nómina
+        </label>
+        <label>
+          <input type="radio" name={`nomina-${titulo}`} checked={modoNomina === 'nueva'} disabled={resolviendo} onChange={() => elegirModoNomina('nueva')} />
+          {resolviendo && modoNomina === 'nueva' ? 'Preparando…' : 'Nómina nueva'}
+        </label>
+        <label>
+          <input type="radio" name={`nomina-${titulo}`} checked={modoNomina === 'existente'} disabled={resolviendo} onChange={() => elegirModoNomina('existente')} />
+          Elegir de los equipos guardados
+        </label>
+      </div>
 
-      {nominaHabilitada && equipoId && (
+      {modoNomina === 'existente' && equipoId && (
+        <label>
+          Copiar la nómina de
+          <select value={equipoOrigenId} disabled={copiandoNomina} onChange={(e) => copiarNominaDesde(e.target.value)}>
+            <option value="">— Elegí un equipo guardado —</option>
+            {equipos
+              .filter((e) => e.id !== equipoId && e.jugadores_count > 0)
+              .sort((a, b) => a.nombre.localeCompare(b.nombre))
+              .map((e) => (
+                <option key={e.id} value={e.id}>{e.nombre} ({e.jugadores_count})</option>
+              ))}
+          </select>
+        </label>
+      )}
+
+      {modoNomina !== 'sin' && equipoId && (
         <>
           <label className="toggle-switch" title="Los jugadores que agregues mientras esto está prendido no quedan en el plantel del equipo — se usan una sola vez, solo para este partido.">
             <input type="checkbox" checked={nominaTemporal} onChange={(e) => setNominaTemporal(e.target.checked)} />
