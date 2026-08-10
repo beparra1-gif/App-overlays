@@ -834,11 +834,15 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
         <div className={`mv-wrap ${enPantallaCompleta ? 'mv-pantalla-completa' : ''}`} ref={mesaEnVivoRef}>
           <div className="mv-topbar">
             {!embebido && <Link className="mv-pill" to={`/mesa/${id}/simple`}>📋 Mesa simple</Link>}
-            {!embebido && (
-              <button className="mv-pill" onClick={copiarLinkLectorReloj} title="Enlace fijo para tu cuenta — abrilo en otro celular para leer el reloj físico con esa cámara. Sirve para cualquier partido que tengas en curso, no hace falta copiar uno nuevo cada vez.">
-                {copiadoFooter === 'reloj-camara' ? '✓ Enlace copiado' : '📷 Copiar enlace del lector de reloj'}
-              </button>
-            )}
+            {/* A diferencia de "Mesa simple" (navega a otra página, no tiene
+                sentido ofrecerlo adentro de "Juego en vivo" embebido), este
+                botón solo copia al portapapeles — no saca de la pantalla, así
+                que se muestra siempre, embebido o no. Antes quedaba escondido
+                acá también, y "Juego en vivo" (el lugar donde de verdad se
+                arma cada partido) es justo donde más falta hace. */}
+            <button className="mv-pill" onClick={copiarLinkLectorReloj} title="Enlace fijo para tu cuenta — abrilo en otro celular para leer el reloj físico con esa cámara. Sirve para cualquier partido que tengas en curso, no hace falta copiar uno nuevo cada vez.">
+              {copiadoFooter === 'reloj-camara' ? '✓ Enlace copiado' : '📷 Copiar enlace del lector de reloj'}
+            </button>
             <button className="mv-pill" onClick={alternarPantallaCompleta}>
               {enPantallaCompleta ? '✕ Salir de Pantalla Completa' : '⛶ Pantalla Completa'}
             </button>
