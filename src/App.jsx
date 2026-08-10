@@ -45,6 +45,11 @@ export default function App() {
                   <Route path="/partidos" element={<ProtectedRoute><Partidos /></ProtectedRoute>} />
                   <Route path="/mesa/:id" element={<ProtectedRoute><Mesa /></ProtectedRoute>} />
                   <Route path="/mesa/:id/simple" element={<ProtectedRoute><MesaSimple /></ProtectedRoute>} />
+                  {/* Enlace fijo por usuario (sin id de partido) — se resuelve solo al
+                      partido "en_curso" más reciente, así sirve siempre con
+                      cualquier marcador que el usuario tenga abierto, sin tener
+                      que copiar un enlace nuevo cada vez que arranca otro juego. */}
+                  <Route path="/mesa/reloj-camara" element={<ProtectedRoute><Suspense fallback={<div className="pagina">Cargando…</div>}><LectorReloj /></Suspense></ProtectedRoute>} />
                   <Route path="/mesa/:id/reloj-camara" element={<ProtectedRoute><Suspense fallback={<div className="pagina">Cargando…</div>}><LectorReloj /></Suspense></ProtectedRoute>} />
                   <Route path="/publicidad" element={<ProtectedRoute><Publicidad /></ProtectedRoute>} />
                   <Route path="/logos" element={<ProtectedRoute><Logos /></ProtectedRoute>} />

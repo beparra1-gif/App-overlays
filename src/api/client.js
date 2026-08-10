@@ -82,6 +82,7 @@ export const api = {
   listarPartidos: () => solicitud('/partidos'),
   crearPartido: (payload) => solicitud('/partidos', { method: 'POST', body: payload }),
   obtenerPartido: (id) => solicitud(`/partidos/${id}`),
+  obtenerPartidoActivo: () => solicitud('/partidos/activo'),
   actualizarQuintetos: (id, payload) => solicitud(`/partidos/${id}/quintetos`, { method: 'PUT', body: payload }),
   eliminarPartido: (id) => solicitud(`/partidos/${id}`, { method: 'DELETE' }),
 

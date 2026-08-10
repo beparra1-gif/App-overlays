@@ -177,6 +177,29 @@ router.post('/', async (req, res) => {
   }
 });
 
+// El lector de reloj por cámara pasó de tener un enlace POR PARTIDO (había
+// que copiar uno nuevo cada vez que arrancaba otro juego) a uno solo, FIJO,
+// por usuario — apenas se abre, hay que saber a QUÉ partido está mandando
+// los RELOJ_INICIAR/PAUSAR/FIJAR sin que venga un id en la URL. Acá se
+// resuelve: el partido "en_curso" más reciente del usuario logueado (si
+// tiene varios abiertos a la vez, el que se tocó último es casi siempre el
+// que está jugando de verdad ahora mismo). Registrada ANTES de GET /:id
+// para que Express no confunda "activo" con un id de partido.
+router.get('/activo', async (req, res) => {
+  try {
+    const resultado = await pool.query(
+      `SELECT * FROM partidos WHERE user_id = $1 AND estado = 'en_curso' ORDER BY actualizado_en DESC LIMIT 1`,
+      [req.userId]
+    );
+    const partido = resultado.rows[0];
+    if (!partido) return res.status(404).json({ error: 'No hay ningún partido en curso ahora mismo' });
+    res.json({ partido: await construirEstado(partido) });
+  } catch (error) {
+    console.error('[GET /partidos/activo]', error);
+    res.status(500).json({ error: 'No se pudo obtener el partido activo' });
+  }
+});
+
 router.get('/:id', async (req, res) => {
   const partido = await partidoDelUsuario(req.params.id, req.userId);
   if (!partido) return res.status(404).json({ error: 'Partido no encontrado' });

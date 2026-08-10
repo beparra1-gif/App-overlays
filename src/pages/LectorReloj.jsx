@@ -33,6 +33,24 @@ const formatearReloj = (totalSegundos = 0) => {
 const GUIA_ANCHO = 0.62;
 const GUIA_ALTO = 0.26;
 
+// Ventana de lecturas recientes (crudas, una por ciclo de cámara, ~1.2s
+// entre cada una) usada para adivinar si el reloj FÍSICO está corriendo o
+// pausado — no alcanza con comparar solo las últimas dos (un cuenta-regresivo
+// real puede quedar "plano" por un instante si la lectura cae justo entre
+// dos segundos). 'corriendo': la ventana bajó en conjunto (más nueva < más
+// vieja). 'pausado': las últimas 3 salieron EXACTAMENTE iguales — pedir las
+// 3 iguales (no solo 2) evita que un solo cuadro repetido por casualidad
+// dispare una pausa falsa. Cualquier otra combinación (ruido, un salto raro
+// del OCR) se deja como estaba antes en vez de arriesgar una decisión.
+const VENTANA_TENDENCIA = 4;
+function detectarTendencia(ventana, tendenciaPrevia) {
+  if (ventana.length < 3) return 'desconocida';
+  const ultimasTres = ventana.slice(-3);
+  if (ultimasTres.every((v) => v === ultimasTres[0])) return 'pausado';
+  if (ventana[ventana.length - 1] < ventana[0]) return 'corriendo';
+  return tendenciaPrevia;
+}
+
 export default function LectorReloj() {
   const { id } = useParams();
   const [partido, setPartido] = useState(null);
@@ -43,6 +61,12 @@ export default function LectorReloj() {
   const [autoAplicar, setAutoAplicar] = useState(false);
   const [ultimoAplicado, setUltimoAplicado] = useState(null);
   const [relojActual, setRelojActual] = useState(null);
+  const [relojCorriendo, setRelojCorriendo] = useState(false);
+  // 'desconocida' | 'corriendo' | 'pausado' — lo que el lector CREE que está
+  // haciendo el reloj físico ahora mismo, mirado en la ventana de lecturas
+  // recientes (ver detectarTendencia). Se muestra en pantalla y, con
+  // "Aplicar automático" prendido, también dispara RELOJ_INICIAR/PAUSAR.
+  const [tendencia, setTendencia] = useState('desconocida');
 
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -51,19 +75,39 @@ export default function LectorReloj() {
   const streamRef = useRef(null);
   const activoRef = useRef(false);
   const lecturasRecientesRef = useRef([]);
+  // `loopLectura` arranca UNA vez (al prender la cámara) y sigue llamando a
+  // la MISMA `capturarYLeer` mientras la cámara esté activa — leer
+  // `autoAplicar`/`ultimoAplicado`/`relojCorriendo` directo del estado ahí
+  // adentro los dejaba "congelados" en el valor que tenían en ese momento
+  // (tocar el toggle DESPUÉS de prender la cámara no tenía efecto hasta
+  // apagarla y prenderla de nuevo). Estas refs se mantienen al día con cada
+  // useEffect de abajo, así el loop siempre lee el valor real vigente.
+  const autoAplicarRef = useRef(autoAplicar);
+  const ultimoAplicadoRef = useRef(ultimoAplicado);
+  const relojCorriendoRef = useRef(relojCorriendo);
+  useEffect(() => { autoAplicarRef.current = autoAplicar; }, [autoAplicar]);
+  useEffect(() => { ultimoAplicadoRef.current = ultimoAplicado; }, [ultimoAplicado]);
+  useEffect(() => { relojCorriendoRef.current = relojCorriendo; }, [relojCorriendo]);
 
+  // Con `id` en la URL (enlace viejo, por partido) se pide ESE partido
+  // puntual — sin `id` (enlace nuevo, fijo por usuario, ver /mesa/reloj-camara
+  // en App.jsx) se resuelve solo al partido "en_curso" más reciente de la
+  // cuenta, así el mismo enlace sirve para cualquier marcador que el usuario
+  // tenga abierto en ese momento, sin tener que copiar uno nuevo cada vez.
   useEffect(() => {
     let activo = true;
-    api.obtenerPartido(id).then((d) => { if (activo) setPartido(d.partido); }).catch((err) => setError(err.message));
+    const pedido = id ? api.obtenerPartido(id) : api.obtenerPartidoActivo();
+    pedido.then((d) => { if (activo) setPartido(d.partido); }).catch((err) => activo && setError(err.message));
     const socket = crearSocket();
     socketRef.current = socket;
-    socket.on('estado', (e) => setRelojActual(e.relojSegundos));
+    socket.on('estado', (e) => { setRelojActual(e.relojSegundos); setRelojCorriendo(e.relojCorriendo); });
     return () => { activo = false; socket.disconnect(); };
   }, [id]);
 
   useEffect(() => {
     if (!partido) return;
     setRelojActual(partido.relojSegundos);
+    setRelojCorriendo(partido.relojCorriendo);
     socketRef.current?.emit('unirse_mesa', { publicToken: partido.publicToken });
   }, [partido]);
 
@@ -123,18 +167,32 @@ export default function LectorReloj() {
         return;
       }
 
+      lecturasRecientesRef.current = [...lecturasRecientesRef.current, totalSegundos].slice(-VENTANA_TENDENCIA);
+      const ventana = lecturasRecientesRef.current;
+
       // Dos lecturas SEGUIDAS que coincidan (o difieran como mucho 1s, ya
       // que el reloj real pudo haber bajado justo entre una lectura y la
       // siguiente) antes de confiar en el valor — un solo frame raro no
       // alcanza para tocar el reloj oficial del partido.
-      lecturasRecientesRef.current = [...lecturasRecientesRef.current, totalSegundos].slice(-2);
-      const [previa, actual] = lecturasRecientesRef.current;
-      const esEstable = lecturasRecientesRef.current.length === 2 && Math.abs(previa - actual) <= 1;
+      const [previa, actual] = ventana.slice(-2);
+      const esEstable = ventana.length >= 2 && Math.abs(previa - actual) <= 1;
       setEstable(esEstable);
 
-      if (esEstable && autoAplicar && actual !== ultimoAplicado) {
+      // Corriendo/pausado: mira la ventana entera (más lecturas que el
+      // chequeo de "estable" de arriba) para no confundirse con un instante
+      // sin cambio de segundo. Ver detectarTendencia.
+      const nuevaTendencia = detectarTendencia(ventana, tendencia);
+      setTendencia(nuevaTendencia);
+
+      const auto = autoAplicarRef.current;
+      if (auto && esEstable && actual !== ultimoAplicadoRef.current) {
         emitirAccion('RELOJ_FIJAR', { segundos: actual });
         setUltimoAplicado(actual);
+      }
+      if (auto && nuevaTendencia === 'corriendo' && !relojCorriendoRef.current) {
+        emitirAccion('RELOJ_INICIAR');
+      } else if (auto && nuevaTendencia === 'pausado' && relojCorriendoRef.current) {
+        emitirAccion('RELOJ_PAUSAR');
       }
     } catch {
       // Frame ilegible (fuera de foco, mano tapando, etc.) — se reintenta
@@ -199,7 +257,7 @@ export default function LectorReloj() {
     <div className="pagina lr-pagina">
       <div className="lr-header">
         <h1>📷 Lector de reloj por cámara</h1>
-        <Link className="btn-secundario" to={`/mesa/${id}`}>← Volver a la Mesa</Link>
+        <Link className="btn-secundario" to={`/mesa/${partido.id}`}>← Volver a la Mesa</Link>
       </div>
       <p className="texto-tenue">
         {partido.equipoLocal.nombre} vs {partido.equipoVisita.nombre} — apuntá esta cámara al reloj físico de la
@@ -228,7 +286,7 @@ export default function LectorReloj() {
           </button>
         )}
         <label className="toggle-switch">
-          <span>Aplicar automático (sin confirmar cada vez)</span>
+          <span>Aplicar automático (valor, y arrancar/pausar solo)</span>
           <input type="checkbox" checked={autoAplicar} onChange={(e) => setAutoAplicar(e.target.checked)} />
         </label>
       </div>
@@ -237,12 +295,20 @@ export default function LectorReloj() {
         <div className="lr-lectura-item">
           <span className="texto-tenue">Reloj del partido ahora</span>
           <strong className="lr-lectura-valor">{formatearReloj(relojActual)}</strong>
+          <span className={`lr-chip-estado ${relojCorriendo ? 'corriendo' : 'pausado'}`}>
+            {relojCorriendo ? '▶ corriendo' : '⏸ pausado'}
+          </span>
         </div>
         <div className="lr-lectura-item">
           <span className="texto-tenue">Última lectura de la cámara</span>
           <strong className={`lr-lectura-valor ${estable ? 'lr-estable' : ''}`}>
             {ultimaLectura?.totalSegundos != null ? formatearReloj(ultimaLectura.totalSegundos) : '— sin leer —'}
           </strong>
+          {estadoCamara === 'activa' && (
+            <span className={`lr-chip-estado ${tendencia}`}>
+              {tendencia === 'corriendo' ? '▶ el reloj físico corre' : tendencia === 'pausado' ? '⏸ el reloj físico está parado' : '… detectando'}
+            </span>
+          )}
           {ultimaLectura && <span className="texto-tenue lr-lectura-cruda">texto crudo: "{ultimaLectura.texto || '(vacío)'}"</span>}
         </div>
       </div>

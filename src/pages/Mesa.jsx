@@ -790,9 +790,14 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
   // (alguien apunta esa cámara al reloj físico de la cancha mientras vos
   // seguís con marcador/estadísticas acá) — copiar el enlace es más útil
   // que un link para abrir en la misma pestaña, ya que hay que mandárselo a
-  // ese otro dispositivo (WhatsApp, etc.).
+  // ese otro dispositivo (WhatsApp, etc.). Enlace FIJO por usuario (sin el
+  // id de este partido en la URL) — se resuelve solo al partido en curso más
+  // reciente de la cuenta (ver GET /partidos/activo), así sirve igual para
+  // cualquier otro marcador que se arranque después, sin copiar uno nuevo
+  // cada vez. El segundo celular igual necesita estar logueado con la misma
+  // cuenta (la ruta va protegida, como el resto de la Mesa).
   const copiarLinkLectorReloj = () => {
-    navigator.clipboard?.writeText(`${window.location.origin}/mesa/${id}/reloj-camara`);
+    navigator.clipboard?.writeText(`${window.location.origin}/mesa/reloj-camara`);
     setCopiadoFooter('reloj-camara');
     setTimeout(() => setCopiadoFooter(null), 2000);
   };
@@ -830,7 +835,7 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
           <div className="mv-topbar">
             {!embebido && <Link className="mv-pill" to={`/mesa/${id}/simple`}>📋 Mesa simple</Link>}
             {!embebido && (
-              <button className="mv-pill" onClick={copiarLinkLectorReloj} title="Enlace para abrir en otro celular y leer el reloj físico de la cancha con esa cámara">
+              <button className="mv-pill" onClick={copiarLinkLectorReloj} title="Enlace fijo para tu cuenta — abrilo en otro celular para leer el reloj físico con esa cámara. Sirve para cualquier partido que tengas en curso, no hace falta copiar uno nuevo cada vez.">
                 {copiadoFooter === 'reloj-camara' ? '✓ Enlace copiado' : '📷 Copiar enlace del lector de reloj'}
               </button>
             )}
