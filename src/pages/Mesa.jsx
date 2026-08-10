@@ -139,6 +139,118 @@ function ModalRoster({ onCerrar, children }) {
   );
 }
 
+// Para UN lado del partido (Local o Visita), elige entre las 3 opciones que
+// pidió el usuario al reiniciar: seguir con la misma nómina de siempre,
+// pasar a otro equipo YA GUARDADO (con su propia nómina completa), o
+// arrancar una nómina NUEVA (equipo recién creado, sin jugadores todavía —
+// se cargan después con "+ Nómina" en la Mesa, dorsal solo incluido). Solo
+// resuelve la ELECCIÓN vía `onCambio`; quien la usa (ModalReiniciar) es
+// quien de verdad crea el equipo nuevo recién al confirmar, no en cada tecla.
+function SelectorEquipoReinicio({ titulo, equipoActual, equipos, onCambio }) {
+  const [modo, setModo] = useState('actual');
+  const [equipoElegidoId, setEquipoElegidoId] = useState('');
+  const [nombreNuevo, setNombreNuevo] = useState('');
+
+  useEffect(() => {
+    if (modo === 'actual') onCambio({ tipo: 'actual' });
+    else if (modo === 'existente') onCambio(equipoElegidoId ? { tipo: 'existente', id: Number(equipoElegidoId) } : null);
+    else onCambio(nombreNuevo.trim() ? { tipo: 'nuevo', nombre: nombreNuevo.trim() } : null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [modo, equipoElegidoId, nombreNuevo]);
+
+  const otrosEquipos = [...equipos]
+    .filter((e) => e.id !== equipoActual?.id)
+    .sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+  return (
+    <div className="mv-reinicio-lado">
+      <p className="mv-reinicio-titulo">{titulo} <span className="texto-tenue">— hoy: {equipoActual?.nombre}</span></p>
+      <div className="mv-reinicio-modos">
+        <label><input type="radio" name={`reinicio-${titulo}`} checked={modo === 'actual'} onChange={() => setModo('actual')} /> Mantener nómina actual</label>
+        <label><input type="radio" name={`reinicio-${titulo}`} checked={modo === 'existente'} onChange={() => setModo('existente')} /> Nómina existente</label>
+        <label><input type="radio" name={`reinicio-${titulo}`} checked={modo === 'nuevo'} onChange={() => setModo('nuevo')} /> Nómina nueva</label>
+      </div>
+      {modo === 'existente' && (
+        otrosEquipos.length > 0 ? (
+          <select value={equipoElegidoId} onChange={(e) => setEquipoElegidoId(e.target.value)}>
+            <option value="">— Elegí un equipo guardado —</option>
+            {otrosEquipos.map((e) => (
+              <option key={e.id} value={e.id}>{e.nombre}{e.jugadores_count ? ` (${e.jugadores_count})` : ''}</option>
+            ))}
+          </select>
+        ) : (
+          <p className="texto-tenue" style={{ fontSize: 12 }}>Todavía no hay otro equipo guardado.</p>
+        )
+      )}
+      {modo === 'nuevo' && (
+        <input placeholder="Nombre del equipo nuevo" value={nombreNuevo} onChange={(e) => setNombreNuevo(e.target.value)} />
+      )}
+    </div>
+  );
+}
+
+// "↺ Reiniciar Partido" ya no era solo "volver a 0-0 con los mismos dos
+// equipos" — el usuario pidió poder elegir, para cada lado, entre nómina
+// nueva o una ya guardada (ver SelectorEquipoReinicio). Este modal junta las
+// dos elecciones y, recién al confirmar, resuelve cada una a un equipo_id
+// real (creando el equipo nuevo si hacía falta) antes de emitir
+// PARTIDO_REINICIAR — así un click en "Cancelar" no deja equipos vacíos
+// creados de más.
+function ModalReiniciar({ partido, equipos, onCerrar, onConfirmar }) {
+  const [eleccionLocal, setEleccionLocal] = useState({ tipo: 'actual' });
+  const [eleccionVisita, setEleccionVisita] = useState({ tipo: 'actual' });
+  const [enviando, setEnviando] = useState(false);
+  const [error, setError] = useState('');
+
+  const resolverLado = async (eleccion, actual) => {
+    if (eleccion.tipo === 'actual') return actual.id;
+    if (eleccion.tipo === 'existente') return eleccion.id;
+    const { equipo } = await api.crearEquipo({ nombre: eleccion.nombre, color: '#0a84ff' });
+    return equipo.id;
+  };
+
+  const confirmar = async () => {
+    if (!eleccionLocal || !eleccionVisita) return;
+    setError('');
+    setEnviando(true);
+    try {
+      const [equipoLocalId, equipoVisitaId] = await Promise.all([
+        resolverLado(eleccionLocal, partido.equipoLocal),
+        resolverLado(eleccionVisita, partido.equipoVisita),
+      ]);
+      if (equipoLocalId === equipoVisitaId) {
+        setError('Local y Visita no pueden terminar siendo el mismo equipo');
+        return;
+      }
+      onConfirmar({ equipoLocalId, equipoVisitaId });
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setEnviando(false);
+    }
+  };
+
+  return (
+    <div className="modal-fondo" onClick={onCerrar}>
+      <div className="modal-caja" onClick={(e) => e.stopPropagation()}>
+        <h3>↺ Reiniciar partido</h3>
+        <p className="texto-tenue" style={{ marginTop: -8, fontSize: 13 }}>
+          Vuelve el marcador, faltas, reloj y estadísticas a cero — el enlace de transmisión no cambia.
+        </p>
+        {error && <p className="mensaje-error">{error}</p>}
+        <SelectorEquipoReinicio titulo="Local" equipoActual={partido.equipoLocal} equipos={equipos} onCambio={setEleccionLocal} />
+        <SelectorEquipoReinicio titulo="Visita" equipoActual={partido.equipoVisita} equipos={equipos} onCambio={setEleccionVisita} />
+        <div className="fila-form" style={{ marginTop: 14 }}>
+          <button className="btn-secundario" onClick={onCerrar} disabled={enviando}>Cancelar</button>
+          <button className="btn-primario" onClick={confirmar} disabled={enviando || !eleccionLocal || !eleccionVisita}>
+            {enviando ? 'Reiniciando…' : '↺ Reiniciar partido'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function contrasteTexto(hex) {
   const limpio = String(hex || '').replace('#', '');
   if (!/^[0-9A-Fa-f]{6}$/.test(limpio)) return '#fff';
@@ -288,6 +400,13 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
   // guarda en la base (como nomina_pulso/stats_pulso, es un estado en vivo,
   // no una regla del partido) — se emite por socket a quien esté mirando.
   const [marcadorOculto, setMarcadorOculto] = useState(false);
+  // "Entretiempo" / "Minuto solicitado": null o { texto, equipo }. Mismo
+  // criterio que marcadorOculto (control en vivo, no se guarda en la base) —
+  // mientras esté activo, la escena pública tapa el marcador y muestra un
+  // cartel de su mismo tamaño con este texto (ver AlertaMarcador.jsx). Los
+  // dos botones comparten este único estado porque solo puede haber UN
+  // cartel en pantalla a la vez.
+  const [alertaMarcador, setAlertaMarcador] = useState(null);
   const [mostrarGestionEscenas, setMostrarGestionEscenas] = useState(false);
   const [escenas, setEscenas] = useState([]);
   const [disenos, setDisenos] = useState([]);
@@ -309,6 +428,12 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
   const [modalNomina, setModalNomina] = useState(null);
   const [modalQuinteto, setModalQuinteto] = useState(null);
   const [modalConvocados, setModalConvocados] = useState(null);
+  // Modal de "↺ Reiniciar Partido" — pide, para Local y Visita, si se
+  // mantiene la misma nómina, se elige otro equipo guardado, o se arranca
+  // una nómina nueva. `equiposGuardados` se pide recién al abrir el modal
+  // (no hace falta antes: la Mesa no usa la lista de equipos para nada más).
+  const [modalReiniciar, setModalReiniciar] = useState(false);
+  const [equiposGuardados, setEquiposGuardados] = useState([]);
   const [detalleJugadores, setDetalleJugadores] = useState(false);
   // Al disparar Nómina/Estadísticas: si se tapa el marcador base mientras
   // esa capa está en pantalla, o se lo deja visible debajo (por defecto).
@@ -319,6 +444,18 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
   const socketRef = useRef(null);
   const mesaEnVivoRef = useRef(null);
   const escenaMarcadorTokenRef = useRef(null);
+  // A qué equipo apunta CADA lado ahora mismo — hace falta como ref (no
+  // alcanza con leer `partido` en el closure de los listeners de abajo,
+  // armados una sola vez al montar) para dos cosas: 1) saber cuándo
+  // "Reiniciar Partido" cambió de equipo (ver el 'estado' de abajo) y
+  // recién ahí volver a pedir la nómina completa del equipo NUEVO —  antes
+  // el roster mostrado quedaba con el plantel del equipo VIEJO mezclado con
+  // lo que se agregara después; 2) que 'roster_actualizado' (ver
+  // avisarRosterActualizado en el backend) siga comparando contra el
+  // equipo correcto después de ese cambio, no contra el que había al abrir
+  // la Mesa.
+  const equipoLocalIdRef = useRef(null);
+  const equipoVisitaIdRef = useRef(null);
 
   const cargarEscenas = () => {
     api.listarEscenas(id).then((d) => setEscenas(d.escenas));
@@ -364,6 +501,18 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
     emitirAccion('MARCADOR_VISIBILIDAD', { oculto: nuevoOculto });
   };
 
+  // Un solo disparador para "Entretiempo" y "Minuto solicitado" (local o
+  // visita): si ya está mostrando ESTE mismo cartel, lo apaga (toggle); si
+  // está apagado o mostrando otro, lo prende con el texto/equipo pedido —
+  // así tocar "Minuto solicitado" de Visita mientras se ve el de Local lo
+  // reemplaza en vez de apilarse (solo hay un cartel a la vez).
+  const dispararAlertaMarcador = (texto, equipo = null) => {
+    const mismaAlerta = alertaMarcador?.texto === texto && alertaMarcador?.equipo === equipo;
+    const nueva = mismaAlerta ? null : { texto, equipo };
+    setAlertaMarcador(nueva);
+    emitirAccion('MARCADOR_ALERTA', { texto: nueva?.texto || null, equipo: nueva?.equipo || null });
+  };
+
   const finalizarPartido = () => {
     if (!window.confirm('¿Finalizar el partido? Podés reiniciarlo después si hace falta jugar otro con el mismo enlace.')) return;
     emitirAccion('ESTADO_PARTIDO', { estado: 'finalizado' });
@@ -381,12 +530,41 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
       if (!activo) return;
       setRosterLocalCompleto(local.jugadores);
       setRosterVisitaCompleto(visita.jugadores);
+      equipoLocalIdRef.current = d.partido.equipoLocal.id;
+      equipoVisitaIdRef.current = d.partido.equipoVisita.id;
       cargarEscenas();
 
       const socket = crearSocket();
       socketRef.current = socket;
       socket.on('connect', () => socket.emit('unirse_mesa', { publicToken: d.partido.publicToken }));
-      socket.on('estado', (estado) => setPartido(estado));
+      socket.on('estado', (estado) => {
+        setPartido(estado);
+        // "Reiniciar Partido" pudo haber cambiado a QUÉ equipo apunta este
+        // lado (ver ModalReiniciar) — el roster ya cargado es del equipo
+        // VIEJO, así que hay que pedir de nuevo, entero, el del equipo
+        // NUEVO. Sin este chequeo, quedaba mostrando el plantel de antes
+        // (mezclado con lo que se agregara después) en vez del plantel
+        // real del equipo que ahora está jugando.
+        if (estado.equipoLocal.id !== equipoLocalIdRef.current) {
+          equipoLocalIdRef.current = estado.equipoLocal.id;
+          api.listarJugadores(estado.equipoLocal.id).then((r) => activo && setRosterLocalCompleto(r.jugadores));
+        }
+        if (estado.equipoVisita.id !== equipoVisitaIdRef.current) {
+          equipoVisitaIdRef.current = estado.equipoVisita.id;
+          api.listarJugadores(estado.equipoVisita.id).then((r) => activo && setRosterVisitaCompleto(r.jugadores));
+        }
+      });
+      // El plantel de un equipo se puede tocar desde OTRO lado (la página
+      // "Equipos", en otra pestaña) mientras esta Mesa sigue abierta — sin
+      // esto, un jugador agregado/editado/borrado ahí no aparecía acá hasta
+      // recargar la página entera (rosterLocalCompleto/Visita solo se
+      // pedían una vez, al entrar). Compara contra los refs (no contra
+      // `d.partido`, que quedó fijo en el momento de montar) para seguir
+      // funcionando bien después de un cambio de equipo por reinicio.
+      socket.on('roster_actualizado', ({ equipoId, jugadores }) => {
+        if (equipoId === equipoLocalIdRef.current) setRosterLocalCompleto(jugadores);
+        else if (equipoId === equipoVisitaIdRef.current) setRosterVisitaCompleto(jugadores);
+      });
       socket.on('jugada', (jugada) => setJugadas((prev) => [jugada, ...prev].slice(0, 30)));
       socket.on('error_marcador', (payload) => setError(payload.error));
       // Cuántas fuentes (OBS u otro navegador) están mirando el enlace del
@@ -454,10 +632,19 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
   // Vuelve el marcador/faltas/reloj/estadísticas a cero SIN crear un partido
   // nuevo — el enlace de transmisión (mismo public_token) no cambia, así que
   // sirve para arrancar otro juego reusando el mismo enlace ya cargado en OBS.
-  const reiniciarPartido = () => {
-    if (!window.confirm('¿Reiniciar el partido? Vuelve el marcador, faltas, reloj y estadísticas a cero. El enlace de transmisión no cambia.')) return;
-    emitirAccion('PARTIDO_REINICIAR');
+  // Antes reiniciaba directo con los mismos dos equipos, sin ofrecer nada
+  // más — ahora abre un modal que, para cada lado, deja elegir entre seguir
+  // con la misma nómina, pasar a otro equipo YA GUARDADO, o arrancar una
+  // nómina NUEVA (ver ModalReiniciar/SelectorEquipoReinicio más abajo).
+  const abrirModalReiniciar = () => {
+    api.listarEquipos().then((d) => setEquiposGuardados(d.equipos)).catch(() => setEquiposGuardados([]));
+    setModalReiniciar(true);
+  };
+
+  const confirmarReiniciar = (cambiosEquipos) => {
+    emitirAccion('PARTIDO_REINICIAR', cambiosEquipos);
     setJugadas([]);
+    setModalReiniciar(false);
   };
 
   // En cuanto alguien en cancha llega a 5 faltas (o se descalifica por
@@ -653,6 +840,13 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
             <button className={`mv-pill ${!marcadorOculto ? 'activa' : 'mv-pill-alerta'}`} onClick={alternarVisibilidadMarcador}>
               {marcadorOculto ? '🚫 Marcador Oculto' : '🟢 Marcador Visible'}
             </button>
+            <button
+              className={`mv-pill ${alertaMarcador?.texto === 'ENTRETIEMPO' ? 'mv-pill-alerta' : ''}`}
+              title="Oculta el marcador y muestra un cartel de ENTRETIEMPO del mismo tamaño, hasta volver a tocar el botón"
+              onClick={() => dispararAlertaMarcador('ENTRETIEMPO')}
+            >
+              {alertaMarcador?.texto === 'ENTRETIEMPO' ? '🚫 Quitar Entretiempo' : '⏸ Entretiempo'}
+            </button>
             {escenaMarcadorActual && (
               <button className="mv-pill" onClick={() => copiarLinkFooter(escenaMarcadorActual.public_token)}>
                 {copiadoFooter === escenaMarcadorActual.public_token ? '✓ Enlace copiado' : '🔗 Copiar enlace del marcador'}
@@ -671,7 +865,7 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
               </span>
             )}
             <span className="mv-topbar-separador" />
-            <button className="mv-pill" title="Vuelve el marcador a 0-0 para empezar otro partido — el enlace de OBS no cambia" onClick={reiniciarPartido}>↺ Reiniciar Partido</button>
+            <button className="mv-pill" title="Vuelve el marcador a 0-0 para empezar otro partido — el enlace de OBS no cambia" onClick={abrirModalReiniciar}>↺ Reiniciar Partido</button>
             <button className="mv-pill mv-pill-peligro" title="El enlace de OBS sigue funcionando después de finalizar" onClick={finalizarPartido}>⏹ Finalizar Partido</button>
           </div>
 
@@ -747,6 +941,14 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
               </div>
               <div className="mv-equipo-pie">
                 <span className="mv-faltas">F: {partido.faltasPeriodoLocal}</span>
+                <button
+                  type="button"
+                  className={`mv-min-btn ${alertaMarcador?.texto === 'MINUTO SOLICITADO' && alertaMarcador?.equipo === 'local' ? 'activo' : ''}`}
+                  title="Oculta el marcador y muestra un cartel de MINUTO SOLICITADO (Local) del mismo tamaño, hasta volver a tocar el botón"
+                  onClick={() => dispararAlertaMarcador('MINUTO SOLICITADO', 'local')}
+                >
+                  ⏱ Minuto solicitado
+                </button>
               </div>
             </div>
 
@@ -806,6 +1008,14 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
                 <BotonTimeout restantes={partido.timeoutsVisita} destacado={destacarTimeoutVisita} onClick={() => emitirAccion('TIMEOUT', { equipo: 'visita' })} />
               </div>
               <div className="mv-equipo-pie">
+                <button
+                  type="button"
+                  className={`mv-min-btn ${alertaMarcador?.texto === 'MINUTO SOLICITADO' && alertaMarcador?.equipo === 'visita' ? 'activo' : ''}`}
+                  title="Oculta el marcador y muestra un cartel de MINUTO SOLICITADO (Visita) del mismo tamaño, hasta volver a tocar el botón"
+                  onClick={() => dispararAlertaMarcador('MINUTO SOLICITADO', 'visita')}
+                >
+                  ⏱ Minuto solicitado
+                </button>
                 <span className="mv-faltas">F: {partido.faltasPeriodoVisita}</span>
               </div>
             </div>
@@ -866,7 +1076,7 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
                   )}
                   <div className="mv-control-lado">
                     <select
-                      className="mv-select"
+                      className="mv-select mv-select-periodo"
                       value={partido.periodo}
                       onChange={(e) => emitirAccion('PERIODO_FIJAR', { periodo: Number(e.target.value) })}
                       title="Elegir el cuarto/prórroga que se está jugando"
@@ -971,7 +1181,7 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
       {partido.estado === 'finalizado' && (
         <div className="pagina-centrada">
           <p>Este partido ya finalizó. Marcador final: {partido.ptsLocal} - {partido.ptsVisita}</p>
-          <button className="btn-secundario" onClick={reiniciarPartido}>🔄 Reiniciar partido (mismo enlace)</button>
+          <button className="btn-secundario" onClick={abrirModalReiniciar}>🔄 Reiniciar partido (mismo enlace)</button>
         </div>
       )}
 
@@ -1066,6 +1276,15 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
             Dejar a todos convocados
           </button>
         </ModalRoster>
+      )}
+
+      {modalReiniciar && (
+        <ModalReiniciar
+          partido={partido}
+          equipos={equiposGuardados}
+          onCerrar={() => setModalReiniciar(false)}
+          onConfirmar={confirmarReiniciar}
+        />
       )}
     </div>
   );

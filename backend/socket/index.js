@@ -155,6 +155,20 @@ export function registrarSocketPartidos(io) {
           return;
         }
 
+        // "Entretiempo" / "Minuto solicitado": mismo criterio que
+        // MARCADOR_VISIBILIDAD (control en vivo de la transmisión, no una
+        // regla de juego, no se guarda en la base) pero en vez de solo
+        // ocultar el marcador, reemplaza lo que se ve por un cartel del
+        // mismo tamaño de la caja del marcador. `texto` vacío/null apaga la
+        // alerta y deja ver el marcador de nuevo.
+        if (tipo === 'MARCADOR_ALERTA') {
+          io.to(roomPartido(publicToken)).emit('marcador_alerta', {
+            texto: payload.texto ? String(payload.texto).slice(0, 40) : null,
+            equipo: EQUIPOS_VALIDOS.includes(payload.equipo) ? payload.equipo : null,
+          });
+          return;
+        }
+
         // Igual que NOMINA_REPRODUCIR: no toca el estado del partido, solo le
         // avisa a quien esté mirando la escena que muestre estadísticas un
         // rato — así queda "a demanda" (se dispara cuando hace falta) en vez
@@ -274,7 +288,7 @@ export function registrarSocketPartidos(io) {
             actualizado = await cambiarEstadoPartido(partido, payload.estado);
             break;
           case 'PARTIDO_REINICIAR':
-            actualizado = await reiniciarPartido(partido);
+            actualizado = await reiniciarPartido(partido, payload);
             partidosConRelojActivo.delete(actualizado.id);
             break;
           case 'QUINTETO_ACTUALIZAR': {

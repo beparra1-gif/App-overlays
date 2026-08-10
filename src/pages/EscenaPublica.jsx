@@ -6,12 +6,20 @@ import VistaMarcador from '../marcadores/vistas/VistaMarcador';
 import VistaNomina from '../marcadores/vistas/VistaNomina';
 import VistaEstadisticas from '../marcadores/vistas/VistaEstadisticas';
 import VistaAnuncios from '../marcadores/vistas/VistaAnuncios';
+import AlertaMarcador from '../marcadores/vistas/AlertaMarcador';
 import ErrorBoundary from '../components/ErrorBoundary';
 import { useCajaMarcador } from '../marcadores/utils';
 
 // El payload que viaja por socket (stats_pulso) trae solo lo mínimo; acá se
 // arma la config completa que espera VistaEstadisticas para cada uno de los
 // 3 modos disparables desde la Mesa.
+// Misma referencia estable que CONFIG_VACIA en VistaMarcador.jsx — evita
+// pasarles a los hijos (VistaNomina/VistaEstadisticas/VistaAnuncios/
+// AlertaMarcador) un objeto `{}` nuevo en cada render cuando el diseño
+// todavía no está cargado, que podría disparar el mismo loop de render si
+// alguno lo usara en una dependencia de efecto.
+const CONFIG_VACIA = {};
+
 function configEstadisticas(stats) {
   if (stats.modo === 'jugador') return { modo: 'jugador', jugadorId: stats.jugadorId };
   if (stats.modo === 'ambos') return { modo: 'ambos', detalle: stats.detalle, puntosPorPeriodo: stats.puntosPorPeriodo };
@@ -28,6 +36,12 @@ export default function EscenaPublica() {
   // Interruptor manual desde la Mesa (independiente de Nómina/Estadísticas)
   // — se queda así hasta que alguien lo vuelva a prender, sin temporizador.
   const [marcadorOculto, setMarcadorOculto] = useState(false);
+  // "Entretiempo" / "Minuto solicitado", disparados desde la Mesa — igual
+  // que marcadorOculto, no tiene temporizador propio: queda así hasta que
+  // desde la Mesa se apague (texto null). Mientras haya texto, el marcador
+  // real queda oculto detrás (ver ocultarMarcadorAhora, más abajo) y este
+  // cartel ocupa exactamente su lugar.
+  const [alertaMarcador, setAlertaMarcador] = useState(null);
 
   // Medida real de la caja del marcador, para que Anuncios pueda apilarse
   // sin pisar el título cuando los dos están activos (ver
@@ -76,6 +90,7 @@ export default function EscenaPublica() {
     socket.on('diseno_actualizado', (disenoNuevo) => activo && setDatos((prev) => (prev ? { ...prev, diseno: disenoNuevo } : prev)));
     socket.on('nomina_pulso', ({ modo, ocultarMarcador }) => activo && setNomina({ modo, ocultarMarcador, ts: Date.now() }));
     socket.on('marcador_visibilidad', ({ oculto }) => activo && setMarcadorOculto(!!oculto));
+    socket.on('marcador_alerta', ({ texto, equipo }) => activo && setAlertaMarcador(texto ? { texto, equipo } : null));
     socket.on('jugada', (jugada) => activo && setJugadas((prev) => [jugada, ...prev].slice(0, 5)));
     socket.on('stats_pulso', (payload) => activo && setStats({ ...payload, ts: Date.now() }));
     socket.on('error_marcador', (payload) => activo && setError(payload.error));
@@ -138,7 +153,7 @@ export default function EscenaPublica() {
       // Anuncios (se activan solos con cada jugada) — cada una según lo que
       // ese diseño tenga habilitado en Personalizar diseño — así alcanza con
       // un solo enlace en OBS en vez de cuatro fuentes.
-      const cfg = datos.diseno?.config || {};
+      const cfg = datos.diseno?.config || CONFIG_VACIA;
       const plantillaId = datos.diseno?.plantilla_base;
       // Al disparar nómina/estadísticas desde la Mesa, el que dispara elige
       // (checkbox "Ocultar el marcador mientras se muestra") si el marcador
@@ -147,7 +162,7 @@ export default function EscenaPublica() {
       // interruptor manual (`marcadorOculto`, botón "Marcador Visible/
       // Oculto" en la Mesa) — cualquiera de los tres motivos alcanza para
       // tapar el marcador.
-      const ocultarMarcadorAhora = Boolean((nomina && nomina.ocultarMarcador) || (stats && stats.ocultarMarcador) || marcadorOculto);
+      const ocultarMarcadorAhora = Boolean((nomina && nomina.ocultarMarcador) || (stats && stats.ocultarMarcador) || marcadorOculto || alertaMarcador);
       // Modo "reemplazar el título por el anuncio" (Personalizar diseño →
       // Anuncios → Cómo convive con el título): mientras hay un aviso en
       // pantalla, el título se apaga del todo y el aviso ocupa exactamente
@@ -163,6 +178,25 @@ export default function EscenaPublica() {
           <ErrorBoundary>
             <VistaMarcador partido={datos.partido} diseno={datos.diseno} oculto={ocultarMarcadorAhora} suprimirTitulo={suprimirTitulo} />
           </ErrorBoundary>
+          {alertaMarcador && (
+            <ErrorBoundary>
+              <AlertaMarcador
+                texto={alertaMarcador.texto}
+                equipo={alertaMarcador.equipo}
+                subtitulo={
+                  alertaMarcador.equipo === 'local'
+                    ? datos.partido.equipoLocal?.nombre
+                    : alertaMarcador.equipo === 'visita'
+                      ? datos.partido.equipoVisita?.nombre
+                      : null
+                }
+                caja={caja}
+                config={cfg}
+                colorLocal={datos.partido.equipoLocal?.color}
+                colorVisita={datos.partido.equipoVisita?.color}
+              />
+            </ErrorBoundary>
+          )}
           {cfg.mostrarNomina && nomina && (
             <ErrorBoundary>
               <VistaNomina key={nomina.ts} partido={datos.partido} modo={nomina.modo} claveAnimacion={nomina.ts} config={cfg} plantillaId={plantillaId} saliendo={nomina.saliendo} />

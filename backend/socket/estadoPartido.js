@@ -538,11 +538,20 @@ export async function archivarPartido(partido) {
 // (el botón "↺ Reiniciar Partido" de la Mesa, que nunca cambia de equipos)
 // el comportamiento es EXACTAMENTE el de antes: se relee todo de `partido`.
 export async function reiniciarPartido(partido, cambios = {}) {
+  const cambiaEquipos = cambios.equipoLocalId || cambios.equipoVisitaId;
+  const equipoLocalId = cambios.equipoLocalId ? Number(cambios.equipoLocalId) : partido.equipo_local_id;
+  const equipoVisitaId = cambios.equipoVisitaId ? Number(cambios.equipoVisitaId) : partido.equipo_visita_id;
+  if (cambiaEquipos) {
+    // Evita que un payload manipulado (viaja por socket, no por el REST ya
+    // validado de POST /partidos) le pegue a este partido un equipo de OTRO
+    // usuario — el token solo autoriza a controlar ESTE partido, no dice
+    // nada sobre a quién pertenecen los equipos que se le quieran asignar.
+    const propios = await pool.query('SELECT id FROM equipos WHERE id = ANY($1::int[]) AND user_id = $2', [[equipoLocalId, equipoVisitaId], partido.user_id]);
+    if (propios.rows.length !== 2) throw new Error('Alguno de los equipos no existe');
+  }
   await archivarPartido(partido);
   const minutosPeriodo = Number(cambios.minutosPeriodo) || Number(partido.minutos_periodo) || 10;
   const minutosProrroga = Number(cambios.minutosProrroga) || Number(partido.minutos_prorroga) || 5;
-  const equipoLocalId = cambios.equipoLocalId || partido.equipo_local_id;
-  const equipoVisitaId = cambios.equipoVisitaId || partido.equipo_visita_id;
   const quintetoLocalIds = cambios.quintetoLocalIds || [];
   const quintetoVisitaIds = cambios.quintetoVisitaIds || [];
   const relojInicial = minutosPeriodo * 60;

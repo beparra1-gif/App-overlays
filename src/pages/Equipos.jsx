@@ -23,6 +23,10 @@ function PanelJugadores({ equipo, onCerrar }) {
   const agregar = async (e) => {
     e.preventDefault();
     setError('');
+    // A veces se carga la nómina antes de tener el nombre real de cada
+    // jugadora — con el dorsal solo alcanza para identificarla, el nombre
+    // se completa después con "Editar".
+    if (!nombre.trim() && !dorsal.trim()) return setError('Poné al menos el dorsal o el nombre del jugador');
     try {
       await api.crearJugador(equipo.id, { nombre, dorsal: dorsal || null });
       setNombre('');
@@ -48,7 +52,7 @@ function PanelJugadores({ equipo, onCerrar }) {
   const guardarEdicion = async (id, e) => {
     e.preventDefault();
     const limpio = nombreEdit.trim();
-    if (!limpio) return setError('Ponele nombre al jugador');
+    if (!limpio && !dorsalEdit.trim()) return setError('Poné al menos el dorsal o el nombre del jugador');
     setError('');
     setGuardandoEdicion(true);
     try {
@@ -71,7 +75,7 @@ function PanelJugadores({ equipo, onCerrar }) {
       {error && <p className="mensaje-error">{error}</p>}
       <form className="fila-form" onSubmit={agregar}>
         <input placeholder="Dorsal" value={dorsal} onChange={(e) => setDorsal(e.target.value)} style={{ width: '80px' }} />
-        <input placeholder="Nombre del jugador" value={nombre} onChange={(e) => setNombre(e.target.value)} required />
+        <input placeholder="Nombre del jugador (opcional)" value={nombre} onChange={(e) => setNombre(e.target.value)} />
         <button className="btn-primario" type="submit">Agregar</button>
       </form>
       <ul className="lista-jugadores">
@@ -80,7 +84,7 @@ function PanelJugadores({ equipo, onCerrar }) {
             {editandoId === j.id ? (
               <form className="fila-form" style={{ flex: 1, margin: 0 }} onSubmit={(e) => guardarEdicion(j.id, e)}>
                 <input placeholder="Dorsal" value={dorsalEdit} onChange={(e) => setDorsalEdit(e.target.value)} style={{ width: 70 }} autoFocus />
-                <input placeholder="Nombre" value={nombreEdit} onChange={(e) => setNombreEdit(e.target.value)} required style={{ flex: 1, minWidth: 100 }} />
+                <input placeholder="Nombre" value={nombreEdit} onChange={(e) => setNombreEdit(e.target.value)} style={{ flex: 1, minWidth: 100 }} />
                 <button className="btn-secundario btn-chico" type="submit" disabled={guardandoEdicion}>{guardandoEdicion ? '…' : '✓ Guardar'}</button>
                 <button className="btn-link" type="button" onClick={cancelarEdicion}>Cancelar</button>
               </form>

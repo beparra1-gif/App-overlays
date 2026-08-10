@@ -95,7 +95,11 @@ export default function EquipoRoster({
   const agregarJugador = async (e) => {
     e.preventDefault();
     setError('');
-    if (!nombreJugador.trim()) return setError('Ponele nombre al jugador');
+    // A veces se carga la nómina antes de tener el nombre real de cada
+    // jugadora — el dorsal solo ya alcanza para identificarla en cancha,
+    // el nombre se completa después con "Editar". Lo único obligatorio es
+    // que quede AL MENOS uno de los dos.
+    if (!nombreJugador.trim() && !dorsal.trim()) return setError('Poné al menos el dorsal o el nombre del jugador');
     try {
       const datos = { nombre: nombreJugador.trim(), dorsal: dorsal || null };
       if (partidoId && soloEstePartido) { datos.temporal = true; datos.partido_id = partidoId; }
@@ -160,7 +164,7 @@ export default function EquipoRoster({
   const guardarEdicion = async (jugador, e) => {
     e.preventDefault();
     const nombreLimpio = nombreEdit.trim();
-    if (!nombreLimpio) return setError('Ponele nombre al jugador');
+    if (!nombreLimpio && !dorsalEdit.trim()) return setError('Poné al menos el dorsal o el nombre del jugador');
     setError('');
     setGuardandoEdicion(true);
     try {
@@ -200,7 +204,7 @@ export default function EquipoRoster({
             {editandoId === j.id ? (
               <form className="fila-form" style={{ flex: 1, margin: 0 }} onSubmit={(e) => guardarEdicion(j, e)}>
                 <input placeholder="Dorsal" value={dorsalEdit} onChange={(e) => setDorsalEdit(e.target.value)} style={{ width: 70 }} autoFocus />
-                <input placeholder="Nombre" value={nombreEdit} onChange={(e) => setNombreEdit(e.target.value)} required style={{ flex: 1, minWidth: 100 }} />
+                <input placeholder="Nombre" value={nombreEdit} onChange={(e) => setNombreEdit(e.target.value)} style={{ flex: 1, minWidth: 100 }} />
                 <button className="btn-secundario btn-chico" type="submit" disabled={guardandoEdicion}>{guardandoEdicion ? '…' : '✓ Guardar'}</button>
                 <button className="btn-link" type="button" onClick={cancelarEdicion}>Cancelar</button>
               </form>
@@ -246,7 +250,7 @@ export default function EquipoRoster({
         ) : (
           <form className="fila-form" onSubmit={agregarJugador} style={{ flexWrap: 'wrap' }}>
             <input placeholder="Dorsal" value={dorsal} onChange={(e) => setDorsal(e.target.value)} style={{ width: 80 }} />
-            <input placeholder="Nombre del jugador" value={nombreJugador} onChange={(e) => setNombreJugador(e.target.value)} required />
+            <input placeholder="Nombre del jugador (opcional)" value={nombreJugador} onChange={(e) => setNombreJugador(e.target.value)} />
             <button className="btn-secundario" type="submit">+ Agregar</button>
             {partidoId && (
               <label className="texto-tenue" style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, width: '100%' }} title="No queda en el plantel del equipo — se usa una sola vez, solo en este partido.">

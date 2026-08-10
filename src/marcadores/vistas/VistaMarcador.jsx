@@ -7,6 +7,16 @@ import TituloMarcador from '../TituloMarcador';
 import LogosLibres from '../LogosLibres';
 import { useCajaMarcador } from '../utils';
 
+// Referencia ESTABLE para "sin config" — `diseno?.config || {}` con un
+// literal `{}` crea un objeto NUEVO en cada render; como `config` viaja como
+// dependencia de useCajaMarcador (línea de abajo), un partido sin diseño
+// asignado (diseno undefined/null) entraba en loop infinito: cada render
+// "cambiaba" la dependencia → el efecto medía de nuevo → setCaja con un
+// objeto nuevo → nuevo render → config de nuevo `{}` fresco → de nuevo
+// "cambiada" → así sin parar ("Maximum update depth exceeded"). Reusar
+// SIEMPRE el mismo objeto vacío corta el loop en la raíz.
+const CONFIG_VACIA = {};
+
 // `oculto` (config.ocultarMarcador desde un disparo de Nómina/Estadísticas):
 // en vez de desmontar el marcador de golpe, se lo deja siempre montado (así
 // la medición de la caja — useCajaMarcador — no se pierde y no hay que
@@ -17,7 +27,7 @@ import { useCajaMarcador } from '../utils';
 // hacerlo acá, sobre el propio elemento fixed, evita ese problema.
 export default function VistaMarcador({ partido, diseno, oculto = false, suprimirTitulo = false }) {
   const plantillaId = diseno?.plantilla_base || 'clasico';
-  const config = diseno?.config || {};
+  const config = diseno?.config || CONFIG_VACIA;
   const { Componente } = obtenerPlantilla(plantillaId);
   // Contenedor de referencia para medir dónde termina la caja REAL del
   // marcador (ver useCajaMarcador) — el título y los logos "a los costados"

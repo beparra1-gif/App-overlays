@@ -1,11 +1,17 @@
 import { Router } from 'express';
 import pool from '../db.js';
 import { authenticate } from '../middleware/auth.js';
+import { avisarRosterActualizado } from '../socket/rosterBroadcast.js';
 
 const router = Router();
 router.use(authenticate);
 
 async function jugadorDelUsuario(jugadorId, userId) {
+  // Ver el mismo guard en routes/equipos.js (equipoDelUsuario) — un id no
+  // numérico acá, sin este corte, revienta la query y tira abajo TODO el
+  // proceso del backend (promesa sin atrapar, se llama antes del
+  // try/catch de cada ruta).
+  if (!/^\d+$/.test(String(jugadorId))) return null;
   const resultado = await pool.query(
     `SELECT j.* FROM jugadores j
      JOIN equipos e ON e.id = j.equipo_id
@@ -24,12 +30,14 @@ router.put('/:id', async (req, res) => {
   const dorsal = dorsalRaw !== undefined ? (dorsalRaw === '' || dorsalRaw === null ? null : Number(dorsalRaw)) : jugador.dorsal;
 
   if (dorsal != null && !Number.isFinite(dorsal)) return res.status(400).json({ error: 'Dorsal inválido' });
+  if (!nombre && dorsal == null) return res.status(400).json({ error: 'Poné al menos el dorsal o el nombre del jugador' });
 
   try {
     const resultado = await pool.query(
       'UPDATE jugadores SET nombre = $1, dorsal = $2 WHERE id = $3 RETURNING *',
       [nombre, dorsal, jugador.id]
     );
+    if (!jugador.temporal) await avisarRosterActualizado(req.app.locals.io, jugador.equipo_id, req.userId);
     res.json({ jugador: resultado.rows[0] });
   } catch (error) {
     console.error('[PUT /jugadores/:id]', error);
@@ -53,6 +61,7 @@ router.delete('/:id', async (req, res) => {
       await pool.query('DELETE FROM eventos_partido WHERE jugador_id = $1', [jugador.id]);
     }
     await pool.query('DELETE FROM jugadores WHERE id = $1', [jugador.id]);
+    if (!jugador.temporal) await avisarRosterActualizado(req.app.locals.io, jugador.equipo_id, req.userId);
     res.status(204).end();
   } catch (error) {
     // 23503 = violación de FK (postgres): el jugador ya tiene jugadas

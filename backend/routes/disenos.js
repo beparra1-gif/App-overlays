@@ -6,6 +6,15 @@ const router = Router();
 router.use(authenticate);
 
 async function disenoDelUsuario(id, userId) {
+  // Un `id` no numérico en la URL (typo, bot probando rutas, un enlace
+  // viejo) pasado tal cual a Postgres (columna integer) revienta la query
+  // con una excepción — como esta función se llama siempre ANTES del
+  // try/catch de cada ruta, esa excepción quedaba como promesa no
+  // atrapada y tiraba abajo el proceso ENTERO del backend (afectaba a
+  // todos los usuarios, no solo al pedido con el id inválido). Cortar acá
+  // devuelve "no encontrado" — mismo resultado que ya devuelven las rutas
+  // para un id inexistente, ninguna ruta necesita cambios.
+  if (!/^\d+$/.test(String(id))) return null;
   const resultado = await pool.query('SELECT * FROM disenos_guardados WHERE id = $1 AND user_id = $2', [id, userId]);
   return resultado.rows[0] || null;
 }

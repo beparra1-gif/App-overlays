@@ -141,6 +141,16 @@
 .ms-pill:hover { border-color: var(--primario); color: var(--primario); }
 .ms-pill.ms-primario { background: var(--primario); color: var(--primario-texto); border-color: var(--primario); }
 .ms-pill.ms-peligro { color: var(--peligro); border-color: var(--peligro); }
+/* El selector de período es de los controles que más se toca durante el
+   partido — más grande y en negrita para leerlo/tocarlo cómodo. */
+.ms-select-periodo {
+  font-size: 20px;
+  font-weight: 900;
+  font-family: 'Orbitron', monospace;
+  padding: 10px 14px;
+  min-width: 90px;
+  text-align: center;
+}
 
 .ms-faltas-timeouts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .ms-contador { display: flex; align-items: center; justify-content: space-between; gap: 8px; }

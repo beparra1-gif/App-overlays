@@ -6,6 +6,11 @@ const router = Router();
 router.use(authenticate);
 
 async function escenaDelUsuario(id, userId) {
+  // Ver el mismo guard en routes/equipos.js (equipoDelUsuario) — un id no
+  // numérico acá, sin este corte, revienta la query y tira abajo TODO el
+  // proceso del backend (promesa sin atrapar, se llama antes del
+  // try/catch de cada ruta).
+  if (!/^\d+$/.test(String(id))) return null;
   const resultado = await pool.query(
     `SELECT e.* FROM escenas e JOIN partidos p ON p.id = e.partido_id WHERE e.id = $1 AND p.user_id = $2`,
     [id, userId]

@@ -2,11 +2,23 @@ import { Router } from 'express';
 import pool from '../db.js';
 import { authenticate } from '../middleware/auth.js';
 import { construirEstado } from '../socket/estadoPartido.js';
+import { avisarRosterActualizado } from '../socket/rosterBroadcast.js';
 
 const router = Router();
 router.use(authenticate);
 
 async function equipoDelUsuario(equipoId, userId) {
+  // Un `id` no numérico en la URL (typo, bot probando rutas, un enlace
+  // viejo, o — como pasó de verdad probando el reinicio de partido con un
+  // equipo aún sin resolver — un "undefined" que se coló en el payload)
+  // pasado tal cual a Postgres (columna integer) revienta la query con una
+  // excepción. Como esta función se llama siempre ANTES del try/catch de
+  // cada ruta, esa excepción quedaba como promesa no atrapada y tiraba
+  // abajo el proceso ENTERO del backend — afectaba a TODOS los usuarios,
+  // no solo al pedido con el id inválido. Cortar acá devuelve "no
+  // encontrado", mismo resultado que ya devuelven las rutas para un id
+  // inexistente — ninguna ruta necesita cambios propios.
+  if (!/^\d+$/.test(String(equipoId))) return null;
   const resultado = await pool.query('SELECT * FROM equipos WHERE id = $1 AND user_id = $2', [equipoId, userId]);
   return resultado.rows[0] || null;
 }
@@ -182,7 +194,13 @@ router.post('/:id/jugadores', async (req, res) => {
   const dorsal = dorsalRaw != null && dorsalRaw !== '' ? Number(dorsalRaw) : null;
   let partidoId = req.body?.temporal && req.body?.partido_id ? Number(req.body.partido_id) : null;
 
-  if (!nombre) return res.status(400).json({ error: 'El nombre del jugador es obligatorio' });
+  // A veces se carga la nómina antes de saber el nombre real de cada
+  // jugadora (llega una planilla con solo dorsales, por ejemplo) — con el
+  // dorsal alcanza para identificarla en cancha; el nombre se puede
+  // completar después con "Editar". Lo único que de verdad no puede
+  // faltar es AL MENOS uno de los dos (si no, no hay forma de saber de
+  // quién se trata).
+  if (!nombre && dorsal == null) return res.status(400).json({ error: 'Poné al menos el dorsal o el nombre del jugador' });
   if (dorsal != null && !Number.isFinite(dorsal)) return res.status(400).json({ error: 'Dorsal inválido' });
 
   if (partidoId) {
@@ -203,6 +221,7 @@ router.post('/:id/jugadores', async (req, res) => {
     // equipo de verdad" como renombrarlo — si todavía era borrador, deja
     // de serlo.
     if (equipo.borrador) await pool.query('UPDATE equipos SET borrador = false WHERE id = $1', [equipo.id]);
+    if (!temporal) await avisarRosterActualizado(req.app.locals.io, equipo.id, req.userId);
     res.status(201).json({ jugador: resultado.rows[0] });
   } catch (error) {
     console.error('[POST /equipos/:id/jugadores]', error);

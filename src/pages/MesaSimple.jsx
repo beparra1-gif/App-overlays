@@ -192,7 +192,7 @@ export default function MesaSimple({ partidoId: partidoIdProp, embebido = false,
           <button className="ms-pill" onClick={() => emitirAccion('RELOJ_AJUSTAR', { segundos: -60 })}>-1:00</button>
           <button className="ms-pill" onClick={() => emitirAccion('RELOJ_REINICIAR')}>↺ Reiniciar reloj</button>
           <select
-            className="ms-pill"
+            className="ms-pill ms-select-periodo"
             value={partido.periodo}
             onChange={(e) => emitirAccion('PERIODO_FIJAR', { periodo: Number(e.target.value) })}
             style={{ cursor: 'pointer' }}

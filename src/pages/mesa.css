@@ -150,8 +150,30 @@
 }
 .mv-reloj-edit .mv-pts-edit-btn { width: 24px; height: 24px; font-size: 12px; }
 
-.mv-equipo-pie { display: flex; justify-content: center; align-items: center; margin-top: 4px; }
+.mv-equipo-pie { display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 4px; }
 .mv-faltas { font-size: 10px; color: var(--mv-rojo); font-weight: 800; }
+
+/* "Minuto solicitado" — mismo mecanismo que "Entretiempo" (ver
+   .mv-pill-alerta / dispararAlertaMarcador en Mesa.jsx) pero uno por
+   equipo, chico, en el pie de su propia caja. */
+.mv-min-btn {
+  background: rgba(255,255,255,.06); border: 1px solid var(--mv-borde); color: var(--mv-texto-tenue);
+  border-radius: 8px; padding: 3px 7px; font-size: 9px; font-weight: 800; letter-spacing: .01em;
+  cursor: pointer; transition: background .15s, border-color .15s, color .15s;
+}
+.mv-min-btn:hover { background: rgba(255,255,255,.12); color: #fff; }
+.mv-min-btn.activo { background: rgba(255,59,48,.14); border-color: var(--mv-rojo); color: var(--mv-rojo); }
+
+/* Modal "↺ Reiniciar Partido" — un bloque por lado (Local/Visita), cada uno
+   con sus 3 modos en radio (mantener/existente/nuevo) y el select o input
+   que corresponda debajo. Vive dentro de .modal-caja (fondo oscuro, ver
+   index.css), así que hereda esos colores de input/select/texto-tenue. */
+.mv-reinicio-lado { margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,.1); }
+.mv-reinicio-lado:first-of-type { margin-top: 10px; border-top: none; padding-top: 0; }
+.mv-reinicio-titulo { margin: 0 0 8px; font-weight: 800; font-size: 14px; }
+.mv-reinicio-modos { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+.mv-reinicio-modos label { display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; }
+.mv-reinicio-lado select, .mv-reinicio-lado input { width: 100%; box-sizing: border-box; }
 
 /* Botón de tiempo muerto, en el borde externo de cada caja de equipo (junto
    al logo/nombre) — antes vivía como un botón "TM Local/Visita" aparte, sin
@@ -492,6 +514,17 @@
   padding: 5px 8px;
   font-size: 12px;
   max-width: 130px;
+}
+/* El selector de período (Q1/Q2/.../OT) es una de las decisiones que más
+   se toca durante el partido — más grande y en negrita para leerlo/tocarlo
+   cómodo sin tener que entrecerrar los ojos. */
+.mv-select-periodo {
+  font-size: 20px;
+  font-weight: 900;
+  font-family: 'Orbitron', monospace;
+  padding: 10px 14px;
+  min-width: 90px;
+  text-align: center;
 }
 .mv-check-detalle {
   display: flex;

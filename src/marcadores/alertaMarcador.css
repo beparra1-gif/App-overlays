@@ -1,0 +1,52 @@
+/* "Entretiempo" / "Minuto solicitado": cartel que reemplaza al marcador
+   mientras está activo, del mismo tamaño y en el mismo lugar de la caja real
+   (ver AlertaMarcador.jsx, que calcula left/top/width/height desde la caja
+   medida por useCajaMarcador). */
+.alerta-marcador {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border-radius: 10px;
+  border: 2px solid;
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.5);
+  animation: alerta-marcador-entrada 0.35s ease-out;
+  overflow: hidden;
+  box-sizing: border-box;
+  /* OJO: un padding-top/bottom en % SIEMPRE se calcula sobre el ANCHO del
+     contenedor (regla del spec de CSS, no un bug de este proyecto — mismo
+     quirk que paddingTopDesdeY en utils.js), nunca sobre la altura de ESTE
+     elemento — con `padding: 4% 6%` acá el padding vertical terminaba
+     valiendo más que el alto entero de la caja (content-box no puede ir
+     negativo), así que el cartel se dibujaba más alto que el marcador real
+     que estaba reemplazando. vh/vw no tienen ese problema: cada uno queda
+     relativo a su propio eje de la pantalla siempre. */
+  padding: 1vh 1.6vw;
+}
+
+.alerta-marcador-texto {
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-align: center;
+  text-transform: uppercase;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.55);
+  line-height: 1.05;
+  white-space: nowrap;
+}
+
+.alerta-marcador-subtitulo {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 700;
+  font-size: 1.3vw;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+@keyframes alerta-marcador-entrada {
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: scale(1); }
+}
