@@ -387,19 +387,51 @@
    (roster + control + disparos de acciones) entre en la pantalla de una
    tablet/celular sin tener que scrollear de más — achica lo que en tamaño
    normal está pensado para mirar de lejos en un monitor de mesa. */
+.mv-pantalla-completa { padding: 8px; }
 .mv-pantalla-completa .mv-scorebar { padding: 8px; margin-bottom: 8px; }
 .mv-pantalla-completa .mv-cancha-grid { gap: 6px; }
-.mv-pantalla-completa .mv-banco-grid { gap: 5px; }
+/* Banco: SIEMPRE 2 columnas acá (no solo por debajo de 720px como en tamaño
+   normal, ver .mv-banco-grid más arriba) — con 10-12 jugadoras cargadas, una
+   sola columna de botones se salía de la pantalla entera (había que
+   scrollear para ver el resto del roster). Con 2 columnas ocupa la mitad de
+   alto y entra completo. */
+.mv-pantalla-completa .mv-banco-grid { gap: 5px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .mv-pantalla-completa .mv-oncourt-btn { min-height: 54px; padding: 6px 4px; border-radius: 12px; }
 .mv-pantalla-completa .mv-oncourt-dorsal { font-size: 1.05rem; }
-.mv-pantalla-completa .mv-banco-btn { min-height: 34px; padding: 4px; border-radius: 10px; }
-.mv-pantalla-completa .mv-banco-dorsal { font-size: .85rem; }
+.mv-pantalla-completa .mv-banco-btn { min-height: 30px; padding: 3px; border-radius: 10px; }
+.mv-pantalla-completa .mv-banco-dorsal { font-size: .8rem; }
 .mv-pantalla-completa .mv-control-card { padding: 8px; margin-bottom: 8px; }
 .mv-pantalla-completa .fiba-botones-grid { gap: 6px; margin-top: 6px; }
 .mv-pantalla-completa .btn-fiba { min-height: 40px; padding: 8px 4px; font-size: 11px; border-radius: 12px; }
 .mv-pantalla-completa .mv-layout-grid { gap: 8px; }
+.mv-pantalla-completa .mv-zona { padding: 10px; }
+.mv-pantalla-completa .mv-zona-titulo-fila { margin: 0 0 8px; padding-bottom: 6px; }
 .mv-pantalla-completa .mv-jugadas { padding: 8px; margin-top: 8px; }
 .mv-pantalla-completa .mv-disparadores { padding: 6px 10px; margin: 6px 0 10px; }
+
+/* Barra de arriba (Mesa simple / Pantalla completa / Entretiempo / Reiniciar
+   / Finalizar, etc.): en tamaño normal se deja envolver a una segunda línea
+   sin problema (hay lugar de sobra debajo). Acá NO — envolver empujaba todo
+   el tablero (roster + control) hacia abajo hasta perderse de la pantalla,
+   sobre todo en celular/tablet apaisado, donde ya hay poca altura. En vez de
+   partir en más líneas, la fila queda en una sola línea que se desliza
+   horizontal si no entra todo — el resto del tablero nunca se mueve ni se
+   achica por esto. */
+.mv-pantalla-completa .mv-topbar {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  gap: 6px;
+  padding-bottom: 6px;
+  margin-bottom: 8px;
+}
+.mv-pantalla-completa .mv-topbar-separador { display: none; }
+.mv-pantalla-completa .mv-pill {
+  padding: 6px 10px;
+  font-size: 10px;
+  flex-shrink: 0;
+}
+.mv-pantalla-completa .mv-viewers { flex-shrink: 0; padding: 5px 10px; font-size: 11px; }
 .btn-fiba.err { background: linear-gradient(135deg, #ff3b30, #b31c14); }
 
 .mv-btn-cambio {
