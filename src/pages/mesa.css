@@ -153,17 +153,6 @@
 .mv-equipo-pie { display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 4px; }
 .mv-faltas { font-size: 10px; color: var(--mv-rojo); font-weight: 800; }
 
-/* "Minuto solicitado" — mismo mecanismo que "Entretiempo" (ver
-   .mv-pill-alerta / dispararAlertaMarcador en Mesa.jsx) pero uno por
-   equipo, chico, en el pie de su propia caja. */
-.mv-min-btn {
-  background: rgba(255,255,255,.06); border: 1px solid var(--mv-borde); color: var(--mv-texto-tenue);
-  border-radius: 8px; padding: 3px 7px; font-size: 9px; font-weight: 800; letter-spacing: .01em;
-  cursor: pointer; transition: background .15s, border-color .15s, color .15s;
-}
-.mv-min-btn:hover { background: rgba(255,255,255,.12); color: #fff; }
-.mv-min-btn.activo { background: rgba(255,59,48,.14); border-color: var(--mv-rojo); color: var(--mv-rojo); }
-
 /* Modal "↺ Reiniciar Partido" — un bloque por lado (Local/Visita), cada uno
    con sus 3 modos en radio (mantener/existente/nuevo) y el select o input
    que corresponda debajo. Vive dentro de .modal-caja (fondo oscuro, ver

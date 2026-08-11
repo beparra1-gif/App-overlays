@@ -61,13 +61,16 @@ html:has(.stats-overlay) {
   min-width: 380px;
 }
 
-/* Modo "ambos": las dos cajas de equipo lado a lado, cada una angosta (si
-   no, sumadas serían más anchas que la pantalla) — se apilan solas en
-   pantallas chicas. */
+/* Modo "ambos": las dos cajas de equipo SIEMPRE lado a lado — misma lógica
+   que Nómina (.nomina-fila, ver nomina.css), que también fuerza `nowrap` en
+   vez de dejar que las dos columnas se apilen una arriba de la otra cuando
+   el contenedor queda angosto (por ejemplo la vista previa chica del
+   editor). En la escena real (canvas de 1920px) sobra ancho de sobra para
+   las dos cajas juntas. */
 .stats-caja-ambos {
   display: flex;
   gap: 20px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   justify-content: center;
 }
 .stats-caja-equipo.stats-caja-ambos-item {

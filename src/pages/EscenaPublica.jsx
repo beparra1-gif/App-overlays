@@ -90,7 +90,7 @@ export default function EscenaPublica() {
     socket.on('diseno_actualizado', (disenoNuevo) => activo && setDatos((prev) => (prev ? { ...prev, diseno: disenoNuevo } : prev)));
     socket.on('nomina_pulso', ({ modo, ocultarMarcador }) => activo && setNomina({ modo, ocultarMarcador, ts: Date.now() }));
     socket.on('marcador_visibilidad', ({ oculto }) => activo && setMarcadorOculto(!!oculto));
-    socket.on('marcador_alerta', ({ texto, equipo }) => activo && setAlertaMarcador(texto ? { texto, equipo } : null));
+    socket.on('marcador_alerta', ({ texto, equipo, autoOcultar }) => activo && setAlertaMarcador(texto ? { texto, equipo, autoOcultar: !!autoOcultar, ts: Date.now() } : null));
     socket.on('jugada', (jugada) => activo && setJugadas((prev) => [jugada, ...prev].slice(0, 5)));
     socket.on('stats_pulso', (payload) => activo && setStats({ ...payload, ts: Date.now() }));
     socket.on('error_marcador', (payload) => activo && setError(payload.error));
@@ -142,6 +142,16 @@ export default function EscenaPublica() {
     return () => clearTimeout(temporizador);
   }, [ultimaJugada?.ts, duracionAnunciosMs]);
 
+  // "Minuto solicitado" (autoOcultar) se apaga solo, con la MISMA duración
+  // que Anuncios — es justo lo que pidió el usuario ("debe estar ajustado a
+  // los anuncios"), en vez de un tiempo fijo propio. "Entretiempo" no manda
+  // autoOcultar: queda como estaba, hasta que la Mesa lo apague a mano.
+  useEffect(() => {
+    if (!alertaMarcador?.autoOcultar) return undefined;
+    const temporizador = setTimeout(() => setAlertaMarcador(null), duracionAnunciosMs);
+    return () => clearTimeout(temporizador);
+  }, [alertaMarcador?.ts, alertaMarcador?.autoOcultar, duracionAnunciosMs]);
+
   if (error || !datos?.partido || !datos?.escena) return null;
   if (datos.escena.eliminada || datos.escena.activo === false) return null;
 
@@ -192,6 +202,7 @@ export default function EscenaPublica() {
                 }
                 caja={caja}
                 config={cfg}
+                plantillaId={plantillaId}
                 colorLocal={datos.partido.equipoLocal?.color}
                 colorVisita={datos.partido.equipoVisita?.color}
               />

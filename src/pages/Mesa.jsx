@@ -302,7 +302,7 @@ function BotonTimeout({ restantes, onClick, destacado }) {
       className={`mv-to-btn ${destacado ? 'destacado' : ''}`}
       disabled={restantes <= 0}
       onClick={onClick}
-      title="Pedir tiempo muerto"
+      title="Pedir tiempo muerto — descuenta uno y muestra MINUTO SOLICITADO en la transmisión un rato"
     >
       <span className="mv-to-btn-dots">
         {[0, 1, 2].map((i) => <span key={i} className={`mv-to-dot ${i < restantes ? 'lleno' : ''}`} />)}
@@ -400,12 +400,13 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
   // guarda en la base (como nomina_pulso/stats_pulso, es un estado en vivo,
   // no una regla del partido) — se emite por socket a quien esté mirando.
   const [marcadorOculto, setMarcadorOculto] = useState(false);
-  // "Entretiempo" / "Minuto solicitado": null o { texto, equipo }. Mismo
-  // criterio que marcadorOculto (control en vivo, no se guarda en la base) —
-  // mientras esté activo, la escena pública tapa el marcador y muestra un
-  // cartel de su mismo tamaño con este texto (ver AlertaMarcador.jsx). Los
-  // dos botones comparten este único estado porque solo puede haber UN
-  // cartel en pantalla a la vez.
+  // "Entretiempo": null o { texto, equipo: null }. Mismo criterio que
+  // marcadorOculto (control en vivo, no se guarda en la base) — mientras
+  // esté activo, la escena pública tapa el marcador y muestra un cartel de
+  // su mismo tamaño (ver AlertaMarcador.jsx). Solo rastrea Entretiempo acá
+  // (para el estado "activo" de su propio botón) — "Minuto solicitado" es
+  // un disparo de una sola vez, se apaga solo, no necesita este estado (ver
+  // solicitarTimeout más abajo).
   const [alertaMarcador, setAlertaMarcador] = useState(null);
   const [mostrarGestionEscenas, setMostrarGestionEscenas] = useState(false);
   const [escenas, setEscenas] = useState([]);
@@ -501,16 +502,24 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
     emitirAccion('MARCADOR_VISIBILIDAD', { oculto: nuevoOculto });
   };
 
-  // Un solo disparador para "Entretiempo" y "Minuto solicitado" (local o
-  // visita): si ya está mostrando ESTE mismo cartel, lo apaga (toggle); si
-  // está apagado o mostrando otro, lo prende con el texto/equipo pedido —
-  // así tocar "Minuto solicitado" de Visita mientras se ve el de Local lo
-  // reemplaza en vez de apilarse (solo hay un cartel a la vez).
-  const dispararAlertaMarcador = (texto, equipo = null) => {
-    const mismaAlerta = alertaMarcador?.texto === texto && alertaMarcador?.equipo === equipo;
-    const nueva = mismaAlerta ? null : { texto, equipo };
+  // "Entretiempo": estado del PARTIDO (no de un equipo puntual), sin
+  // duración propia — queda prendido hasta que se vuelva a tocar el botón
+  // (toggle). Si ya está mostrando ESTE mismo cartel, lo apaga.
+  const dispararAlertaMarcador = (texto) => {
+    const mismaAlerta = alertaMarcador?.texto === texto && !alertaMarcador?.equipo;
+    const nueva = mismaAlerta ? null : { texto, equipo: null };
     setAlertaMarcador(nueva);
-    emitirAccion('MARCADOR_ALERTA', { texto: nueva?.texto || null, equipo: nueva?.equipo || null });
+    emitirAccion('MARCADOR_ALERTA', { texto: nueva?.texto || null, equipo: null });
+  };
+
+  // "Minuto solicitado" ES el tiempo muerto que cada equipo pide desde la
+  // banca — no un cartel aparte: tocar el botón de tiempo muerto (BotonTimeout,
+  // que ya venía descontando de timeoutsLocal/Visita) ahora TAMBIÉN dispara
+  // el cartel en la transmisión, con la MISMA duración que un aviso de
+  // Anuncios (autoOcultar) — se apaga solo, no hace falta volver a tocar nada.
+  const solicitarTimeout = (equipo) => {
+    emitirAccion('TIMEOUT', { equipo });
+    emitirAccion('MARCADOR_ALERTA', { texto: 'MINUTO SOLICITADO', equipo, autoOcultar: true });
   };
 
   const finalizarPartido = () => {
@@ -932,7 +941,7 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
           <div className="mv-scorebar">
             <div className={`mv-equipo-box ${destacarTimeoutLocal ? 'mv-box-destacado' : ''}`} style={{ border: `1px solid ${partido.equipoLocal.color}88`, background: `${partido.equipoLocal.color}14` }}>
               <div className="mv-equipo-fila">
-                <BotonTimeout restantes={partido.timeoutsLocal} destacado={destacarTimeoutLocal} onClick={() => emitirAccion('TIMEOUT', { equipo: 'local' })} />
+                <BotonTimeout restantes={partido.timeoutsLocal} destacado={destacarTimeoutLocal} onClick={() => solicitarTimeout('local')} />
                 {partido.equipoLocal.logo_url && <img className="mv-equipo-logo" src={partido.equipoLocal.logo_url} alt="" />}
                 <div className="mv-equipo-nombres">
                   <span className="mv-equipo-etiqueta" style={{ color: partido.equipoLocal.color }}>LOCAL {partido.posesion === 'local' && '◀'}</span>
@@ -950,14 +959,6 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
               </div>
               <div className="mv-equipo-pie">
                 <span className="mv-faltas">F: {partido.faltasPeriodoLocal}</span>
-                <button
-                  type="button"
-                  className={`mv-min-btn ${alertaMarcador?.texto === 'MINUTO SOLICITADO' && alertaMarcador?.equipo === 'local' ? 'activo' : ''}`}
-                  title="Oculta el marcador y muestra un cartel de MINUTO SOLICITADO (Local) del mismo tamaño, hasta volver a tocar el botón"
-                  onClick={() => dispararAlertaMarcador('MINUTO SOLICITADO', 'local')}
-                >
-                  ⏱ Minuto solicitado
-                </button>
               </div>
             </div>
 
@@ -1014,17 +1015,9 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
                   <span className="mv-equipo-nombre">{partido.equipoVisita.nombre}</span>
                 </div>
                 {partido.equipoVisita.logo_url && <img className="mv-equipo-logo" src={partido.equipoVisita.logo_url} alt="" />}
-                <BotonTimeout restantes={partido.timeoutsVisita} destacado={destacarTimeoutVisita} onClick={() => emitirAccion('TIMEOUT', { equipo: 'visita' })} />
+                <BotonTimeout restantes={partido.timeoutsVisita} destacado={destacarTimeoutVisita} onClick={() => solicitarTimeout('visita')} />
               </div>
               <div className="mv-equipo-pie">
-                <button
-                  type="button"
-                  className={`mv-min-btn ${alertaMarcador?.texto === 'MINUTO SOLICITADO' && alertaMarcador?.equipo === 'visita' ? 'activo' : ''}`}
-                  title="Oculta el marcador y muestra un cartel de MINUTO SOLICITADO (Visita) del mismo tamaño, hasta volver a tocar el botón"
-                  onClick={() => dispararAlertaMarcador('MINUTO SOLICITADO', 'visita')}
-                >
-                  ⏱ Minuto solicitado
-                </button>
                 <span className="mv-faltas">F: {partido.faltasPeriodoVisita}</span>
               </div>
             </div>

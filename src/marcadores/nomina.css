@@ -93,7 +93,7 @@ html:has(.nomina-overlay) {
   position: absolute;
   top: 100%;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translate(calc(-50% + var(--logofondo-offset-x, 0px)), var(--logofondo-offset-y, 0px));
   width: auto;
   max-width: none;
   max-height: 78vh;
@@ -103,14 +103,15 @@ html:has(.nomina-overlay) {
   opacity: 0;
   animation: nomina-logofondo-entrada .55s cubic-bezier(.34, 1.56, .64, 1) .22s forwards;
 }
-/* El `transform` de cada paso SIEMPRE incluye translateX(-50%) — si el
-   keyframe solo animara `scale()`, pisaría el centrado horizontal de la
-   regla de arriba mientras dura la animación (y `forwards` lo dejaría
-   perdido para siempre al terminar). */
+/* El `transform` de cada paso SIEMPRE incluye el translate de arriba (centrado
+   + ajuste fino izq/der y arriba/abajo, ver nominaLogoFondoOffsetX/Y en
+   VistaNomina.jsx) — si el keyframe solo animara `scale()`, pisaría ese
+   transform mientras dura la animación (y `forwards` lo dejaría perdido
+   para siempre al terminar). */
 @keyframes nomina-logofondo-entrada {
-  from { opacity: 0; transform: translateX(-50%) scale(.7); }
-  60% { opacity: var(--logo-opacidad-final, 1); transform: translateX(-50%) scale(1.05); }
-  to { opacity: var(--logo-opacidad-final, 1); transform: translateX(-50%) scale(1); }
+  from { opacity: 0; transform: translate(calc(-50% + var(--logofondo-offset-x, 0px)), var(--logofondo-offset-y, 0px)) scale(.7); }
+  60% { opacity: var(--logo-opacidad-final, 1); transform: translate(calc(-50% + var(--logofondo-offset-x, 0px)), var(--logofondo-offset-y, 0px)) scale(1.05); }
+  to { opacity: var(--logo-opacidad-final, 1); transform: translate(calc(-50% + var(--logofondo-offset-x, 0px)), var(--logofondo-offset-y, 0px)) scale(1); }
 }
 
 .nomina-titulo {

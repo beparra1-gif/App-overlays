@@ -22,11 +22,14 @@ export default function VistaNomina({ partido, modo = 'ambos', claveAnimacion = 
   const mostrarVisita = modo === 'visita' || modo === 'ambos';
   const conEstadisticas = config?.nominaConEstadisticas === true;
   const mostrarLogo = config?.logoEnNomina !== false;
-  // 'costado' (por defecto): chico, junto al nombre — comportamiento de
-  // siempre. 'fondo': grande, colgado justo abajo del título de ese
-  // equipo, detrás de toda la lista (ver nominaLogoFondoTamano, más abajo,
-  // y el comentario junto a altoLogoFondo).
-  const logoDeFondo = mostrarLogo && (config?.nominaLogoPosicion || 'costado') === 'fondo';
+  // 'costado' (por defecto): chico, junto al nombre. 'fondo': grande,
+  // colgado justo abajo del título de ese equipo, detrás de toda la lista
+  // (ver nominaLogoFondoTamano, más abajo, y el comentario junto a
+  // altoLogoFondo). 'ambos': los dos a la vez — el chico junto al nombre Y
+  // el grande de fondo.
+  const posicionLogo = config?.nominaLogoPosicion || 'costado';
+  const mostrarLogoCostado = mostrarLogo && (posicionLogo === 'costado' || posicionLogo === 'ambos');
+  const logoDeFondo = mostrarLogo && (posicionLogo === 'fondo' || posicionLogo === 'ambos');
   const opacidadLogo = (Number.isFinite(config?.logoOpacidadNomina) ? config.logoOpacidadNomina : 100) / 100;
   // Con el interruptor prendido, se usa el logo "de fondo" (blanco y negro
   // u otra variante) que quedó emparejado por nombre con el escudo normal
@@ -41,16 +44,37 @@ export default function VistaNomina({ partido, modo = 'ambos', claveAnimacion = 
   // .nomina-encabezado-equipo, no de .nomina-equipo), así que el tamaño
   // también se independiza del alto de la columna: se mide en vh (alto de
   // pantalla), no en % de un contenedor cuya altura cambiaba con la
-  // cantidad de jugadores. 100% ≈ 55vh (grande, pero con margen antes de
-  // chocar con el borde inferior); el tope de 220% del slider ya queda
-  // clampeado por CSS (max-height) para que nunca se salga de pantalla.
+  // cantidad de jugadores. 100% ≈ 55vh; el slider llega hasta 400% (libertad
+  // real para agrandarlo mucho) y el tope de CSS (max-height/max-width) se
+  // encarga de que nunca se salga de pantalla ni invada al otro equipo.
   const altoLogoFondo = (Number.isFinite(config?.nominaLogoFondoTamano) ? config.nominaLogoFondoTamano : 130) * 0.55;
   const familia = familiaEfectiva(config, 'nomina', plantillaId);
   // Techo de ancho para el logo de fondo — antes, con un logo bien ancho (o
-  // el tamaño llevado a 200%) podía crecer tanto que se metía en la zona del
-  // OTRO equipo y los dos escudos quedaban superpuestos. Con esto, cada uno
-  // queda confinado a su propia mitad de la pantalla como mucho.
+  // el tamaño llevado al máximo) podía crecer tanto que se metía en la zona
+  // del OTRO equipo y los dos escudos quedaban superpuestos. Con esto, cada
+  // uno queda confinado a su propia mitad de la pantalla como mucho.
   const maxAnchoLogoFondo = '32vw';
+  // Ajuste fino de POSICIÓN del logo de fondo: un solo control mueve los DOS
+  // logos a la vez, reflejados en espejo respecto del centro de la pantalla
+  // — mover "hacia afuera" separa los dos escudos de los costados del
+  // marcador; "hacia adentro" los acerca al centro. Local y Visita reciben
+  // el mismo valor con signo opuesto, así que ajustar uno solo ya ajusta los
+  // dos siempre de forma simétrica (nunca hace falta tocar cada lado por
+  // separado). El vertical (arriba/abajo), en cambio, SÍ es el mismo para
+  // los dos — no tiene un "espejo" natural en ese eje.
+  const offsetXFondo = Number(config?.nominaLogoFondoOffsetX) || 0;
+  const offsetYFondo = Number(config?.nominaLogoFondoOffsetY) || 0;
+  const estiloLogoFondo = (esLocal) => ({
+    height: `${altoLogoFondo}vh`,
+    maxWidth: maxAnchoLogoFondo,
+    opacity: opacidadLogo,
+    '--logo-opacidad-final': opacidadLogo,
+    '--logofondo-offset-x': `${esLocal ? -offsetXFondo : offsetXFondo}px`,
+    '--logofondo-offset-y': `${offsetYFondo}px`,
+  });
+  // Centrar logo+título como grupo dentro de su caja — por defecto quedan
+  // pegados a la izquierda (comportamiento de siempre).
+  const tituloCentrado = config?.nominaTituloCentrado === true;
   // Por defecto la nómina arranca pegada arriba, sea cual sea la cantidad de
   // jugadores (3 o 12) o el modo (un equipo o los dos juntos) — antes el
   // disparo de un solo equipo usaba la ubicación "izquierda"/"derecha", que
@@ -111,14 +135,14 @@ export default function VistaNomina({ partido, modo = 'ambos', claveAnimacion = 
       <div className="nomina-fila">
         {mostrarLocal && (
           <div className="nomina-equipo">
-            <div className="nomina-encabezado-equipo" style={{ color: partido.equipoLocal.color }}>
-              {mostrarLogo && !logoDeFondo && <LogoEquipo equipo={partido.equipoLocal} config={config} className="nomina-logo" contexto="nomina" />}
+            <div className="nomina-encabezado-equipo" style={{ color: partido.equipoLocal.color, justifyContent: tituloCentrado ? 'center' : 'flex-start' }}>
+              {mostrarLogoCostado && <LogoEquipo equipo={partido.equipoLocal} config={config} className="nomina-logo" contexto="nomina" />}
               <span className="nomina-titulo">{partido.equipoLocal.nombre}</span>
               {/* Colgado del ENCABEZADO (no de .nomina-equipo, que incluye
                   toda la lista) — así siempre arranca pegado justo debajo
                   del título, sea cual sea la cantidad de jugadores. */}
               {logoDeFondo && partido.equipoLocal.logo_url && (
-                <img className="nomina-logo-fondo" src={logoFondoSrc(partido.equipoLocal)} alt="" style={{ height: `${altoLogoFondo}vh`, maxWidth: maxAnchoLogoFondo, opacity: opacidadLogo, '--logo-opacidad-final': opacidadLogo }} />
+                <img className="nomina-logo-fondo" src={logoFondoSrc(partido.equipoLocal)} alt="" style={estiloLogoFondo(true)} />
               )}
             </div>
             {rosterLocal.map(filaJugador(partido.quintetoLocalIds))}
@@ -126,11 +150,11 @@ export default function VistaNomina({ partido, modo = 'ambos', claveAnimacion = 
         )}
         {mostrarVisita && (
           <div className="nomina-equipo nomina-visita">
-            <div className="nomina-encabezado-equipo" style={{ color: partido.equipoVisita.color }}>
-              {mostrarLogo && !logoDeFondo && <LogoEquipo equipo={partido.equipoVisita} config={config} className="nomina-logo" contexto="nomina" />}
+            <div className="nomina-encabezado-equipo" style={{ color: partido.equipoVisita.color, justifyContent: tituloCentrado ? 'center' : 'flex-start' }}>
+              {mostrarLogoCostado && <LogoEquipo equipo={partido.equipoVisita} config={config} className="nomina-logo" contexto="nomina" />}
               <span className="nomina-titulo">{partido.equipoVisita.nombre}</span>
               {logoDeFondo && partido.equipoVisita.logo_url && (
-                <img className="nomina-logo-fondo" src={logoFondoSrc(partido.equipoVisita)} alt="" style={{ height: `${altoLogoFondo}vh`, maxWidth: maxAnchoLogoFondo, opacity: opacidadLogo, '--logo-opacidad-final': opacidadLogo }} />
+                <img className="nomina-logo-fondo" src={logoFondoSrc(partido.equipoVisita)} alt="" style={estiloLogoFondo(false)} />
               )}
             </div>
             {rosterVisita.map(filaJugador(partido.quintetoVisitaIds))}

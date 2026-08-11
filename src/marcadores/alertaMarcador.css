@@ -1,7 +1,10 @@
 /* "Entretiempo" / "Minuto solicitado": cartel que reemplaza al marcador
    mientras está activo, del mismo tamaño y en el mismo lugar de la caja real
    (ver AlertaMarcador.jsx, que calcula left/top/width/height desde la caja
-   medida por useCajaMarcador). */
+   medida por useCajaMarcador). Colores/tipografía/familia salen del propio
+   diseño (estiloTema / estiloTemaCapa / familiaDePlantilla), nunca fijos a
+   mano, para que se vea como parte del mismo diseño y no como un cartel
+   genérico pegado encima. */
 .alerta-marcador {
   position: absolute;
   display: flex;
@@ -9,25 +12,38 @@
   align-items: center;
   justify-content: center;
   gap: 4px;
+  font-family: var(--pm-fuente, 'Oswald', sans-serif);
   border-radius: 10px;
-  border: 2px solid;
-  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.5);
-  animation: alerta-marcador-entrada 0.35s ease-out;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
+  animation: alerta-marcador-entrada 0.5s ease forwards;
   overflow: hidden;
   box-sizing: border-box;
   /* OJO: un padding-top/bottom en % SIEMPRE se calcula sobre el ANCHO del
-     contenedor (regla del spec de CSS, no un bug de este proyecto — mismo
-     quirk que paddingTopDesdeY en utils.js), nunca sobre la altura de ESTE
-     elemento — con `padding: 4% 6%` acá el padding vertical terminaba
-     valiendo más que el alto entero de la caja (content-box no puede ir
-     negativo), así que el cartel se dibujaba más alto que el marcador real
-     que estaba reemplazando. vh/vw no tienen ese problema: cada uno queda
-     relativo a su propio eje de la pantalla siempre. */
+     contenedor (regla del spec de CSS — mismo quirk que paddingTopDesdeY en
+     utils.js), nunca sobre la altura de ESTE elemento. vh/vw no tienen ese
+     problema: cada uno queda relativo a su propio eje de la pantalla. */
   padding: 1vh 1.6vw;
 }
 
+/* "Entretiempo" — estado del PARTIDO, mismos colores que el propio
+   marcador. */
+.alerta-general {
+  background: var(--pm-tablero, rgba(10, 10, 10, 0.94));
+  color: var(--pm-texto, #ffffff);
+  border: 2px solid var(--pm-banner, rgba(255, 255, 255, 0.5));
+}
+
+/* "Minuto solicitado" — mismo criterio de color que Anuncios (una capa
+   propia, con su propio fondo/texto configurable), con el borde teñido del
+   color del equipo que lo pidió como acento. */
+.alerta-aviso {
+  background: var(--anuncios-fondo, var(--pm-tablero, rgba(8, 10, 16, 0.92)));
+  color: var(--anuncios-texto, var(--pm-texto, #ffffff));
+  border: 3px solid var(--anuncio-color-equipo, var(--pm-banner, #ffb703));
+}
+
 .alerta-marcador-texto {
-  font-family: 'Orbitron', sans-serif;
+  font-family: inherit;
   font-weight: 900;
   letter-spacing: 0.06em;
   text-align: center;
@@ -38,7 +54,7 @@
 }
 
 .alerta-marcador-subtitulo {
-  font-family: 'Oswald', sans-serif;
+  font-family: inherit;
   font-weight: 700;
   font-size: 1.3vw;
   letter-spacing: 0.12em;
@@ -50,3 +66,10 @@
   from { opacity: 0; transform: scale(0.92); }
   to { opacity: 1; transform: scale(1); }
 }
+
+/* Cada familia visual entra/se ve distinto — coherente con la plantilla de
+   marcador enlazada al diseño, mismo criterio que ya usan Anuncios/Nómina. */
+.fam-broadcast.alerta-marcador { text-transform: uppercase; letter-spacing: .5px; border-left-width: 8px; }
+.fam-neon.alerta-marcador { box-shadow: 0 0 24px var(--pm-banner, #0ff), 0 16px 36px rgba(0, 0, 0, .5); }
+.fam-streetball.alerta-marcador { clip-path: polygon(2% 0, 100% 0, 98% 100%, 0% 100%); }
+.fam-cristal.alerta-marcador { background: rgba(255, 255, 255, .14); backdrop-filter: blur(10px); border-color: rgba(255, 255, 255, .35); }

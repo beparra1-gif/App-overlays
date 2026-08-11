@@ -165,6 +165,12 @@ export function registrarSocketPartidos(io) {
           io.to(roomPartido(publicToken)).emit('marcador_alerta', {
             texto: payload.texto ? String(payload.texto).slice(0, 40) : null,
             equipo: EQUIPOS_VALIDOS.includes(payload.equipo) ? payload.equipo : null,
+            // "Minuto solicitado" se apaga solo (mismo criterio que un
+            // aviso de Anuncios); "Entretiempo" queda hasta que la Mesa lo
+            // apague a mano — la diferencia la decide quien dispara la
+            // acción (ver dispararAlertaMarcador/solicitarTimeout en
+            // Mesa.jsx), acá solo se reenvía el pedido tal cual.
+            autoOcultar: !!payload.autoOcultar,
           });
           return;
         }

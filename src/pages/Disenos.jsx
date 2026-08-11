@@ -71,7 +71,10 @@ const CONFIG_INICIAL = {
   logoTamanoNomina: 40,
   logoOpacidadNomina: 100,
   nominaLogoFondoTamano: 130,
+  nominaLogoFondoOffsetX: 0,
+  nominaLogoFondoOffsetY: 0,
   nominaUsarLogoFondoAlternativo: false,
+  nominaTituloCentrado: false,
   nominaDuracionSeg: 6,
   nominaEscala: 100,
   nominaTamanoTexto: 100,
@@ -1229,17 +1232,36 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
                     <select value={config.nominaLogoPosicion || 'costado'} onChange={(e) => cambiarConfig('nominaLogoPosicion', e.target.value)}>
                       <option value="costado">Chico, junto al nombre del equipo</option>
                       <option value="fondo">Grande, de fondo detrás de toda la nómina</option>
+                      <option value="ambos">Los dos: chico junto al nombre Y grande de fondo</option>
                     </select>
                   </label>
-                  {config.nominaLogoPosicion === 'fondo' ? (
+                  {(config.nominaLogoPosicion === 'costado' || config.nominaLogoPosicion === 'ambos') && (
+                    <CampoRango etiqueta="Tamaño (junto al nombre)" valor={config.logoTamanoNomina} unidad="px" min={10} max={140} onChange={(v) => cambiarConfig('logoTamanoNomina', v)} />
+                  )}
+                  {(config.nominaLogoPosicion === 'fondo' || config.nominaLogoPosicion === 'ambos') && (
                     <>
                       <CampoRango
-                        etiqueta="Tamaño"
+                        etiqueta="Tamaño (de fondo)"
                         valor={Number.isFinite(config.nominaLogoFondoTamano) ? config.nominaLogoFondoTamano : 130}
-                        min={5} max={220}
+                        min={5} max={400}
                         onChange={(v) => cambiarConfig('nominaLogoFondoTamano', v)}
                         ayuda="Siempre arranca pegado justo abajo del título, sea cual sea el largo del plantel. Achicalo o agrandalo como quieras — hay un tope para que nunca se salga de pantalla."
                       />
+                      <div className="fila-form">
+                        <CampoRango
+                          etiqueta="Ajuste fino izquierda/derecha"
+                          valor={Number.isFinite(config.nominaLogoFondoOffsetX) ? config.nominaLogoFondoOffsetX : 0}
+                          unidad="px" min={-400} max={400} step={5}
+                          onChange={(v) => cambiarConfig('nominaLogoFondoOffsetX', v)}
+                          ayuda="Un solo control mueve los DOS logos, reflejados en espejo — separa (o acerca) los dos escudos del centro por igual, sin tener que ajustar cada lado por separado."
+                        />
+                        <CampoRango
+                          etiqueta="Ajuste fino arriba/abajo"
+                          valor={Number.isFinite(config.nominaLogoFondoOffsetY) ? config.nominaLogoFondoOffsetY : 0}
+                          unidad="px" min={-300} max={300} step={5}
+                          onChange={(v) => cambiarConfig('nominaLogoFondoOffsetY', v)}
+                        />
+                      </div>
                       <Toggle
                         etiqueta="Usar logo alternativo (blanco y negro) en el fondo"
                         checked={config.nominaUsarLogoFondoAlternativo}
@@ -1252,15 +1274,18 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
                         </p>
                       )}
                     </>
-                  ) : (
-                    <CampoRango etiqueta="Tamaño" valor={config.logoTamanoNomina} unidad="px" min={10} max={140} onChange={(v) => cambiarConfig('logoTamanoNomina', v)} />
                   )}
                   <CampoRango etiqueta="Transparencia" valor={config.logoOpacidadNomina} min={10} max={100} onChange={(v) => cambiarConfig('logoOpacidadNomina', v)} />
                 </div>
               )}
+              <Toggle etiqueta="Centrar nombre del equipo" checked={config.nominaTituloCentrado} onChange={(v) => cambiarConfig('nominaTituloCentrado', v)} />
               <Toggle etiqueta="Estadísticas por jugador" checked={config.nominaConEstadisticas} onChange={(v) => cambiarConfig('nominaConEstadisticas', v)} />
               <SelectorDuracion etiqueta="Segundos visible al dispararla" valor={config.nominaDuracionSeg} porDefecto={6} onChange={(v) => cambiarConfig('nominaDuracionSeg', v)} />
               <SeccionEstiloCapa prefijo="nomina" config={config} cambiarConfig={cambiarConfig} etiquetaTitulo="Título" />
+              <p className="texto-tenue" style={{ margin: '-4px 0 0', fontSize: 12 }}>
+                El color del nombre de cada equipo sale del color del propio equipo por defecto — elegí un color acá
+                arriba, en "Colores → Título", para usar el mismo en los dos en vez del color de cada equipo.
+              </p>
             </div>
           )}
         </div>

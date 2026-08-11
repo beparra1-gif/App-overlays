@@ -137,20 +137,44 @@ export default function LectorReloj() {
     const ctx = canvas.getContext('2d');
     ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
 
-    // Escala de grises + contraste realzado (NO blanco/negro puro) — se
-    // probó primero con un umbral duro (cualquier píxel > cierto brillo se
-    // volvía blanco puro, el resto negro puro): reconocía el formato y la
-    // posición del ":" bien, pero confundía dígitos parecidos ("0" leído
-    // como "9") porque el corte binario se comía el degradé del borde
-    // curvo del dígito, la pista visual que más los distingue. Estirar el
-    // contraste alrededor del gris medio conserva ese degradé (el motor
-    // LSTM de Tesseract, a diferencia de uno clásico por plantillas, lo
-    // aprovecha) y de paso sigue limpiando reflejos/ruido de la cámara.
+    // Escala de grises + estiramiento de contraste ADAPTATIVO (no blanco/
+    // negro puro, no un multiplicador fijo) — antes se estiraba siempre
+    // alrededor de un gris medio fijo (128) con un factor fijo (1.7), lo
+    // que asume una iluminación "típica"; un gimnasio muy oscuro o un
+    // reloj muy iluminado de cerca quedaban mal calibrados sin ningún
+    // ajuste posible. Acá se mide el brillo REAL de ESTE cuadro puntual
+    // (percentiles 2%/98%, no el mínimo/máximo exacto — así un solo
+    // reflejo de luz quemado o un rincón muy oscuro no corren todo el
+    // rango) y se estira ESE rango a blanco/negro — funciona parejo sea
+    // cual sea la luz del lugar, sin depender de una constante que solo
+    // sirve para un caso. Sigue sin ser un umbral binario duro: conserva
+    // el degradé del borde de cada dígito, la pista que más ayuda al
+    // motor LSTM de Tesseract a distinguir dígitos parecidos ("0" de "9").
     const datos = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const CONTRASTE = 1.7;
-    for (let i = 0; i < datos.data.length; i += 4) {
-      const gris = 0.299 * datos.data[i] + 0.587 * datos.data[i + 1] + 0.114 * datos.data[i + 2];
-      const valor = Math.max(0, Math.min(255, (gris - 128) * CONTRASTE + 128));
+    const totalPixeles = datos.data.length / 4;
+    const grises = new Uint8ClampedArray(totalPixeles);
+    const histograma = new Uint32Array(256);
+    for (let i = 0, p = 0; i < datos.data.length; i += 4, p++) {
+      const gris = Math.round(0.299 * datos.data[i] + 0.587 * datos.data[i + 1] + 0.114 * datos.data[i + 2]);
+      grises[p] = gris;
+      histograma[gris]++;
+    }
+    let negro = 0;
+    let blanco = 255;
+    let acumulado = 0;
+    for (let v = 0; v < 256; v++) {
+      acumulado += histograma[v];
+      if (acumulado >= totalPixeles * 0.02) { negro = v; break; }
+    }
+    acumulado = 0;
+    for (let v = 255; v >= 0; v--) {
+      acumulado += histograma[v];
+      if (acumulado >= totalPixeles * 0.02) { blanco = v; break; }
+    }
+    const rango = Math.max(1, blanco - negro);
+    for (let p = 0; p < totalPixeles; p++) {
+      const valor = Math.max(0, Math.min(255, ((grises[p] - negro) / rango) * 255));
+      const i = p * 4;
       datos.data[i] = datos.data[i + 1] = datos.data[i + 2] = valor;
     }
     ctx.putImageData(datos, 0, 0);
