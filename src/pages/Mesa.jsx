@@ -345,7 +345,7 @@ function PanelAcciones({ equipoNombre, equipoLogoUrl, jugadorSeleccionado, equip
           ))}
         </div>
 
-        <button className="mv-pill mv-btn-cambio" disabled={!jugadorSeleccionado} onClick={() => disparar('CAMBIO')}>⇄ Cambio</button>
+        <button className="mv-btn-cambio" disabled={!jugadorSeleccionado} onClick={() => disparar('CAMBIO')}>⇄ Cambio</button>
 
         {/* Aviso de "hay más para abajo" — con los botones más cuadrados
             (ver .btn-fiba) el contenido no siempre entra sin scrollear, y el

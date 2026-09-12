@@ -415,10 +415,12 @@
   /* Antes era min-height fijo (90px) sobre un ancho que la grilla decide
      solo — con pocas columnas (la fila de "tiro", 3 botones) quedaban bien
      anchos pero apenas más altos que un botón normal, "alargados". Con
-     aspect-ratio el alto sigue al ancho real de cada columna, así los tres
-     botones de un lado quedan igual de cuadrados que los cinco del otro. */
-  aspect-ratio: 1 / 1;
-  min-height: 90px;
+     aspect-ratio el alto sigue al ancho real de cada columna. 2/1 (el alto
+     es la mitad del ancho) en vez de 1/1 (cuadrado): cuadrado obligaba a
+     scrollear para ver las 3 secciones completas — con este alto entran
+     tiro + juego + falta + Cambio sin scroll en la mayoría de las pantallas. */
+  aspect-ratio: 2 / 1;
+  min-height: 64px;
 }
 .btn-fiba:active { transform: scale(.96); }
 .btn-fiba:disabled { opacity: .3; box-shadow: none; cursor: not-allowed; }
@@ -554,9 +556,27 @@
 .mv-pantalla-completa .mv-viewers { flex-shrink: 0; padding: 5px 10px; font-size: 11px; }
 .btn-fiba.err { background: linear-gradient(135deg, #ff3b30, #b31c14); }
 
+/* Antes heredaba de .mv-pill (la píldora chica y sutil de la topbar) — para
+   un botón que confirma algo tan importante como una sustitución conviene
+   que se vea tan sólido y grande como las acciones de arriba, no como un
+   link más. Tono dorado/ámbar a propósito, distinto de tiro/juego/falta —
+   "cambio" no es ninguna de esas tres categorías. */
 .mv-btn-cambio {
-  margin-top: 10px; width: 100%; font-size: 13px; padding: 12px; display: flex; align-items: center; justify-content: center; gap: 8px;
+  margin-top: 14px;
+  width: 100%;
+  min-height: 68px;
+  font-size: 17px;
+  font-weight: 900;
+  padding: 14px;
+  border: none;
+  border-radius: 18px;
+  color: #fff;
+  background: linear-gradient(160deg, #cc9d3f 0%, #86641c 100%);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, .35);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
 }
+.mv-btn-cambio:disabled { opacity: .3; box-shadow: none; cursor: not-allowed; }
 
 /* Ver el comentario en Mesa.jsx — degradé pegado (sticky) al borde inferior
    del panel MIENTRAS haya contenido sin scrollear todavía; al llegar al
