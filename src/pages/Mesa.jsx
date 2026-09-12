@@ -290,7 +290,7 @@ function FaltasCorregibles({ valor, editando, valorEdit, onEmpezar, onCambiarVal
 // para recién ahí ver los tipos, así que cargar una falta pedía dos toques
 // para decir lo mismo una sola vez. Ahora los 4 tipos están a la vista
 // desde que se abre el panel, un solo toque alcanza.
-function PanelAcciones({ equipoNombre, jugadorSeleccionado, equipoActivoTieneRoster, onAccion, onCerrar, faltasProps }) {
+function PanelAcciones({ equipoNombre, equipoLogoUrl, jugadorSeleccionado, equipoActivoTieneRoster, onAccion, onCerrar, faltasProps }) {
   const deshabilitado = equipoActivoTieneRoster && !jugadorSeleccionado;
 
   const disparar = (tipo, extra) => {
@@ -302,7 +302,9 @@ function PanelAcciones({ equipoNombre, jugadorSeleccionado, equipoActivoTieneRos
     <div className="mv-panel-fondo" onClick={onCerrar}>
       <div className="mv-panel-acciones" onClick={(e) => e.stopPropagation()}>
         <div className="mv-panel-acciones-header">
+          <button type="button" className="mv-panel-cerrar" onClick={onCerrar} title="Cerrar">✕</button>
           <div className="mv-panel-titulo-wrap">
+            {equipoLogoUrl && <img className="mv-panel-logo" src={equipoLogoUrl} alt="" />}
             <p className="mv-panel-titulo">Acciones {equipoNombre}</p>
             {jugadorSeleccionado ? (
               <p className="mv-prompt valido">#{jugadorSeleccionado.dorsal ?? '-'} {jugadorSeleccionado.nombre}</p>
@@ -310,7 +312,6 @@ function PanelAcciones({ equipoNombre, jugadorSeleccionado, equipoActivoTieneRos
               <p className="mv-prompt invalido">Seleccioná un jugador en cancha</p>
             ) : null}
           </div>
-          <button type="button" className="mv-panel-cerrar" onClick={onCerrar} title="Cerrar">✕</button>
         </div>
 
         {jugadorSeleccionado && <FaltasCorregibles {...faltasProps} />}
@@ -1247,6 +1248,7 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
           {mostrarPanelAcciones && (
             <PanelAcciones
               equipoNombre={equipoActivoNombre}
+              equipoLogoUrl={equipoActivo === 'local' ? partido.equipoLocal.logo_url : partido.equipoVisita.logo_url}
               jugadorSeleccionado={jugadorSeleccionado}
               equipoActivoTieneRoster={equipoActivoTieneRoster}
               onAccion={manejarAccion}
