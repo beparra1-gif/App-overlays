@@ -398,20 +398,28 @@
 .mv-prompt.valido { color: var(--mv-verde); }
 .mv-prompt.invalido { color: var(--mv-rojo); }
 
-.fiba-botones-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 10px; }
-@media (min-width: 900px) {
-  .fiba-botones-grid { grid-template-columns: repeat(4, 1fr); }
-}
+/* Columnas atadas al ANCHO del panel (auto-fit), no al viewport — antes
+   dependía de un media query por ancho de PANTALLA (min-width:900px), así
+   que en un monitor grande con el panel angosto igual forzaba 4 columnas
+   apretadas. Cada sección (tiro/juego/falta) cae sola en 3 o 4 columnas
+   según cuántos botones tenga, sin overrides por sección. */
+.fiba-botones-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(112px, 1fr)); gap: 12px; margin-top: 8px; }
+
+.mv-seccion-titulo { margin: 16px 0 0; font-size: 12px; font-weight: 800; color: var(--mv-texto-tenue); text-transform: uppercase; letter-spacing: .04em; }
+.mv-seccion-titulo:first-of-type { margin-top: 12px; }
+
 .btn-fiba {
   border: none; padding: 14px 8px; border-radius: 16px; font-weight: 900; font-size: 14px;
-  line-height: 1.15; cursor: pointer; color: white; box-shadow: 0 8px 20px rgba(0,0,0,.2); transition: .15s;
-  display: flex; align-items: center; justify-content: center; text-align: center; min-height: 60px;
+  line-height: 1.15; cursor: pointer; color: white; box-shadow: 0 6px 16px rgba(0,0,0,.28); transition: .15s;
+  display: flex; align-items: center; justify-content: center; text-align: center; min-height: 90px;
 }
-.btn-fiba:active { transform: scale(.94); }
+.btn-fiba:active { transform: scale(.96); }
 .btn-fiba:disabled { opacity: .3; box-shadow: none; cursor: not-allowed; }
-.btn-fiba.pt { background: linear-gradient(135deg, #007aff, #0044b3); }
-.btn-fiba.st { background: linear-gradient(135deg, #ff9500, #e65100); }
-.btn-fiba.activo { box-shadow: 0 0 0 2px #fff, 0 8px 20px rgba(0,0,0,.3); }
+/* Paleta profesional (planillas/broadcast FIBA) — tonos más apagados y
+   oscuros en vez de los colores "de arcade" de antes, uno por sección. */
+.btn-fiba.tiro { background: linear-gradient(160deg, #2b5fa8 0%, #1b3c6e 100%); }
+.btn-fiba.juego { background: linear-gradient(160deg, #4b5768 0%, #29323e 100%); }
+.btn-fiba.falta { background: linear-gradient(160deg, #a1372f 0%, #6e211b 100%); }
 
 /* Panel flotante de acciones (PanelAcciones en Mesa.jsx) — antes este
    contenido (prompt + fiba-botones-grid + Cambio) vivía fijo en
@@ -469,21 +477,6 @@
 .mv-panel-titulo { margin: 0; font-size: 17px; font-weight: 900; color: #fff; }
 .mv-panel-acciones-header .mv-prompt { margin: 0; text-align: left; font-size: 13px; }
 
-/* Tipo de falta, desplegado DEBAJO de la grilla principal (nunca en una
-   ventana aparte) — grid-template-rows 0fr→1fr es el truco estándar para
-   animar un alto "auto" sin saltos, así se siente una continuación natural
-   del panel en vez de algo que aparece de golpe. */
-.mv-tipos-falta-wrap {
-  display: grid;
-  grid-template-rows: 0fr;
-  transition: grid-template-rows .25s ease;
-}
-.mv-tipos-falta-wrap.abierto { grid-template-rows: 1fr; }
-.mv-tipos-falta-wrap > div { overflow: hidden; }
-.mv-tipos-falta-titulo { margin: 10px 0 6px; font-size: 12px; font-weight: 800; color: var(--mv-texto-tenue); text-transform: uppercase; letter-spacing: .03em; }
-@media (prefers-reduced-motion: reduce) {
-  .mv-tipos-falta-wrap { transition: none; }
-}
 .mv-panel-cerrar {
   flex-shrink: 0; width: 28px; height: 28px; border-radius: 10px;
   border: 1px solid var(--mv-borde); background: rgba(255, 255, 255, .06);

@@ -33,7 +33,7 @@ import { describirJugada } from './jugadas.js';
 
 const EQUIPOS_VALIDOS = ['local', 'visita'];
 const ESTADOS_VALIDOS = ['prepartido', 'en_curso', 'finalizado'];
-const TIPOS_FALTA_VALIDOS = ['personal', 'tecnica', 'antideportiva', 'descalificante'];
+const TIPOS_FALTA_VALIDOS = ['personal', 'tecnica', 'tecnica_banco', 'antideportiva', 'descalificante'];
 const MODOS_NOMINA_VALIDOS = ['local', 'visita', 'ambos'];
 const TIPOS_CON_JUGADA = new Set([
   'PUNTO', 'TIRO_LIBRE', 'FALTA', 'REBOTE', 'ASISTENCIA', 'ROBO', 'PERDIDA', 'SUSTITUCION', 'TIMEOUT',

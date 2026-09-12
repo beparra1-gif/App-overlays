@@ -1,6 +1,11 @@
 const ETIQUETAS_FALTA = {
   personal: 'Falta personal',
   tecnica: 'Falta técnica',
+  // Técnica de banco/DT: no va atada a un jugador puntual (jugadorId llega
+  // null a propósito, ver manejarAccion en Mesa.jsx) — en FIBA no cuenta
+  // para las 5 faltas personales de nadie, así que conviene distinguirla de
+  // la técnica de un jugador en cancha desde la carga misma.
+  tecnica_banco: 'Técnica banco/DT',
   antideportiva: 'Falta antideportiva',
   descalificante: 'Falta descalificante',
 };

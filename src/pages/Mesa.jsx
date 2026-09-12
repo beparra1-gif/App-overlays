@@ -6,9 +6,18 @@ import EquipoRoster from '../components/EquipoRoster';
 import TablaEstadisticas from '../components/TablaEstadisticas';
 import './mesa.css';
 
+// Los 4 tipos de falta del reglamento FIBA vigente (personal/técnica/
+// antideportiva/descalificante) + "Técnica banco/DT": no es un tipo FIBA
+// nuevo, es la MISMA falta técnica pero cargada al banco/cuerpo técnico en
+// vez de a un jugador en cancha — no cuenta para las 5 personales de nadie,
+// así que conviene poder cargarla sin tener que "elegir" a algún jugador
+// solo para poder anotarla. `sinJugador` hace que, al dispararla, se mande
+// siempre jugadorId null sin importar qué jugador esté seleccionado en ese
+// momento (ver disparar() en PanelAcciones).
 const TIPOS_FALTA = [
   { id: 'personal', etiqueta: 'Personal' },
   { id: 'tecnica', etiqueta: 'Técnica' },
+  { id: 'tecnica_banco', etiqueta: 'Técnica banco/DT', sinJugador: true },
   { id: 'antideportiva', etiqueta: 'Antideportiva' },
   { id: 'descalificante', etiqueta: 'Descalificante' },
 ];
@@ -274,14 +283,15 @@ function FaltasCorregibles({ valor, editando, valorEdit, onEmpezar, onCambiarVal
 // pantalla completa con poco contenido) terminaba flotando lejos, ya
 // desconectado visualmente de la Mesa. Se cierra solo apenas se registra
 // una acción, con la ✕, o tocando afuera (mismo criterio que el resto de
-// los modales) — antes quedaba abierto a propósito para encadenar varias
-// acciones seguidas, pero en el uso real resultaba más cómodo que se
-// cierre solo. La excepción es "FALTA": tocarla no dispara nada todavía,
-// solo despliega el tipo de falta debajo de la grilla principal — recién
-// al elegir el tipo se registra la jugada y se cierra el panel.
+// los modales).
+//
+// Las acciones quedan agrupadas en 3 secciones SIEMPRE visibles (tiro/
+// juego/falta) — antes "FALTA" era un botón que había que tocar primero
+// para recién ahí ver los tipos, así que cargar una falta pedía dos toques
+// para decir lo mismo una sola vez. Ahora los 4 tipos están a la vista
+// desde que se abre el panel, un solo toque alcanza.
 function PanelAcciones({ equipoNombre, jugadorSeleccionado, equipoActivoTieneRoster, onAccion, onCerrar, faltasProps }) {
   const deshabilitado = equipoActivoTieneRoster && !jugadorSeleccionado;
-  const [eligiendoFalta, setEligiendoFalta] = useState(false);
 
   const disparar = (tipo, extra) => {
     onAccion(tipo, extra);
@@ -305,30 +315,33 @@ function PanelAcciones({ equipoNombre, jugadorSeleccionado, equipoActivoTieneRos
 
         {jugadorSeleccionado && <FaltasCorregibles {...faltasProps} />}
 
+        <p className="mv-seccion-titulo">Acciones de tiro</p>
         <div className="fiba-botones-grid">
-          <button className="btn-fiba pt" disabled={deshabilitado} onClick={() => disparar('TIRO_LIBRE')}>Tiro Libre</button>
-          <button className="btn-fiba pt" disabled={deshabilitado} onClick={() => disparar('PUNTO', { puntos: 2 })}>+2 PTS</button>
-          <button className="btn-fiba pt" disabled={deshabilitado} onClick={() => disparar('PUNTO', { puntos: 3 })}>+3 PTS</button>
-          <button className="btn-fiba st" disabled={deshabilitado} onClick={() => disparar('REBOTE')}>REB</button>
-          <button className="btn-fiba st" disabled={deshabilitado} onClick={() => disparar('ASISTENCIA')}>AST</button>
-          <button className="btn-fiba st" disabled={deshabilitado} onClick={() => disparar('ROBO')}>ROBO</button>
-          <button className="btn-fiba err" disabled={deshabilitado} onClick={() => disparar('PERDIDA')}>PÉRDIDA</button>
-          <button className={`btn-fiba err ${eligiendoFalta ? 'activo' : ''}`} disabled={deshabilitado} onClick={() => setEligiendoFalta((v) => !v)}>FALTA</button>
+          <button className="btn-fiba tiro" disabled={deshabilitado} onClick={() => disparar('TIRO_LIBRE')}>Tiro Libre</button>
+          <button className="btn-fiba tiro" disabled={deshabilitado} onClick={() => disparar('PUNTO', { puntos: 2 })}>+2 PTS</button>
+          <button className="btn-fiba tiro" disabled={deshabilitado} onClick={() => disparar('PUNTO', { puntos: 3 })}>+3 PTS</button>
         </div>
 
-        {/* El tipo de falta se despliega DEBAJO, adentro del mismo panel —
-            nunca como una ventana aparte. La animación (grid-template-rows
-            0fr → 1fr) lo hace sentir una continuación de la grilla de
-            arriba, no algo que aparece de golpe. */}
-        <div className={`mv-tipos-falta-wrap ${eligiendoFalta ? 'abierto' : ''}`}>
-          <div>
-            <p className="mv-tipos-falta-titulo">Tipo de falta</p>
-            <div className="modal-opciones-grid">
-              {TIPOS_FALTA.map((t) => (
-                <button key={t.id} className="modal-opcion-btn" onClick={() => disparar('FALTA', { tipoFalta: t.id })}>{t.etiqueta}</button>
-              ))}
-            </div>
-          </div>
+        <p className="mv-seccion-titulo">Acciones de juego</p>
+        <div className="fiba-botones-grid">
+          <button className="btn-fiba juego" disabled={deshabilitado} onClick={() => disparar('REBOTE')}>REB</button>
+          <button className="btn-fiba juego" disabled={deshabilitado} onClick={() => disparar('ASISTENCIA')}>AST</button>
+          <button className="btn-fiba juego" disabled={deshabilitado} onClick={() => disparar('ROBO')}>ROBO</button>
+          <button className="btn-fiba juego" disabled={deshabilitado} onClick={() => disparar('PERDIDA')}>PÉRDIDA</button>
+        </div>
+
+        <p className="mv-seccion-titulo">Acciones de falta</p>
+        <div className="fiba-botones-grid">
+          {TIPOS_FALTA.map((t) => (
+            <button
+              key={t.id}
+              className="btn-fiba falta"
+              disabled={t.sinJugador ? false : deshabilitado}
+              onClick={() => disparar('FALTA', { tipoFalta: t.id, sinJugador: t.sinJugador })}
+            >
+              {t.etiqueta}
+            </button>
+          ))}
         </div>
 
         <button className="mv-pill mv-btn-cambio" disabled={!jugadorSeleccionado} onClick={() => disparar('CAMBIO')}>⇄ Cambio</button>
@@ -851,8 +864,11 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
     // FALTA ya no abre un modal aparte (ver PanelAcciones: el tipo de falta
     // se elige ahí mismo, debajo de la grilla principal) — llega acá con
     // `extra.tipoFalta` ya puesto, así que se emite directo como cualquier
-    // otra acción.
-    emitirAccion(tipo, { equipo: equipoActivo, jugadorId: jugadorSeleccionadoId || null, ...extra });
+    // otra acción. "Técnica banco/DT" (extra.sinJugador) siempre manda
+    // jugadorId null — no es de nadie en cancha, así que no puede quedar
+    // pegada al jugador que casualmente estuviera seleccionado.
+    const { sinJugador, ...datosAccion } = extra;
+    emitirAccion(tipo, { equipo: equipoActivo, jugadorId: sinJugador ? null : (jugadorSeleccionadoId || null), ...datosAccion });
   };
 
   const jugadoresDescalificadosEnCancha = [
