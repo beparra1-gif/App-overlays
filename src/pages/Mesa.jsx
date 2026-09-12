@@ -346,6 +346,14 @@ function PanelAcciones({ equipoNombre, equipoLogoUrl, jugadorSeleccionado, equip
         </div>
 
         <button className="mv-pill mv-btn-cambio" disabled={!jugadorSeleccionado} onClick={() => disparar('CAMBIO')}>⇄ Cambio</button>
+
+        {/* Aviso de "hay más para abajo" — con los botones más cuadrados
+            (ver .btn-fiba) el contenido no siempre entra sin scrollear, y el
+            vidrio esmerilado del panel se confunde con el fondo detrás
+            cuando el corte queda justo en el borde. position:sticky hace
+            que solo se vea mientras falte contenido por scrollear — al
+            llegar al final se funde sola, sin JS. */}
+        <div className="mv-panel-fade" aria-hidden="true" />
       </div>
     </div>
   );

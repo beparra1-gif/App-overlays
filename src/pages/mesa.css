@@ -411,7 +411,14 @@
 .btn-fiba {
   border: none; padding: 14px 8px; border-radius: 16px; font-weight: 900; font-size: 14px;
   line-height: 1.15; cursor: pointer; color: white; box-shadow: 0 6px 16px rgba(0,0,0,.28); transition: .15s;
-  display: flex; align-items: center; justify-content: center; text-align: center; min-height: 90px;
+  display: flex; align-items: center; justify-content: center; text-align: center;
+  /* Antes era min-height fijo (90px) sobre un ancho que la grilla decide
+     solo — con pocas columnas (la fila de "tiro", 3 botones) quedaban bien
+     anchos pero apenas más altos que un botón normal, "alargados". Con
+     aspect-ratio el alto sigue al ancho real de cada columna, así los tres
+     botones de un lado quedan igual de cuadrados que los cinco del otro. */
+  aspect-ratio: 1 / 1;
+  min-height: 90px;
 }
 .btn-fiba:active { transform: scale(.96); }
 .btn-fiba:disabled { opacity: .3; box-shadow: none; cursor: not-allowed; }
@@ -458,7 +465,7 @@
 }
 .mv-panel-acciones {
   width: min(560px, 94vw);
-  max-height: min(86vh, 640px);
+  max-height: min(92vh, 820px);
   overflow-y: auto;
   /* Vidrio esmerilado, mismo lenguaje que .modal-caja — antes era un panel
      opaco liso; el blur + el degradé sutil lo hacen sentir "flotando"
@@ -549,6 +556,18 @@
 
 .mv-btn-cambio {
   margin-top: 10px; width: 100%; font-size: 13px; padding: 12px; display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+
+/* Ver el comentario en Mesa.jsx — degradé pegado (sticky) al borde inferior
+   del panel MIENTRAS haya contenido sin scrollear todavía; al llegar al
+   final desaparece solo, fundiéndose con el mismo fondo del panel. */
+.mv-panel-fade {
+  position: sticky;
+  bottom: 0;
+  height: 28px;
+  margin-top: -28px;
+  background: linear-gradient(180deg, transparent, rgba(24, 24, 26, .92));
+  pointer-events: none;
 }
 
 /* Últimas acciones — colores propios (no depende de --tarjeta/--texto
