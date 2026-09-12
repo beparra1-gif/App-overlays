@@ -292,13 +292,14 @@ function PanelAcciones({ equipoNombre, jugadorSeleccionado, equipoActivoTieneRos
     <div className="mv-panel-fondo" onClick={onCerrar}>
       <div className="mv-panel-acciones" onClick={(e) => e.stopPropagation()}>
         <div className="mv-panel-acciones-header">
-          <p className={`mv-prompt ${jugadorSeleccionado || !equipoActivoTieneRoster ? 'valido' : 'invalido'}`}>
-            {jugadorSeleccionado
-              ? `${equipoNombre} · #${jugadorSeleccionado.dorsal ?? '-'} ${jugadorSeleccionado.nombre}`
-              : equipoActivoTieneRoster
-                ? `Seleccione Jugador/a en Cancha (${equipoNombre})`
-                : `Juego rápido — acciones para el equipo (${equipoNombre})`}
-          </p>
+          <div className="mv-panel-titulo-wrap">
+            <p className="mv-panel-titulo">Acciones {equipoNombre}</p>
+            {jugadorSeleccionado ? (
+              <p className="mv-prompt valido">#{jugadorSeleccionado.dorsal ?? '-'} {jugadorSeleccionado.nombre}</p>
+            ) : equipoActivoTieneRoster ? (
+              <p className="mv-prompt invalido">Seleccioná un jugador en cancha</p>
+            ) : null}
+          </div>
           <button type="button" className="mv-panel-cerrar" onClick={onCerrar} title="Cerrar">✕</button>
         </div>
 
@@ -315,13 +316,20 @@ function PanelAcciones({ equipoNombre, jugadorSeleccionado, equipoActivoTieneRos
           <button className={`btn-fiba err ${eligiendoFalta ? 'activo' : ''}`} disabled={deshabilitado} onClick={() => setEligiendoFalta((v) => !v)}>FALTA</button>
         </div>
 
-        {eligiendoFalta && (
-          <div className="modal-opciones-grid">
-            {TIPOS_FALTA.map((t) => (
-              <button key={t.id} className="modal-opcion-btn" onClick={() => disparar('FALTA', { tipoFalta: t.id })}>{t.etiqueta}</button>
-            ))}
+        {/* El tipo de falta se despliega DEBAJO, adentro del mismo panel —
+            nunca como una ventana aparte. La animación (grid-template-rows
+            0fr → 1fr) lo hace sentir una continuación de la grilla de
+            arriba, no algo que aparece de golpe. */}
+        <div className={`mv-tipos-falta-wrap ${eligiendoFalta ? 'abierto' : ''}`}>
+          <div>
+            <p className="mv-tipos-falta-titulo">Tipo de falta</p>
+            <div className="modal-opciones-grid">
+              {TIPOS_FALTA.map((t) => (
+                <button key={t.id} className="modal-opcion-btn" onClick={() => disparar('FALTA', { tipoFalta: t.id })}>{t.etiqueta}</button>
+              ))}
+            </div>
           </div>
-        )}
+        </div>
 
         <button className="mv-pill mv-btn-cambio" disabled={!jugadorSeleccionado} onClick={() => disparar('CAMBIO')}>⇄ Cambio</button>
       </div>

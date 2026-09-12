@@ -476,12 +476,14 @@ select {
   color: #f2f3f5;
 }
 
-/* Fila de opciones tipo "action sheet" de iOS (ModalFalta, ModalTiroLibre):
-   antes eran botones sueltos en un .fila-form que envolvía sin criterio —
-   acá quedan en una grilla prolija, con feedback táctil al tocar. */
+/* Fila de opciones tipo "action sheet" de iOS (tipo de falta dentro del
+   panel de acciones, ModalTiroLibre): antes eran botones sueltos en un
+   .fila-form que envolvía sin criterio — acá quedan en una grilla prolija,
+   con feedback táctil al tocar. minmax de sobra para que "Descalificante"
+   (la etiqueta más larga) entre sin ajustarse de más. */
 .modal-opciones-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(84px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
   gap: 8px;
   margin: 4px 0 14px;
 }
@@ -490,9 +492,10 @@ select {
   background: rgba(255, 255, 255, .06);
   color: #f2f3f5;
   border-radius: 14px;
-  padding: 12px 8px;
+  padding: 12px 6px;
   font-weight: 700;
-  font-size: 14px;
+  font-size: 13px;
+  line-height: 1.2;
   cursor: pointer;
   transition: transform .12s ease, background .15s ease;
 }
