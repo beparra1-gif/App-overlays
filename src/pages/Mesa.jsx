@@ -59,22 +59,6 @@ function useDestaque(valor, duracionMs = 1800) {
   return activo;
 }
 
-function ModalFalta({ onElegir, onCerrar }) {
-  return (
-    <div className="modal-fondo" onClick={onCerrar}>
-      <div className="modal-caja" onClick={(e) => e.stopPropagation()}>
-        <h3>Tipo de falta</h3>
-        <div className="modal-opciones-grid">
-          {TIPOS_FALTA.map((t) => (
-            <button key={t.id} className="modal-opcion-btn" onClick={() => onElegir(t.id)}>{t.etiqueta}</button>
-          ))}
-        </div>
-        <button className="btn-link" onClick={onCerrar}>Cancelar</button>
-      </div>
-    </div>
-  );
-}
-
 function ModalTiroLibre({ onElegir, onCerrar }) {
   return (
     <div className="modal-fondo" onClick={onCerrar}>
@@ -283,43 +267,64 @@ function FaltasCorregibles({ valor, editando, valorEdit, onEmpezar, onCambiarVal
 // Cambio) vivía fijo en la columna central de la Mesa todo el tiempo, aunque
 // no hubiera nada elegido. Ahora aparece recién al elegir un jugador (o, en
 // juego rápido sin plantel, al tocar "Acciones Local/Visita"), así la
-// columna central queda con más lugar para el control de reloj/período. A
-// propósito NO es un modal con fondo que cierra solo con tocar afuera (como
-// ModalFalta/ModalCambio/ModalRoster): acá el uso típico es tocar varias
-// acciones seguidas del MISMO jugador (anota, después rebote, después
-// falta), y un toque afuera sin querer no debería obligar a re-seleccionarlo
-// — se cierra a propósito, con la ✕, o volviendo a tocar el mismo dorsal ya
-// elegido (ver elegirJugador en Mesa()).
+// columna central queda con más lugar para el control de reloj/período.
+// Centrado con fondo con blur (mv-panel-fondo), mismo lenguaje que el resto
+// de los modales — antes quedaba anclado abajo de todo con position:fixed,
+// y en pantallas donde la Mesa no llenaba el viewport entero (p. ej.
+// pantalla completa con poco contenido) terminaba flotando lejos, ya
+// desconectado visualmente de la Mesa. Se cierra solo apenas se registra
+// una acción, con la ✕, o tocando afuera (mismo criterio que el resto de
+// los modales) — antes quedaba abierto a propósito para encadenar varias
+// acciones seguidas, pero en el uso real resultaba más cómodo que se
+// cierre solo. La excepción es "FALTA": tocarla no dispara nada todavía,
+// solo despliega el tipo de falta debajo de la grilla principal — recién
+// al elegir el tipo se registra la jugada y se cierra el panel.
 function PanelAcciones({ equipoNombre, jugadorSeleccionado, equipoActivoTieneRoster, onAccion, onCerrar, faltasProps }) {
   const deshabilitado = equipoActivoTieneRoster && !jugadorSeleccionado;
+  const [eligiendoFalta, setEligiendoFalta] = useState(false);
+
+  const disparar = (tipo, extra) => {
+    onAccion(tipo, extra);
+    onCerrar();
+  };
+
   return (
-    <div className="mv-panel-acciones">
-      <div className="mv-panel-handle" />
-      <div className="mv-panel-acciones-header">
-        <p className={`mv-prompt ${jugadorSeleccionado || !equipoActivoTieneRoster ? 'valido' : 'invalido'}`}>
-          {jugadorSeleccionado
-            ? `${equipoNombre} · #${jugadorSeleccionado.dorsal ?? '-'} ${jugadorSeleccionado.nombre}`
-            : equipoActivoTieneRoster
-              ? `Seleccione Jugador/a en Cancha (${equipoNombre})`
-              : `Juego rápido — acciones para el equipo (${equipoNombre})`}
-        </p>
-        <button type="button" className="mv-panel-cerrar" onClick={onCerrar} title="Cerrar">✕</button>
+    <div className="mv-panel-fondo" onClick={onCerrar}>
+      <div className="mv-panel-acciones" onClick={(e) => e.stopPropagation()}>
+        <div className="mv-panel-acciones-header">
+          <p className={`mv-prompt ${jugadorSeleccionado || !equipoActivoTieneRoster ? 'valido' : 'invalido'}`}>
+            {jugadorSeleccionado
+              ? `${equipoNombre} · #${jugadorSeleccionado.dorsal ?? '-'} ${jugadorSeleccionado.nombre}`
+              : equipoActivoTieneRoster
+                ? `Seleccione Jugador/a en Cancha (${equipoNombre})`
+                : `Juego rápido — acciones para el equipo (${equipoNombre})`}
+          </p>
+          <button type="button" className="mv-panel-cerrar" onClick={onCerrar} title="Cerrar">✕</button>
+        </div>
+
+        {jugadorSeleccionado && <FaltasCorregibles {...faltasProps} />}
+
+        <div className="fiba-botones-grid">
+          <button className="btn-fiba pt" disabled={deshabilitado} onClick={() => disparar('TIRO_LIBRE')}>Tiro Libre</button>
+          <button className="btn-fiba pt" disabled={deshabilitado} onClick={() => disparar('PUNTO', { puntos: 2 })}>+2 PTS</button>
+          <button className="btn-fiba pt" disabled={deshabilitado} onClick={() => disparar('PUNTO', { puntos: 3 })}>+3 PTS</button>
+          <button className="btn-fiba st" disabled={deshabilitado} onClick={() => disparar('REBOTE')}>REB</button>
+          <button className="btn-fiba st" disabled={deshabilitado} onClick={() => disparar('ASISTENCIA')}>AST</button>
+          <button className="btn-fiba st" disabled={deshabilitado} onClick={() => disparar('ROBO')}>ROBO</button>
+          <button className="btn-fiba err" disabled={deshabilitado} onClick={() => disparar('PERDIDA')}>PÉRDIDA</button>
+          <button className={`btn-fiba err ${eligiendoFalta ? 'activo' : ''}`} disabled={deshabilitado} onClick={() => setEligiendoFalta((v) => !v)}>FALTA</button>
+        </div>
+
+        {eligiendoFalta && (
+          <div className="modal-opciones-grid">
+            {TIPOS_FALTA.map((t) => (
+              <button key={t.id} className="modal-opcion-btn" onClick={() => disparar('FALTA', { tipoFalta: t.id })}>{t.etiqueta}</button>
+            ))}
+          </div>
+        )}
+
+        <button className="mv-pill mv-btn-cambio" disabled={!jugadorSeleccionado} onClick={() => disparar('CAMBIO')}>⇄ Cambio</button>
       </div>
-
-      {jugadorSeleccionado && <FaltasCorregibles {...faltasProps} />}
-
-      <div className="fiba-botones-grid">
-        <button className="btn-fiba pt" disabled={deshabilitado} onClick={() => onAccion('TIRO_LIBRE')}>Tiro Libre</button>
-        <button className="btn-fiba pt" disabled={deshabilitado} onClick={() => onAccion('PUNTO', { puntos: 2 })}>+2 PTS</button>
-        <button className="btn-fiba pt" disabled={deshabilitado} onClick={() => onAccion('PUNTO', { puntos: 3 })}>+3 PTS</button>
-        <button className="btn-fiba st" disabled={deshabilitado} onClick={() => onAccion('REBOTE')}>REB</button>
-        <button className="btn-fiba st" disabled={deshabilitado} onClick={() => onAccion('ASISTENCIA')}>AST</button>
-        <button className="btn-fiba st" disabled={deshabilitado} onClick={() => onAccion('ROBO')}>ROBO</button>
-        <button className="btn-fiba err" disabled={deshabilitado} onClick={() => onAccion('PERDIDA')}>PÉRDIDA</button>
-        <button className="btn-fiba err" disabled={deshabilitado} onClick={() => onAccion('FALTA')}>FALTA</button>
-      </div>
-
-      <button className="mv-pill mv-btn-cambio" disabled={!jugadorSeleccionado} onClick={() => onAccion('CAMBIO')}>⇄ Cambio</button>
     </div>
   );
 }
@@ -831,10 +836,14 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
       setAccionPendiente({ tipo, equipo: equipoActivo, jugadorId: jugadorSeleccionadoId });
       return;
     }
-    if (tipo === 'FALTA' || tipo === 'TIRO_LIBRE') {
+    if (tipo === 'TIRO_LIBRE') {
       setAccionPendiente({ tipo, equipo: equipoActivo, jugadorId: jugadorSeleccionadoId || null });
       return;
     }
+    // FALTA ya no abre un modal aparte (ver PanelAcciones: el tipo de falta
+    // se elige ahí mismo, debajo de la grilla principal) — llega acá con
+    // `extra.tipoFalta` ya puesto, así que se emite directo como cualquier
+    // otra acción.
     emitirAccion(tipo, { equipo: equipoActivo, jugadorId: jugadorSeleccionadoId || null, ...extra });
   };
 
@@ -1123,7 +1132,14 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
             <div className="mv-zona mv-zona-centro">
               <div className="mv-control-card">
                 <h6>Control de Partido</h6>
-                <div className="mv-control-meta">{etiquetaPeriodo(partido.periodo)}</div>
+                <select
+                  className="mv-select mv-select-periodo-grande"
+                  value={partido.periodo}
+                  onChange={(e) => emitirAccion('PERIODO_FIJAR', { periodo: Number(e.target.value) })}
+                  title="Elegir el cuarto/prórroga que se está jugando"
+                >
+                  {PERIODOS_DISPONIBLES.map((p) => <option key={p} value={p}>{etiquetaPeriodo(p)}</option>)}
+                </select>
                 <div className="mv-control-grid">
                   <div className="mv-control-lado">
                     <button className="mv-pill" onClick={() => emitirAccion('RELOJ_AJUSTAR', { segundos: 60 })}>+1:00</button>
@@ -1134,16 +1150,6 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
                   ) : (
                     <button className="mv-btn-electrico" onClick={() => emitirAccion('RELOJ_INICIAR')}>▶ Iniciar</button>
                   )}
-                  <div className="mv-control-lado">
-                    <select
-                      className="mv-select mv-select-periodo"
-                      value={partido.periodo}
-                      onChange={(e) => emitirAccion('PERIODO_FIJAR', { periodo: Number(e.target.value) })}
-                      title="Elegir el cuarto/prórroga que se está jugando"
-                    >
-                      {PERIODOS_DISPONIBLES.map((p) => <option key={p} value={p}>{etiquetaPeriodo(p)}</option>)}
-                    </select>
-                  </div>
                 </div>
                 <button className="mv-pill" style={{ width: '100%', marginTop: 8 }} onClick={() => emitirAccion('RELOJ_REINICIAR')}>
                   ↺ Reiniciar reloj
@@ -1241,16 +1247,6 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
           <p>Este partido ya finalizó. Marcador final: {partido.ptsLocal} - {partido.ptsVisita}</p>
           <button className="btn-secundario" onClick={reiniciarPartido}>🔄 Reiniciar partido (mismo enlace)</button>
         </div>
-      )}
-
-      {accionPendiente?.tipo === 'FALTA' && (
-        <ModalFalta
-          onCerrar={() => setAccionPendiente(null)}
-          onElegir={(tipoFalta) => {
-            emitirAccion('FALTA', { equipo: accionPendiente.equipo, jugadorId: accionPendiente.jugadorId, tipoFalta });
-            setAccionPendiente(null);
-          }}
-        />
       )}
 
       {accionPendiente?.tipo === 'TIRO_LIBRE' && (

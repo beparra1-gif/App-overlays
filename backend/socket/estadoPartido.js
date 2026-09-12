@@ -589,6 +589,11 @@ export async function reiniciarPartido(partido, cambios = {}, io = null) {
   const quintetoLocalIds = cambios.quintetoLocalIds || [];
   const quintetoVisitaIds = cambios.quintetoVisitaIds || [];
   const relojInicial = minutosPeriodo * 60;
+  // `convocados_local_ids`/`convocados_visita_ids` SIEMPRE vuelven a quedar
+  // vacíos acá — antes quedaban con los ids viejos (de antes de reiniciar)
+  // colgando: como esos jugadores ya no existen más en la nómina (recién
+  // borrada más abajo) o pertenecen a un equipo que ya no es el mismo, el
+  // badge "Convocados (N)" quedaba mostrando un número fantasma sin sentido.
   const resultado = await pool.query(
     `UPDATE partidos SET
        equipo_local_id = $1, equipo_visita_id = $2, quinteto_local_ids = $3, quinteto_visita_ids = $4,
@@ -597,6 +602,7 @@ export async function reiniciarPartido(partido, cambios = {}, io = null) {
        pts_local = 0, pts_visita = 0, faltas_local = 0, faltas_visita = 0,
        faltas_periodo_local = 0, faltas_periodo_visita = 0,
        timeouts_local = 3, timeouts_visita = 3, posesion = NULL,
+       convocados_local_ids = '{}', convocados_visita_ids = '{}',
        actualizado_en = now()
      WHERE id = $8 RETURNING *`,
     [equipoLocalId, equipoVisitaId, quintetoLocalIds, quintetoVisitaIds, minutosPeriodo, minutosProrroga, relojInicial, partido.id]
