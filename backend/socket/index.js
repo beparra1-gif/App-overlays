@@ -5,6 +5,7 @@ import {
   construirEstado,
   registrarPunto,
   corregirPuntos,
+  corregirFaltas,
   registrarTiroLibre,
   registrarFalta,
   registrarRebote,
@@ -214,6 +215,15 @@ export function registrarSocketPartidos(io) {
             const puntos = Number(payload.puntos);
             if (!Number.isInteger(puntos) || puntos < 0 || puntos > 999) throw new Error('Puntaje inválido');
             actualizado = await corregirPuntos(partido, { equipo: payload.equipo, puntos });
+            break;
+          }
+          case 'FALTAS_CORREGIR': {
+            if (!EQUIPOS_VALIDOS.includes(payload.equipo)) throw new Error('Equipo inválido');
+            const jugadorId = Number(payload.jugadorId);
+            const faltas = Number(payload.faltas);
+            if (!jugadorId) throw new Error('Elegí un jugador');
+            if (!Number.isInteger(faltas) || faltas < 0 || faltas > 20) throw new Error('Cantidad de faltas inválida');
+            actualizado = await corregirFaltas(partido, { equipo: payload.equipo, jugadorId, faltas });
             break;
           }
           case 'TIRO_LIBRE': {

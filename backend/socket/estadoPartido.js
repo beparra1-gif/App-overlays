@@ -33,7 +33,7 @@ function totalesEquipo(roster) {
 // (todo el plantel juega), el comportamiento de siempre.
 async function cargarRoster(equipoId, partidoId, minutosPorJugador = new Map(), convocadosIds = []) {
   const resultado = await pool.query(
-    `SELECT j.id, j.dorsal, j.nombre,
+    `SELECT j.id, j.dorsal, j.nombre, j.faltas_ajuste,
        COALESCE(SUM(CASE WHEN e.tipo = 'PUNTO' THEN e.puntos ELSE 0 END), 0)::int AS pts,
        COALESCE(SUM(CASE WHEN e.tipo = 'REBOTE' THEN 1 ELSE 0 END), 0)::int AS reb,
        COALESCE(SUM(CASE WHEN e.tipo = 'ASISTENCIA' THEN 1 ELSE 0 END), 0)::int AS ast,
@@ -58,6 +58,11 @@ async function cargarRoster(equipoId, partidoId, minutosPorJugador = new Map(), 
   );
 
   return resultado.rows.map((j) => {
+    // `faltas_ajuste` es un ajuste manual (ver corregirFaltas) que se suma
+    // a las personales derivadas de eventos_partido — es la única falta que
+    // hoy se puede corregir a mano, así que el total (badge de la Mesa)
+    // también lo refleja.
+    const faltasPersonales = j.faltas_personales + j.faltas_ajuste;
     const jugador = {
       id: j.id,
       dorsal: j.dorsal,
@@ -71,8 +76,8 @@ async function cargarRoster(equipoId, partidoId, minutosPorJugador = new Map(), 
       fta: j.fta,
       fg2m: j.fg2m,
       fg3m: j.fg3m,
-      faltas: j.faltas,
-      faltasPersonales: j.faltas_personales,
+      faltas: j.faltas + j.faltas_ajuste,
+      faltasPersonales,
       faltasTecnicas: j.faltas_tecnicas,
       faltasAntideportivas: j.faltas_antideportivas,
       faltasDescalificantes: j.faltas_descalificantes,
@@ -180,6 +185,34 @@ export async function corregirPuntos(partido, { equipo, puntos }) {
     [partido.id, 'CORRECCION_MARCADOR', equipo, `Marcador corregido a ${puntos}`, partido.periodo, relojActual(partido)]
   );
   return resultado.rows[0];
+}
+
+// Corrige a mano el total de FALTAS PERSONALES de un jugador — mismo
+// espíritu que corregirPuntos (arreglar un error de carga sin deshacer
+// jugada por jugada), pero acá no hay una columna base que pisar: las
+// faltas se calculan siempre sumando eventos_partido (ver cargarRoster). Por
+// eso se guarda como un AJUSTE (`jugadores.faltas_ajuste`): la diferencia
+// entre lo que se pidió dejar y lo que ya sale de contar los eventos reales.
+// No toca la fila de `partidos` (nada del marcador/reloj cambia), así que
+// devuelve `partido` tal cual — construirEstado igual vuelve a leer el
+// roster fresco de la base, con el ajuste ya aplicado.
+export async function corregirFaltas(partido, { equipo, jugadorId, faltas }) {
+  const crudas = await pool.query(
+    `SELECT COUNT(*)::int AS cantidad FROM eventos_partido
+     WHERE jugador_id = $1 AND tipo = 'FALTA' AND COALESCE(metadata->>'tipoFalta', 'personal') = 'personal'`,
+    [jugadorId]
+  );
+  const ajuste = faltas - crudas.rows[0].cantidad;
+  const jugador = await pool.query(
+    'UPDATE jugadores SET faltas_ajuste = $1 WHERE id = $2 RETURNING nombre, dorsal',
+    [ajuste, jugadorId]
+  );
+  if (jugador.rows.length === 0) throw new Error('Jugador no encontrado');
+  await pool.query(
+    'INSERT INTO eventos_partido (partido_id, tipo, jugador_id, equipo, detalle, periodo, reloj_segundos_evento) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+    [partido.id, 'CORRECCION_FALTAS', jugadorId, equipo, `Faltas personales corregidas a ${faltas}`, partido.periodo, relojActual(partido)]
+  );
+  return partido;
 }
 
 export async function registrarPunto(partido, { equipo, jugadorId, puntos }) {

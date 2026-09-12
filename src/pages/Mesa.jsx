@@ -345,6 +345,86 @@ function PuntosCorregibles({ valor, editando, valorEdit, onEmpezar, onCambiarVal
   );
 }
 
+// Corrección manual de las faltas PERSONALES de un jugador — mismo patrón
+// que PuntosCorregibles (lápiz → número → ✓/✕), para arreglar un error de
+// carga (falta cargada al jugador equivocado, un toque de más) sin tener
+// que deshacer jugada por jugada. Solo tiene sentido con un jugador puntual
+// elegido — en juego rápido sin plantel no hay a quién corregirle nada acá.
+function FaltasCorregibles({ valor, editando, valorEdit, onEmpezar, onCambiarValor, onConfirmar, onCancelar }) {
+  if (editando) {
+    return (
+      <span className="mv-faltas-edit">
+        Faltas personales:
+        <input
+          type="number"
+          inputMode="numeric"
+          min="0"
+          max="20"
+          autoFocus
+          value={valorEdit}
+          onChange={(e) => onCambiarValor(e.target.value.replace(/[^0-9]/g, '').slice(0, 2))}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') onConfirmar();
+            if (e.key === 'Escape') onCancelar();
+          }}
+        />
+        <button type="button" className="mv-pts-edit-btn ok" title="Guardar" onClick={onConfirmar}>✓</button>
+        <button type="button" className="mv-pts-edit-btn cancelar" title="Cancelar" onClick={onCancelar}>✕</button>
+      </span>
+    );
+  }
+  return (
+    <span className="mv-faltas-edit">
+      Faltas personales: <strong>{valor}</strong>
+      <button type="button" className="mv-pts-corregir" title="Corregir faltas personales" onClick={onEmpezar}>✎</button>
+    </span>
+  );
+}
+
+// Panel flotante de acciones — antes este bloque (prompt + grilla FIBA +
+// Cambio) vivía fijo en la columna central de la Mesa todo el tiempo, aunque
+// no hubiera nada elegido. Ahora aparece recién al elegir un jugador (o, en
+// juego rápido sin plantel, al tocar "Acciones Local/Visita"), así la
+// columna central queda con más lugar para el control de reloj/período. A
+// propósito NO es un modal con fondo que cierra solo con tocar afuera (como
+// ModalFalta/ModalCambio/ModalRoster): acá el uso típico es tocar varias
+// acciones seguidas del MISMO jugador (anota, después rebote, después
+// falta), y un toque afuera sin querer no debería obligar a re-seleccionarlo
+// — se cierra a propósito, con la ✕, o volviendo a tocar el mismo dorsal ya
+// elegido (ver elegirJugador en Mesa()).
+function PanelAcciones({ equipoNombre, jugadorSeleccionado, equipoActivoTieneRoster, onAccion, onCerrar, faltasProps }) {
+  const deshabilitado = equipoActivoTieneRoster && !jugadorSeleccionado;
+  return (
+    <div className="mv-panel-acciones">
+      <div className="mv-panel-acciones-header">
+        <p className={`mv-prompt ${jugadorSeleccionado || !equipoActivoTieneRoster ? 'valido' : 'invalido'}`}>
+          {jugadorSeleccionado
+            ? `${equipoNombre} · #${jugadorSeleccionado.dorsal ?? '-'} ${jugadorSeleccionado.nombre}`
+            : equipoActivoTieneRoster
+              ? `Seleccione Jugador/a en Cancha (${equipoNombre})`
+              : `Juego rápido — acciones para el equipo (${equipoNombre})`}
+        </p>
+        <button type="button" className="mv-panel-cerrar" onClick={onCerrar} title="Cerrar">✕</button>
+      </div>
+
+      {jugadorSeleccionado && <FaltasCorregibles {...faltasProps} />}
+
+      <div className="fiba-botones-grid">
+        <button className="btn-fiba pt" disabled={deshabilitado} onClick={() => onAccion('TIRO_LIBRE')}>Tiro Libre</button>
+        <button className="btn-fiba pt" disabled={deshabilitado} onClick={() => onAccion('PUNTO', { puntos: 2 })}>+2 PTS</button>
+        <button className="btn-fiba pt" disabled={deshabilitado} onClick={() => onAccion('PUNTO', { puntos: 3 })}>+3 PTS</button>
+        <button className="btn-fiba st" disabled={deshabilitado} onClick={() => onAccion('REBOTE')}>REB</button>
+        <button className="btn-fiba st" disabled={deshabilitado} onClick={() => onAccion('ASISTENCIA')}>AST</button>
+        <button className="btn-fiba st" disabled={deshabilitado} onClick={() => onAccion('ROBO')}>ROBO</button>
+        <button className="btn-fiba err" disabled={deshabilitado} onClick={() => onAccion('PERDIDA')}>PÉRDIDA</button>
+        <button className="btn-fiba err" disabled={deshabilitado} onClick={() => onAccion('FALTA')}>FALTA</button>
+      </div>
+
+      <button className="mv-pill mv-btn-cambio" disabled={!jugadorSeleccionado} onClick={() => onAccion('CAMBIO')}>⇄ Cambio</button>
+    </div>
+  );
+}
+
 // Gestión avanzada: solo cambiar qué diseño usa el marcador — disparar
 // nómina/estadísticas y copiar el enlace viven en la pantalla principal de
 // la Mesa (ver más abajo), no hace falta abrir este panel para eso.
@@ -413,9 +493,18 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
   const [disenos, setDisenos] = useState([]);
   const [equipoActivo, setEquipoActivo] = useState('local');
   const [jugadorSeleccionadoId, setJugadorSeleccionadoId] = useState(null);
+  // El panel de acciones (Tiro Libre/+2/+3/REB/AST/ROBO/PÉRDIDA/FALTA/Cambio)
+  // ya no vive fijo en el centro — aparece flotante recién al elegir un
+  // jugador en cancha (ver jugadorSeleccionadoId) o, en juego rápido sin
+  // plantel, al tocar "Acciones Local/Visita" (ver elegirEquipoActivo). Este
+  // estado solo hace falta para ESE segundo caso — con plantel, alcanza con
+  // `jugadorSeleccionadoId` (ver `mostrarPanelAcciones` más abajo).
+  const [panelAccionesAbierto, setPanelAccionesAbierto] = useState(false);
   const [copiadoFooter, setCopiadoFooter] = useState(null);
   const [editandoPuntos, setEditandoPuntos] = useState(null);
   const [valorPuntosEdit, setValorPuntosEdit] = useState('');
+  const [editandoFaltas, setEditandoFaltas] = useState(false);
+  const [valorFaltasEdit, setValorFaltasEdit] = useState('');
   // Edición manual del reloj (minutos:segundos) — antes solo se podía
   // sumar/restar de a 1:00 completo con los botones +1:00/-1:00, sin forma
   // de dejarlo en un valor exacto (p. ej. "quedaban 3:27" al reanudar tras
@@ -624,6 +713,19 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
   };
   const cancelarCorreccionPuntos = () => setEditandoPuntos(null);
 
+  const empezarCorreccionFaltas = (jugador) => {
+    setEditandoFaltas(true);
+    setValorFaltasEdit(String(jugador.faltasPersonales));
+  };
+  const confirmarCorreccionFaltas = (equipoKey, jugadorId) => {
+    const faltas = Number(valorFaltasEdit);
+    if (Number.isInteger(faltas) && faltas >= 0) {
+      emitirAccion('FALTAS_CORREGIR', { equipo: equipoKey, jugadorId, faltas });
+    }
+    setEditandoFaltas(false);
+  };
+  const cancelarCorreccionFaltas = () => setEditandoFaltas(false);
+
   const empezarEdicionReloj = () => {
     const totalActual = partido.relojSegundos;
     setMinutosRelojEdit(String(Math.floor(totalActual / 60)));
@@ -743,20 +845,34 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
     if (quinteto.includes(jugadorId)) cambiarQuinteto(equipoKey, quinteto.filter((id) => id !== jugadorId));
   };
 
+  // En juego rápido (sin plantel), tocar "Acciones Local/Visita" es lo que
+  // abre el panel flotante — no hay un dorsal que tocar para eso (ver
+  // mostrarPanelAcciones más abajo).
   const elegirEquipoActivo = (equipoKey) => {
     setEquipoActivo(equipoKey);
     setJugadorSeleccionadoId(null);
+    setPanelAccionesAbierto(true);
+  };
+
+  const cerrarPanelAcciones = () => {
+    setPanelAccionesAbierto(false);
+    setJugadorSeleccionadoId(null);
+    setEditandoFaltas(false);
   };
 
   // Tocar cualquier jugador/a en cancha (sea local o visita) habilita
   // automáticamente las acciones de SU equipo — ya no hace falta tocar
   // primero "Acciones Local"/"Acciones Visita" para que el botón responda.
+  // Volver a tocar el mismo dorsal ya elegido lo deselecciona y con eso
+  // cierra el panel flotante de acciones (ver mostrarPanelAcciones).
   const elegirJugador = (equipoKey, jugadorId) => {
     if (equipoActivo === equipoKey && jugadorSeleccionadoId === jugadorId) {
       setJugadorSeleccionadoId(null);
+      setEditandoFaltas(false);
     } else {
       setEquipoActivo(equipoKey);
       setJugadorSeleccionadoId(jugadorId);
+      setEditandoFaltas(false);
     }
   };
 
@@ -767,6 +883,13 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
   // elegir un jugador que no existe. Con plantel, se sigue pidiendo elegirlo
   // (así se mantienen las estadísticas por jugador).
   const equipoActivoTieneRoster = (equipoActivo === 'local' ? rosterLocalCompleto : rosterVisitaCompleto).length > 0;
+
+  // El panel flotante de acciones se muestra al elegir un jugador en cancha
+  // (con plantel) o, en juego rápido sin plantel, recién al tocar
+  // "Acciones Local/Visita" (ver elegirEquipoActivo/panelAccionesAbierto) —
+  // antes este bloque quedaba siempre fijo en pantalla, ocupando lugar aunque
+  // no hubiera nada elegido.
+  const mostrarPanelAcciones = jugadorSeleccionadoId != null || (!equipoActivoTieneRoster && panelAccionesAbierto);
 
   const manejarAccion = (tipo, extra = {}) => {
     if (equipoActivoTieneRoster && !jugadorSeleccionadoId) return;
@@ -1099,35 +1222,14 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
                   tocar para activarlo, así que es la única forma de elegirlo. */}
               {(rosterLocalCompleto.length === 0 || rosterVisitaCompleto.length === 0) && (
                 <div className="mv-acciones-segmentado">
-                  <button className={`mv-acciones-segmento ${equipoActivo === 'local' ? 'activo' : ''}`} onClick={() => elegirEquipoActivo('local')}>
+                  <button className={`mv-acciones-segmento ${equipoActivo === 'local' && panelAccionesAbierto ? 'activo' : ''}`} onClick={() => elegirEquipoActivo('local')}>
                     Acciones Local
                   </button>
-                  <button className={`mv-acciones-segmento ${equipoActivo === 'visita' ? 'activo' : ''}`} onClick={() => elegirEquipoActivo('visita')}>
+                  <button className={`mv-acciones-segmento ${equipoActivo === 'visita' && panelAccionesAbierto ? 'activo' : ''}`} onClick={() => elegirEquipoActivo('visita')}>
                     Acciones Visita
                   </button>
                 </div>
               )}
-
-              <p className={`mv-prompt ${jugadorSeleccionado || !equipoActivoTieneRoster ? 'valido' : 'invalido'}`}>
-                {jugadorSeleccionado
-                  ? `Control de Acciones (${equipoActivoNombre}) · #${jugadorSeleccionado.dorsal ?? '-'} ${jugadorSeleccionado.nombre}`
-                  : equipoActivoTieneRoster
-                    ? `Seleccione Jugador/a en Cancha (${equipoActivoNombre})`
-                    : `Juego rápido — acciones para el equipo (${equipoActivoNombre}), sin jugador`}
-              </p>
-
-              <div className="fiba-botones-grid">
-                <button className="btn-fiba pt" disabled={equipoActivoTieneRoster && !jugadorSeleccionadoId} onClick={() => manejarAccion('TIRO_LIBRE')}>Tiro Libre</button>
-                <button className="btn-fiba pt" disabled={equipoActivoTieneRoster && !jugadorSeleccionadoId} onClick={() => manejarAccion('PUNTO', { puntos: 2 })}>+2 PTS</button>
-                <button className="btn-fiba pt" disabled={equipoActivoTieneRoster && !jugadorSeleccionadoId} onClick={() => manejarAccion('PUNTO', { puntos: 3 })}>+3 PTS</button>
-                <button className="btn-fiba st" disabled={equipoActivoTieneRoster && !jugadorSeleccionadoId} onClick={() => manejarAccion('REBOTE')}>REB</button>
-                <button className="btn-fiba st" disabled={equipoActivoTieneRoster && !jugadorSeleccionadoId} onClick={() => manejarAccion('ASISTENCIA')}>AST</button>
-                <button className="btn-fiba st" disabled={equipoActivoTieneRoster && !jugadorSeleccionadoId} onClick={() => manejarAccion('ROBO')}>ROBO</button>
-                <button className="btn-fiba err" disabled={equipoActivoTieneRoster && !jugadorSeleccionadoId} onClick={() => manejarAccion('PERDIDA')}>PÉRDIDA</button>
-                <button className="btn-fiba err" disabled={equipoActivoTieneRoster && !jugadorSeleccionadoId} onClick={() => manejarAccion('FALTA')}>FALTA</button>
-              </div>
-
-              <button className="mv-pill mv-btn-cambio" disabled={!jugadorSeleccionadoId} onClick={() => manejarAccion('CAMBIO')}>⇄ Cambio</button>
             </div>
 
             <div className="mv-zona mv-zona-visita">
@@ -1176,6 +1278,25 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
               {jugadas.length === 0 && <li className="mv-jugadas-vacio">Todavía no hay acciones registradas.</li>}
             </ul>
           </div>
+
+          {mostrarPanelAcciones && (
+            <PanelAcciones
+              equipoNombre={equipoActivoNombre}
+              jugadorSeleccionado={jugadorSeleccionado}
+              equipoActivoTieneRoster={equipoActivoTieneRoster}
+              onAccion={manejarAccion}
+              onCerrar={cerrarPanelAcciones}
+              faltasProps={{
+                valor: jugadorSeleccionado?.faltasPersonales,
+                editando: editandoFaltas,
+                valorEdit: valorFaltasEdit,
+                onEmpezar: () => empezarCorreccionFaltas(jugadorSeleccionado),
+                onCambiarValor: setValorFaltasEdit,
+                onConfirmar: () => confirmarCorreccionFaltas(equipoActivo, jugadorSeleccionado?.id),
+                onCancelar: cancelarCorreccionFaltas,
+              }}
+            />
+          )}
 
         </div>
       )}

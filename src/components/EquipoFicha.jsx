@@ -51,6 +51,18 @@ function SelectorColorEquipo({ color, onChange }) {
   );
 }
 
+// Categoría/rama en la etiqueta de un equipo guardado ("Sub-15 · Femenino —
+// Halcones") — sin esto, dos planteles del mismo club en categorías
+// distintas se ven idénticos en el desplegable y la única forma de saber
+// cuál es cuál es probarlos uno por uno (ver copiarNominaDesde más abajo:
+// antes esto hacía que la nómina fuera acumulando planteles mezclados).
+function etiquetaEquipoGuardado(e) {
+  const detalle = [e.categoria, e.rama === 'femenino' ? 'Femenino' : e.rama === 'masculino' ? 'Masculino' : null]
+    .filter(Boolean)
+    .join(' · ');
+  return `${detalle ? `${detalle} — ` : ''}${e.nombre}`;
+}
+
 // Sugiere un logo de la biblioteca cuyo nombre contiene (o está contenido
 // en) el nombre tipeado — best-effort, siempre se puede cambiar a mano.
 function sugerirLogoUrl(nombre, logos) {
@@ -326,7 +338,13 @@ const EquipoFicha = forwardRef(function EquipoFicha({ titulo, valorDefecto, equi
   // propia, editable independiente de ahí en más (ver POST /equipos/:id/
   // copiar-nomina). Útil cuando el plantel ya está cargado en otro equipo
   // guardado (otra categoría/rama del mismo club, por ejemplo) y no tiene
-  // sentido volver a tipearlo a mano.
+  // sentido volver a tipearlo a mano. El backend REEMPLAZA la nómina actual
+  // por la del origen elegido (protegiendo jugadores con jugadas ya
+  // registradas) y devuelve la lista completa y final — por eso acá se
+  // reemplaza el estado entero (`setRoster(jugadores)`), no se le suma. Antes
+  // sumaba sin más, así que elegir varios equipos de origen (por ejemplo
+  // probando cuál era la categoría/rama correcta) iba acumulando planteles
+  // mezclados sin ningún tope.
   const copiarNominaDesde = async (idTexto) => {
     const id = Number(idTexto);
     if (!id || !equipoId) return;
@@ -335,7 +353,7 @@ const EquipoFicha = forwardRef(function EquipoFicha({ titulo, valorDefecto, equi
     setCopiandoNomina(true);
     try {
       const { jugadores } = await api.copiarNomina(equipoId, id);
-      setRoster((r) => [...r, ...jugadores]);
+      setRoster(jugadores);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -382,7 +400,7 @@ const EquipoFicha = forwardRef(function EquipoFicha({ titulo, valorDefecto, equi
           <select value="" disabled={resolviendo} onChange={(e) => elegirEquipoGuardado(e.target.value)}>
             <option value="">— O escribí un nombre nuevo abajo —</option>
             {[...equipos].sort((a, b) => a.nombre.localeCompare(b.nombre)).map((e) => (
-              <option key={e.id} value={e.id}>{e.nombre}{e.jugadores_count ? ` (${e.jugadores_count})` : ''}</option>
+              <option key={e.id} value={e.id}>{etiquetaEquipoGuardado(e)}{e.jugadores_count ? ` (${e.jugadores_count})` : ''}</option>
             ))}
           </select>
         </label>
@@ -424,9 +442,12 @@ const EquipoFicha = forwardRef(function EquipoFicha({ titulo, valorDefecto, equi
               .filter((e) => e.id !== equipoId && e.jugadores_count > 0)
               .sort((a, b) => a.nombre.localeCompare(b.nombre))
               .map((e) => (
-                <option key={e.id} value={e.id}>{e.nombre} ({e.jugadores_count})</option>
+                <option key={e.id} value={e.id}>{etiquetaEquipoGuardado(e)} ({e.jugadores_count})</option>
               ))}
           </select>
+          <span className="texto-tenue" style={{ fontSize: 12 }}>
+            Elegir un equipo acá reemplaza la nómina de abajo por la suya — no se van sumando.
+          </span>
         </label>
       )}
 

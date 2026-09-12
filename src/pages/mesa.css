@@ -140,6 +140,18 @@
 .mv-pts-edit-btn.ok { background: var(--mv-verde); color: #06210f; }
 .mv-pts-edit-btn.cancelar { background: rgba(255, 255, 255, .1); color: var(--mv-texto-tenue); }
 
+/* Corrección manual de faltas personales — mismo mecanismo que el marcador
+   (mv-pts-edit de arriba, mismos botones ✓/✕), adentro del panel flotante
+   de acciones. */
+.mv-faltas-edit {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  font-size: 12px; font-weight: 700; color: var(--mv-texto-tenue); margin: 0 0 10px;
+}
+.mv-faltas-edit input {
+  width: 44px; font-size: 14px; text-align: center; font-weight: 900;
+  background: var(--mv-input); border: 1px solid var(--mv-azul); border-radius: 8px; color: #fff; padding: 3px 4px;
+}
+
 /* Edición manual del reloj (minutos:segundos), en .mv-reloj-control junto a
    las flechas ▲/▼ — mismo patrón que la corrección de puntaje
    (.mv-pts-edit), a juego con el tamaño más grande del reloj de arriba. */
@@ -371,6 +383,42 @@
 .btn-fiba:disabled { opacity: .3; box-shadow: none; cursor: not-allowed; }
 .btn-fiba.pt { background: linear-gradient(135deg, #007aff, #0044b3); }
 .btn-fiba.st { background: linear-gradient(135deg, #ff9500, #e65100); }
+
+/* Panel flotante de acciones (PanelAcciones en Mesa.jsx) — antes este
+   contenido (prompt + fiba-botones-grid + Cambio) vivía fijo en
+   .mv-zona-centro todo el tiempo; ahora aparece flotando recién al elegir
+   un jugador o "Acciones Local/Visita". A propósito SIN fondo que oscurezca
+   ni cierre al tocar afuera (ver el comentario en Mesa.jsx) — solo se
+   cierra con la ✕ (.mv-panel-cerrar) o deseleccionando el jugador. z-index
+   por debajo de .modal-fondo (3000): un modal disparado desde acá (Falta,
+   Tiros libres, Cambio) tiene que quedar arriba del panel, no al lado. */
+.mv-panel-acciones {
+  position: fixed;
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  z-index: 1500;
+  width: min(420px, calc(100vw - 24px));
+  max-height: min(72vh, 560px);
+  overflow-y: auto;
+  background: var(--mv-tarjeta);
+  border: 1px solid var(--mv-borde);
+  border-radius: 20px;
+  padding: 14px;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, .5);
+}
+.mv-panel-acciones-header { display: flex; align-items: center; gap: 8px; }
+.mv-panel-acciones-header .mv-prompt { flex: 1; margin: 0; text-align: left; }
+.mv-panel-cerrar {
+  flex-shrink: 0; width: 28px; height: 28px; border-radius: 10px;
+  border: 1px solid var(--mv-borde); background: rgba(255, 255, 255, .06);
+  color: var(--mv-texto-tenue); font-weight: 900; cursor: pointer;
+}
+.mv-panel-cerrar:hover { color: #fff; background: rgba(255, 255, 255, .16); }
+@media (max-width: 720px) {
+  .mv-panel-acciones { left: 8px; right: 8px; bottom: 8px; width: auto; transform: none; }
+}
+.mv-pantalla-completa .mv-panel-acciones { padding: 10px; bottom: 8px; max-height: 64vh; }
 
 /* Modo compacto de pantalla completa: el objetivo es que el tablero entero
    (roster + control + disparos de acciones) entre en la pantalla de una

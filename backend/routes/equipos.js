@@ -250,6 +250,15 @@ router.post('/:id/jugadores', async (req, res) => {
 // (mismo dorsal/nombre, sin arrastrar jugadas ni estadísticas del equipo de
 // origen), así que de acá en más se edita totalmente independiente del
 // plantel que se copió.
+//
+// Elegir un origen REEMPLAZA la nómina actual del equipo destino — antes
+// esto solo insertaba, así que probar varios equipos de origen (buscando la
+// categoría/rama correcta) o tocar el mismo dos veces iba ACUMULANDO
+// jugadores sin límite (nóminas de 40+ mezclando planteles distintos). Acá
+// se borra primero lo que ya había, salvo los jugadores que ya tengan
+// jugadas registradas en algún partido (eventos_partido) — esos no se
+// pueden perder sin avisar, quedan y el INSERT de abajo evita duplicarlos
+// si por casualidad coinciden (dorsal+nombre) con alguien del origen.
 router.post('/:id/copiar-nomina', async (req, res) => {
   const equipo = await equipoDelUsuario(req.params.id, req.userId);
   if (!equipo) return res.status(404).json({ error: 'Equipo no encontrado' });
@@ -259,16 +268,38 @@ router.post('/:id/copiar-nomina', async (req, res) => {
   if (origen.id === equipo.id) return res.status(400).json({ error: 'Elegí un equipo distinto para copiar la nómina' });
 
   try {
-    const resultado = await pool.query(
+    const hayOrigen = await pool.query(
+      'SELECT 1 FROM jugadores WHERE equipo_id = $1 AND temporal = false LIMIT 1',
+      [origen.id]
+    );
+    if (hayOrigen.rows.length === 0) return res.status(400).json({ error: 'Ese equipo todavía no tiene nómina cargada' });
+
+    await pool.query(
+      `DELETE FROM jugadores
+       WHERE equipo_id = $1 AND temporal = false
+         AND NOT EXISTS (SELECT 1 FROM eventos_partido e WHERE e.jugador_id = jugadores.id)`,
+      [equipo.id]
+    );
+    await pool.query(
       `INSERT INTO jugadores (equipo_id, dorsal, nombre, temporal, partido_id)
-       SELECT $1, dorsal, nombre, false, NULL FROM jugadores WHERE equipo_id = $2 AND temporal = false
-       RETURNING *`,
+       SELECT $1, o.dorsal, o.nombre, false, NULL
+       FROM jugadores o
+       WHERE o.equipo_id = $2 AND o.temporal = false
+         AND NOT EXISTS (
+           SELECT 1 FROM jugadores d
+           WHERE d.equipo_id = $1 AND d.temporal = false
+             AND d.nombre = o.nombre AND d.dorsal IS NOT DISTINCT FROM o.dorsal
+         )`,
       [equipo.id, origen.id]
     );
-    if (resultado.rows.length === 0) return res.status(400).json({ error: 'Ese equipo todavía no tiene nómina cargada' });
     if (equipo.borrador) await pool.query('UPDATE equipos SET borrador = false WHERE id = $1', [equipo.id]);
     await avisarRosterActualizado(req.app.locals.io, equipo.id, req.userId);
-    res.status(201).json({ jugadores: resultado.rows });
+
+    const nominaFinal = await pool.query(
+      'SELECT * FROM jugadores WHERE equipo_id = $1 AND temporal = false ORDER BY dorsal ASC NULLS LAST, nombre ASC',
+      [equipo.id]
+    );
+    res.status(201).json({ jugadores: nominaFinal.rows });
   } catch (error) {
     console.error('[POST /equipos/:id/copiar-nomina]', error);
     res.status(500).json({ error: 'No se pudo copiar la nómina' });

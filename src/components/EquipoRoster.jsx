@@ -198,49 +198,66 @@ export default function EquipoRoster({
           Llegaste a {maxSeleccion}. <button type="button" className="btn-link" onClick={() => setForzarMasSeleccion(true)}>Elegir igual</button>
         </div>
       )}
-      <ul className="lista-seleccion">
-        {roster.map((j) => (
-          <li key={j.id} style={{ justifyContent: 'space-between' }}>
-            {editandoId === j.id ? (
-              <form className="fila-form" style={{ flex: 1, margin: 0 }} onSubmit={(e) => guardarEdicion(j, e)}>
-                <input placeholder="Dorsal" value={dorsalEdit} onChange={(e) => setDorsalEdit(e.target.value)} style={{ width: 70 }} autoFocus />
-                <input placeholder="Nombre" value={nombreEdit} onChange={(e) => setNombreEdit(e.target.value)} style={{ flex: 1, minWidth: 100 }} />
-                <button className="btn-secundario btn-chico" type="submit" disabled={guardandoEdicion}>{guardandoEdicion ? '…' : '✓ Guardar'}</button>
-                <button className="btn-link" type="button" onClick={cancelarEdicion}>Cancelar</button>
-              </form>
-            ) : seleccionable ? (
-              <label>
-                <input
-                  type="checkbox"
-                  checked={seleccionados.includes(j.id)}
-                  onChange={() => alternar(j.id)}
-                  disabled={!seleccionados.includes(j.id) && seleccionados.length >= maxSeleccion && !(toqueSuave && forzarMasSeleccion)}
-                />
-                <span className="dorsal-chip">{j.dorsal ?? '-'}</span> {j.nombre}
-              </label>
-            ) : (
-              <span>
-                <span className="dorsal-chip">{j.dorsal ?? '-'}</span> {j.nombre}
-                {j.pendiente && <span className="texto-tenue" style={{ fontSize: 11 }}> (sin guardar)</span>}
-                {j.temporal && <span className="texto-tenue" style={{ fontSize: 11 }}> (solo este partido)</span>}
-              </span>
-            )}
-            {editandoId !== j.id && (permitirEditar || permitirEliminar) && (
-              <span style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
-                {permitirEditar && (
-                  <button type="button" className="btn-link" onClick={() => iniciarEdicion(j)} title="Editar nombre/número">✏️</button>
-                )}
-                {permitirEliminar && (
-                  <button type="button" className="btn-link" onClick={() => eliminarJugador(j)} title="Sacar de la nómina">✕</button>
-                )}
-              </span>
-            )}
-          </li>
-        ))}
-        {roster.length === 0 && (
-          <li className="texto-tenue">Sin jugadores todavía{permitirAgregar ? ' — está bien así para un juego rápido.' : '.'}</li>
-        )}
-      </ul>
+      {seleccionable ? (
+        // Botones grandes (mismo espíritu que los dorsales de cancha/banco
+        // de la Mesa) en vez del checkbox nativo — en una tablet, en medio
+        // de un partido, tocar un checkbox de ~13px es mucho más difícil
+        // que tocar un botón entero. La lógica de selección/tope no cambia,
+        // solo el control: sigue siendo `alternar(j.id)`.
+        <div className="selector-dorsal-grid">
+          {roster.map((j) => {
+            const elegido = seleccionados.includes(j.id);
+            const deshabilitado = !elegido && seleccionados.length >= maxSeleccion && !(toqueSuave && forzarMasSeleccion);
+            return (
+              <button
+                key={j.id}
+                type="button"
+                className={`selector-dorsal-btn ${elegido ? 'seleccionado' : ''}`}
+                disabled={deshabilitado}
+                onClick={() => alternar(j.id)}
+              >
+                <span className="dorsal-chip">{j.dorsal ?? '-'}</span>
+                {j.nombre && <span className="selector-dorsal-nombre">{j.nombre}</span>}
+              </button>
+            );
+          })}
+          {roster.length === 0 && <p className="texto-tenue">Sin jugadores todavía.</p>}
+        </div>
+      ) : (
+        <ul className="lista-seleccion">
+          {roster.map((j) => (
+            <li key={j.id} style={{ justifyContent: 'space-between' }}>
+              {editandoId === j.id ? (
+                <form className="fila-form" style={{ flex: 1, margin: 0 }} onSubmit={(e) => guardarEdicion(j, e)}>
+                  <input placeholder="Dorsal" value={dorsalEdit} onChange={(e) => setDorsalEdit(e.target.value)} style={{ width: 70 }} autoFocus />
+                  <input placeholder="Nombre" value={nombreEdit} onChange={(e) => setNombreEdit(e.target.value)} style={{ flex: 1, minWidth: 100 }} />
+                  <button className="btn-secundario btn-chico" type="submit" disabled={guardandoEdicion}>{guardandoEdicion ? '…' : '✓ Guardar'}</button>
+                  <button className="btn-link" type="button" onClick={cancelarEdicion}>Cancelar</button>
+                </form>
+              ) : (
+                <span>
+                  <span className="dorsal-chip">{j.dorsal ?? '-'}</span> {j.nombre}
+                  {j.pendiente && <span className="texto-tenue" style={{ fontSize: 11 }}> (sin guardar)</span>}
+                  {j.temporal && <span className="texto-tenue" style={{ fontSize: 11 }}> (solo este partido)</span>}
+                </span>
+              )}
+              {editandoId !== j.id && (permitirEditar || permitirEliminar) && (
+                <span style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+                  {permitirEditar && (
+                    <button type="button" className="btn-link" onClick={() => iniciarEdicion(j)} title="Editar nombre/número">✏️</button>
+                  )}
+                  {permitirEliminar && (
+                    <button type="button" className="btn-link" onClick={() => eliminarJugador(j)} title="Sacar de la nómina">✕</button>
+                  )}
+                </span>
+              )}
+            </li>
+          ))}
+          {roster.length === 0 && (
+            <li className="texto-tenue">Sin jugadores todavía{permitirAgregar ? ' — está bien así para un juego rápido.' : '.'}</li>
+          )}
+        </ul>
+      )}
 
       {permitirAgregar && (
         alcanzoTopeFiba ? (

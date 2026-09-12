@@ -4,7 +4,7 @@ services:
     branch: main
     repo: tu-usuario/App-overlays
     build_command: npm install
-    run_command: npm start
+    run_command: npm run migrate && npm start
   http_port: 3000
   name: api
   source_dir: backend
