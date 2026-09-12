@@ -387,13 +387,30 @@ select {
   align-items: center;
 }
 
+@keyframes modalFondoIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes modalCajaIn {
+  from { opacity: 0; transform: scale(.92) translateY(6px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .modal-fondo, .modal-caja { animation: none !important; }
+}
+
 .modal-fondo {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.65);
+  background: rgba(0, 0, 0, 0.55);
+  -webkit-backdrop-filter: blur(14px) saturate(1.5);
+  backdrop-filter: blur(14px) saturate(1.5);
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 20px;
+  box-sizing: border-box;
+  animation: modalFondoIn .18s ease-out;
   /* Más alto que el modo "pantalla completa" de Mesa/Mesa simple (2000,
      ver mesa.css/mesaSimple.css) — si no, con la pantalla completa activa
      cualquier modal (editar quinteto, agregar a la nómina, faltas, tiro
@@ -418,32 +435,91 @@ select {
    escritos directo. */
 .modal-caja {
   width: min(420px, 90vw);
-  max-height: 80vh;
+  max-height: min(82vh, 720px);
   overflow-y: auto;
-  background: #1c1c1e;
-  border: 1px solid rgba(255, 255, 255, .16);
-  border-radius: 14px;
-  padding: 16px;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, .55);
+  /* Vidrio esmerilado tipo iOS — un fondo semitranslúcido con blur en vez
+     del panel opaco de antes, con un borde interno sutil que simula el
+     reflejo de una hoja de cristal. */
+  background: linear-gradient(180deg, rgba(40, 40, 44, .88) 0%, rgba(28, 28, 30, .92) 100%);
+  -webkit-backdrop-filter: blur(24px) saturate(1.6);
+  backdrop-filter: blur(24px) saturate(1.6);
+  border: 1px solid rgba(255, 255, 255, .14);
+  border-radius: 22px;
+  padding: 20px;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, .08) inset, 0 24px 60px rgba(0, 0, 0, .5);
   color: #f2f3f5;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  animation: modalCajaIn .28s cubic-bezier(.34, 1.3, .64, 1);
 }
 
-.modal-caja h3 { color: #f2f3f5; margin-top: 0; }
+.modal-caja h3 {
+  color: #f2f3f5;
+  margin: 0 0 12px;
+  text-align: center;
+  font-size: 17px;
+  letter-spacing: -.01em;
+}
 .modal-caja .texto-tenue { color: #9aa0ab; }
 .modal-caja .mensaje-error { color: #ff6961; }
-.modal-caja .dorsal-chip { background: #2c2c2e; border-color: rgba(255, 255, 255, .16); color: #f2f3f5; }
-.modal-caja .selector-dorsal-btn { background: #2c2c2e; border-color: rgba(255, 255, 255, .16); }
+.modal-caja .dorsal-chip { background: rgba(255, 255, 255, .08); border-color: rgba(255, 255, 255, .16); color: #f2f3f5; }
+.modal-caja .selector-dorsal-btn { background: rgba(255, 255, 255, .06); border-color: rgba(255, 255, 255, .14); }
 .modal-caja .selector-dorsal-btn.seleccionado { border-color: #0a84ff; background: rgba(10, 132, 255, .22); }
 .modal-caja .selector-dorsal-nombre { color: #9aa0ab; }
-.modal-caja .btn-secundario { border-color: rgba(255, 255, 255, .24); color: #f2f3f5; background: transparent; }
-.modal-caja .btn-secundario:hover { background: rgba(255, 255, 255, .08); }
+.modal-caja .btn-secundario { border-color: rgba(255, 255, 255, .2); color: #f2f3f5; background: rgba(255, 255, 255, .05); border-radius: 12px; justify-content: center; }
+.modal-caja .btn-secundario:hover { background: rgba(255, 255, 255, .1); }
 .modal-caja .btn-link { color: #4da3ff; }
 .modal-caja input,
 .modal-caja select {
-  background: #2c2c2e;
-  border: 1px solid rgba(255, 255, 255, .2);
+  background: rgba(255, 255, 255, .07);
+  border: 1px solid rgba(255, 255, 255, .18);
+  border-radius: 10px;
   color: #f2f3f5;
 }
+
+/* Fila de opciones tipo "action sheet" de iOS (ModalFalta, ModalTiroLibre):
+   antes eran botones sueltos en un .fila-form que envolvía sin criterio —
+   acá quedan en una grilla prolija, con feedback táctil al tocar. */
+.modal-opciones-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(84px, 1fr));
+  gap: 8px;
+  margin: 4px 0 14px;
+}
+.modal-opcion-btn {
+  border: 1px solid rgba(255, 255, 255, .14);
+  background: rgba(255, 255, 255, .06);
+  color: #f2f3f5;
+  border-radius: 14px;
+  padding: 12px 8px;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  transition: transform .12s ease, background .15s ease;
+}
+.modal-opcion-btn:hover { background: rgba(10, 132, 255, .16); border-color: rgba(10, 132, 255, .4); }
+.modal-opcion-btn:active { transform: scale(.95); background: rgba(10, 132, 255, .24); }
+
+/* Filas de "¿Quién entra?" (ModalCambio) — mismo look que dorsal-chip +
+   nombre del resto de la app, como una lista de contactos de iOS. */
+.modal-lista-filas { list-style: none; margin: 0 0 14px; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.modal-fila-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  border: 1px solid rgba(255, 255, 255, .1);
+  background: rgba(255, 255, 255, .05);
+  color: #f2f3f5;
+  border-radius: 14px;
+  padding: 10px 14px;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  transition: transform .12s ease, background .15s ease;
+}
+.modal-fila-btn:hover { background: rgba(10, 132, 255, .14); }
+.modal-fila-btn:active { transform: scale(.98); background: rgba(10, 132, 255, .22); }
 
 /* EquipoRoster (nómina/quinteto) trae su propia `.tarjeta` porque también
    se usa suelto en "Personalizar tablero → Equipos" — adentro de un modal
@@ -455,6 +531,16 @@ select {
   padding: 0;
   border-left-width: 0;
 }
+
+/* "Copiar la nómina de" arriba del formulario de "+ Nómina" en la Mesa
+   (ver Mesa.jsx) — separación del bloque de EquipoRoster que viene debajo. */
+.mv-copiar-nomina {
+  margin-bottom: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, .1);
+}
+.mv-copiar-nomina label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #9aa0ab; }
+.mv-copiar-nomina select { width: 100%; box-sizing: border-box; }
 
 /* Fila tipo "Ajustes" de iOS: etiqueta a la izquierda, switch a la derecha,
    ancho completo con un divisor fino abajo — así una pila de Toggle uno

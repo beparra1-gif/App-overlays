@@ -304,7 +304,7 @@ export function registrarSocketPartidos(io) {
             actualizado = await cambiarEstadoPartido(partido, payload.estado);
             break;
           case 'PARTIDO_REINICIAR':
-            actualizado = await reiniciarPartido(partido, payload);
+            actualizado = await reiniciarPartido(partido, payload, io);
             partidosConRelojActivo.delete(actualizado.id);
             break;
           case 'QUINTETO_ACTUALIZAR': {

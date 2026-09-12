@@ -1,4 +1,5 @@
 import pool from '../db.js';
+import { avisarRosterActualizado } from './rosterBroadcast.js';
 
 export function relojActual(partido) {
   if (!partido.reloj_corriendo || !partido.reloj_referencia_en) return partido.reloj_segundos;
@@ -570,7 +571,7 @@ export async function archivarPartido(partido) {
 // distinto al que ya tenía el partido activo del diseño. Sin `cambios`
 // (el botón "↺ Reiniciar Partido" de la Mesa, que nunca cambia de equipos)
 // el comportamiento es EXACTAMENTE el de antes: se relee todo de `partido`.
-export async function reiniciarPartido(partido, cambios = {}) {
+export async function reiniciarPartido(partido, cambios = {}, io = null) {
   const cambiaEquipos = cambios.equipoLocalId || cambios.equipoVisitaId;
   const equipoLocalId = cambios.equipoLocalId ? Number(cambios.equipoLocalId) : partido.equipo_local_id;
   const equipoVisitaId = cambios.equipoVisitaId ? Number(cambios.equipoVisitaId) : partido.equipo_visita_id;
@@ -601,6 +602,29 @@ export async function reiniciarPartido(partido, cambios = {}) {
     [equipoLocalId, equipoVisitaId, quintetoLocalIds, quintetoVisitaIds, minutosPeriodo, minutosProrroga, relojInicial, partido.id]
   );
   await pool.query('DELETE FROM eventos_partido WHERE partido_id = $1', [partido.id]);
+
+  // El botón "↺ Reiniciar Partido" de la Mesa (sin `cambios`, nunca cambia
+  // de equipos) deja los MISMOS equipos pero con la nómina vacía — antes
+  // esto abría un modal a elegir "mantener nómina / equipo existente /
+  // equipo nuevo" por lado; ahora es siempre lo mismo (mismo equipo, nómina
+  // en blanco) y la persona la vuelve a cargar con "+ Nómina" en la Mesa
+  // (copiando de un equipo guardado o a mano). No se borra a quien ya tenga
+  // jugadas de OTRO partido (protección histórica, mismo criterio que
+  // eliminarJugador/copiar-nomina) — recién se borraron arriba las de ESTE
+  // partido, así que el chequeo de acá abajo solo protege partidos previos.
+  // Si vino con `cambios` (POST /partidos reabriendo con un rival distinto),
+  // no se toca nada: son equipos que se están asignando a propósito, con su
+  // propio plantel.
+  if (!cambiaEquipos) {
+    await pool.query(
+      `DELETE FROM jugadores
+       WHERE equipo_id = ANY($1::int[]) AND temporal = false
+         AND NOT EXISTS (SELECT 1 FROM eventos_partido e WHERE e.jugador_id = jugadores.id)`,
+      [[equipoLocalId, equipoVisitaId]]
+    );
+    await avisarRosterActualizado(io, equipoLocalId, partido.user_id);
+    await avisarRosterActualizado(io, equipoVisitaId, partido.user_id);
+  }
   return resultado.rows[0];
 }
 

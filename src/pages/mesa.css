@@ -22,6 +22,25 @@
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
+/* Feedback táctil consistente (un pequeño "hundimiento" al tocar, estilo
+   iOS) en todos los botones interactivos de la Mesa — antes solo algunos
+   (btn-fiba, dorsales de cancha con hover) tenían algo parecido, y nada
+   respondía al toque real en una tablet/celular. */
+.mv-wrap .mv-pill, .mv-wrap .mv-to-btn, .mv-wrap .mv-btn-posesion, .mv-wrap .mv-reloj-chip,
+.mv-wrap .mv-btn-nomina, .mv-wrap .mv-btn-quinteto, .mv-wrap .mv-oncourt-btn, .mv-wrap .mv-banco-btn,
+.mv-wrap .mv-acciones-segmento, .mv-wrap .mv-btn-cambio, .mv-wrap .mv-btn-electrico {
+  transition: transform .1s ease, background .15s ease, box-shadow .15s ease;
+}
+.mv-wrap .mv-pill:active, .mv-wrap .mv-to-btn:active:not(:disabled), .mv-wrap .mv-btn-posesion:active,
+.mv-wrap .mv-reloj-chip:active, .mv-wrap .mv-btn-nomina:active, .mv-wrap .mv-btn-quinteto:active,
+.mv-wrap .mv-oncourt-btn:active:not(.vacante):not(.bloqueado), .mv-wrap .mv-banco-btn:active,
+.mv-wrap .mv-acciones-segmento:active, .mv-wrap .mv-btn-cambio:active:not(:disabled), .mv-wrap .mv-btn-electrico:active:not(:disabled) {
+  transform: scale(.95);
+}
+@media (prefers-reduced-motion: reduce) {
+  .mv-wrap * { transition: none !important; animation: none !important; }
+}
+
 /* "Pantalla completa" de la Mesa — el tablero de acciones, no el marcador
    de transmisión (ese vive en su enlace aparte para OBS). La fuente de
    verdad es la clase `.mv-pantalla-completa` (controlada desde React), NO
@@ -121,6 +140,15 @@
 .mv-equipo-etiqueta { font-size: 10px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
 .mv-equipo-nombre { color: #d1d5db; font-size: 10px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
 .mv-equipo-pts { font-size: 28px; margin: 0; color: #fff; font-family: 'Orbitron', monospace; flex-shrink: 0; }
+@keyframes ptsPulso {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.22); color: var(--mv-verde); }
+  100% { transform: scale(1); }
+}
+.mv-pts-pulso { animation: ptsPulso .5s ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .mv-pts-pulso { animation: none; }
+}
 
 /* Corrección manual del marcador — arreglar un error de carga sin deshacer
    jugada por jugada. Solo números: el input filtra cualquier otro carácter
@@ -164,17 +192,6 @@
 
 .mv-equipo-pie { display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 4px; }
 .mv-faltas { font-size: 10px; color: var(--mv-rojo); font-weight: 800; }
-
-/* Modal "↺ Reiniciar Partido" — un bloque por lado (Local/Visita), cada uno
-   con sus 3 modos en radio (mantener/existente/nuevo) y el select o input
-   que corresponda debajo. Vive dentro de .modal-caja (fondo oscuro, ver
-   index.css), así que hereda esos colores de input/select/texto-tenue. */
-.mv-reinicio-lado { margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,.1); }
-.mv-reinicio-lado:first-of-type { margin-top: 10px; border-top: none; padding-top: 0; }
-.mv-reinicio-titulo { margin: 0 0 8px; font-weight: 800; font-size: 14px; }
-.mv-reinicio-modos { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
-.mv-reinicio-modos label { display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; }
-.mv-reinicio-lado select, .mv-reinicio-lado input { width: 100%; box-sizing: border-box; }
 
 /* Botón de tiempo muerto, en el borde externo de cada caja de equipo (junto
    al logo/nombre) — antes vivía como un botón "TM Local/Visita" aparte, sin
@@ -392,20 +409,39 @@
    cierra con la ✕ (.mv-panel-cerrar) o deseleccionando el jugador. z-index
    por debajo de .modal-fondo (3000): un modal disparado desde acá (Falta,
    Tiros libres, Cambio) tiene que quedar arriba del panel, no al lado. */
+@keyframes panelAccionesIn {
+  from { opacity: 0; transform: translateY(28px) scale(.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mv-panel-acciones { animation: none !important; }
+}
 .mv-panel-acciones {
   position: fixed;
-  left: 50%;
+  left: 0;
+  right: 0;
   bottom: 14px;
-  transform: translateX(-50%);
+  margin: 0 auto;
   z-index: 1500;
   width: min(420px, calc(100vw - 24px));
   max-height: min(72vh, 560px);
   overflow-y: auto;
-  background: var(--mv-tarjeta);
-  border: 1px solid var(--mv-borde);
-  border-radius: 20px;
-  padding: 14px;
-  box-shadow: 0 14px 36px rgba(0, 0, 0, .5);
+  /* Vidrio esmerilado, mismo lenguaje que .modal-caja — antes era un panel
+     opaco liso; el blur + el degradé sutil lo hacen sentir "flotando"
+     sobre la Mesa en vez de pegado encima. */
+  background: linear-gradient(180deg, rgba(44, 44, 48, .92) 0%, rgba(28, 28, 30, .96) 100%);
+  -webkit-backdrop-filter: blur(20px) saturate(1.6);
+  backdrop-filter: blur(20px) saturate(1.6);
+  border: 1px solid rgba(255, 255, 255, .14);
+  border-radius: 22px;
+  padding: 10px 16px 16px;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, .08) inset, 0 18px 40px rgba(0, 0, 0, .5);
+  animation: panelAccionesIn .3s cubic-bezier(.34, 1.3, .64, 1);
+}
+.mv-panel-handle {
+  width: 36px; height: 4px; border-radius: 999px;
+  background: rgba(255, 255, 255, .22);
+  margin: 0 auto 10px;
 }
 .mv-panel-acciones-header { display: flex; align-items: center; gap: 8px; }
 .mv-panel-acciones-header .mv-prompt { flex: 1; margin: 0; text-align: left; }
@@ -413,12 +449,14 @@
   flex-shrink: 0; width: 28px; height: 28px; border-radius: 10px;
   border: 1px solid var(--mv-borde); background: rgba(255, 255, 255, .06);
   color: var(--mv-texto-tenue); font-weight: 900; cursor: pointer;
+  transition: transform .12s ease, background .15s ease;
 }
 .mv-panel-cerrar:hover { color: #fff; background: rgba(255, 255, 255, .16); }
+.mv-panel-cerrar:active { transform: scale(.9); }
 @media (max-width: 720px) {
-  .mv-panel-acciones { left: 8px; right: 8px; bottom: 8px; width: auto; transform: none; }
+  .mv-panel-acciones { left: 8px; right: 8px; bottom: 8px; width: auto; }
 }
-.mv-pantalla-completa .mv-panel-acciones { padding: 10px; bottom: 8px; max-height: 64vh; }
+.mv-pantalla-completa .mv-panel-acciones { padding: 8px 12px 12px; bottom: 8px; max-height: 64vh; }
 
 /* Modo compacto de pantalla completa: el objetivo es que el tablero entero
    (roster + control + disparos de acciones) entre en la pantalla de una
