@@ -71,6 +71,16 @@ export default function PreviaCombinada({
   logosLibresEditable = false, onArrastrarLogoLibre,
   animacionPuntosEditable = false, onArrastrarAnimacionPuntos,
   anunciosEditable = false, onArrastrarAnuncios,
+  // Modo "pantalla completa": el recuadro 16:9 de siempre (mismo mecanismo,
+  // ver el comentario de arriba — nunca hace zoom ni recorta) pero usando
+  // TODO el viewport disponible en vez del ancho acotado del panel de
+  // edición. Es lo más cerca que se puede llegar, dentro del navegador, de
+  // "verlo como se ve de verdad" — un recuadro de 1600px en una notebook
+  // angosta todavía queda bastante por debajo del 100% real; a pantalla
+  // completa, en la mayoría de las pantallas, la escala se acerca mucho más
+  // a 1:1.
+  pantallaCompleta = false,
+  onCerrarPantallaCompleta,
 }) {
   const { Componente: Marcador } = obtenerPlantilla(plantillaId);
   // Mismo criterio que VistaMarcador (la escena pública real): el título y
@@ -133,8 +143,13 @@ export default function PreviaCombinada({
   const suprimirTitulo = (modo === 'general' || modo === 'anuncios') && conAnuncios && config?.anunciosTituloModo === 'reemplaza-titulo';
 
   return (
-    <div className="mini-preview-marco mini-preview-grande" ref={marcoRef}>
-      <div className="mini-preview-lienzo" ref={lienzoRef} style={{ '--escala-lienzo': escalaLienzo }}>
+    <>
+      {pantallaCompleta && <div className="mini-preview-fondo" onClick={onCerrarPantallaCompleta} />}
+      <div className={`mini-preview-marco mini-preview-grande ${pantallaCompleta ? 'mini-preview-pantalla-completa' : ''}`} ref={marcoRef}>
+        {pantallaCompleta && (
+          <button type="button" className="mini-preview-cerrar" onClick={onCerrarPantallaCompleta} title="Salir de pantalla completa">✕</button>
+        )}
+        <div className="mini-preview-lienzo" ref={lienzoRef} style={{ '--escala-lienzo': escalaLienzo }}>
         <div style={{ opacity: opacidadMarcador, transition: 'opacity .25s ease', pointerEvents: opacidadMarcador === 1 ? 'auto' : 'none' }}>
           <LogoMarcaAgua equipoLocal={partido.equipoLocal} equipoVisita={partido.equipoVisita} config={config} caja={caja} />
           <Marcador partido={partido} config={config} />
@@ -180,7 +195,8 @@ export default function PreviaCombinada({
           </div>
         )}
         <LogosLibres config={config} editable={logosLibresEditable} onArrastrar={onArrastrarLogoLibre} contenedorRef={lienzoRef} />
+        </div>
       </div>
-    </div>
+    </>
   );
 }

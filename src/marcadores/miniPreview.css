@@ -51,6 +51,46 @@
   box-shadow: 0 12px 30px rgba(0, 0, 0, .35);
 }
 
+/* Pantalla completa: el MISMO recuadro 16:9 (nunca deforma ni recorta,
+   sigue siendo el lienzo real de 1920×1080 escalado por useEscalaLienzo),
+   centrado en el viewport y usando la dimensión que primero se llene
+   (ancho o alto, lo que dé un rectángulo 16:9 más grande) — en la mayoría
+   de las pantallas la escala resultante queda mucho más cerca de 1:1 que
+   el recuadro fijo del panel. `inset:0` + `margin:auto` con un ancho/alto
+   ya definidos es el truco estándar de CSS para centrar un elemento
+   position:fixed sin tener que envolverlo en un contenedor flex aparte. */
+.mini-preview-fondo {
+  position: fixed;
+  inset: 0;
+  z-index: 3999;
+  background: rgba(0, 0, 0, .92);
+}
+.mini-preview-pantalla-completa {
+  position: fixed;
+  inset: 0;
+  z-index: 4000;
+  max-width: none;
+  width: min(100vw, calc(100vh * 16 / 9));
+  margin: auto;
+  border-radius: 0;
+}
+.mini-preview-cerrar {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 4001;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, .2);
+  background: rgba(20, 20, 24, .85);
+  color: #fff;
+  font-weight: 900;
+  font-size: 16px;
+  cursor: pointer;
+}
+.mini-preview-cerrar:hover { background: rgba(40, 40, 46, .95); }
+
 /* Encabezado de la vista previa: qué se está mostrando (sigue a la pestaña
    abierta) + el interruptor manual para pasar a las 4 capas juntas. */
 .previa-cabecera {

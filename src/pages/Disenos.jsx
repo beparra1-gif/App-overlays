@@ -340,6 +340,13 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
   // cada vez. Arranca visible (el comportamiento de siempre) pero ahora se
   // puede plegar cuando no hace falta mirarla.
   const [mostrarPrevia, setMostrarPrevia] = useState(true);
+  // Pantalla completa: mismo recuadro 16:9 de siempre, pero usando todo el
+  // viewport en vez del ancho acotado del panel — la escala real que
+  // termina mostrando (useEscalaLienzo, ver PreviaCombinada.jsx) queda
+  // mucho más cerca de 1:1 en la mayoría de las pantallas. Pedido después
+  // de comparar la previa contra la transmisión real: incluso agrandada
+  // (900px → 1600px) seguía bastante por debajo de cómo se ve de verdad.
+  const [previaPantallaCompleta, setPreviaPantallaCompleta] = useState(false);
   const [pestanaExterna, setPestanaExterna] = useState(inicial?._irADirecto || 'personalizar');
   // El partido de "Juego en vivo" se prepara solo (nunca hace falta pedirlo
   // a mano) y se queda guardado en este estado mientras la pantalla siga
@@ -743,9 +750,14 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
             </span>
             <div style={{ display: 'flex', gap: 8 }}>
               {mostrarPrevia && (
-                <button type="button" className="btn-secundario btn-chico" onClick={() => setPreviaGeneral((v) => !v)}>
-                  {previaGeneral ? 'Ver solo esto' : 'Ver todo junto'}
-                </button>
+                <>
+                  <button type="button" className="btn-secundario btn-chico" onClick={() => setPreviaGeneral((v) => !v)}>
+                    {previaGeneral ? 'Ver solo esto' : 'Ver todo junto'}
+                  </button>
+                  <button type="button" className="btn-secundario btn-chico" onClick={() => setPreviaPantallaCompleta(true)} title="La misma previa, usando toda la pantalla — la escala queda mucho más cerca de cómo se ve de verdad">
+                    ⛶ Pantalla completa
+                  </button>
+                </>
               )}
               <button type="button" className="btn-secundario btn-chico" onClick={() => setMostrarPrevia((v) => !v)}>
                 {mostrarPrevia ? '▲ Ocultar previsualización' : '▼ Mostrar previsualización'}
@@ -760,6 +772,8 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
               equipoVisitaPreview={equipoVisitaVivo}
               partidoReal={partidoEnVivo}
               modo={previaGeneral ? 'general' : PREVIA_MODO_POR_SECCION[seccionAbierta]}
+              pantallaCompleta={previaPantallaCompleta}
+              onCerrarPantallaCompleta={() => setPreviaPantallaCompleta(false)}
               logosLibresEditable={seccionAbierta === 'logos'}
               onArrastrarLogoLibre={(id, x, y) => actualizarLogoLibre(id, { xPercent: x, yPercent: y })}
               animacionPuntosEditable={seccionAbierta === 'marcador'}
