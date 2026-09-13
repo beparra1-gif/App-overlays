@@ -422,20 +422,37 @@
 }
 .mv-dial-indicio.arriba { top: 10px; }
 .mv-dial-indicio.abajo { bottom: 10px; }
+/* El mango imita una rueda de mouse de verdad: cilindro con 3 surcos
+   horizontales — así se entiende de un vistazo que gira/se desliza, no que
+   es un botón redondo cualquiera. Gira de verdad con la rueda del mouse o
+   el trackpad (ver el listener "wheel" en Mesa.jsx) o arrastrándola con el
+   dedo. */
 .mv-dial-mango {
-  position: absolute; top: 50%; left: 50%; width: 52px; height: 52px; border-radius: 50%;
+  position: absolute; top: 50%; left: 50%; width: 52px; height: 52px; border-radius: 16px;
   background: linear-gradient(180deg, #3a3d46 0%, #202226 100%);
   border: 1px solid rgba(255,255,255,.22); box-shadow: 0 6px 16px rgba(0,0,0,.4);
   pointer-events: none;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;
 }
-.mv-dial-mango::before, .mv-dial-mango::after, .mv-dial-mango {
-  transition: background .15s ease, border-color .15s ease;
+.mv-dial-mango-surco { width: 30px; height: 2px; border-radius: 2px; background: rgba(255,255,255,.28); }
+.mv-dial-mango, .mv-dial-mango-surco {
+  transition: background .15s ease, border-color .15s ease, box-shadow .15s ease;
 }
 .mv-dial.arrastrando .mv-dial-mango {
   background: linear-gradient(180deg, var(--mv-azul) 0%, #0060d2 100%); border-color: #fff;
   box-shadow: 0 0 0 10px rgba(0,122,255,.18), 0 6px 16px rgba(0,0,0,.4);
 }
-.mv-dial:not(.arrastrando) .mv-dial-mango { transition: transform .28s cubic-bezier(.34,1.56,.64,1), background .15s ease, border-color .15s ease; }
+.mv-dial:not(.arrastrando) .mv-dial-mango { transition: transform .28s cubic-bezier(.34,1.56,.64,1), background .15s ease, border-color .15s ease, box-shadow .15s ease; }
+
+/* Destello breve cada vez que la rueda del mouse/trackpad dispara un ajuste
+   — sin esto, girar la rueda sobre la perilla (que no se mueve, a
+   diferencia de arrastrarla) no daba ninguna señal visual de que el gesto
+   se había registrado. */
+.mv-dial.pulso .mv-dial-mango {
+  background: linear-gradient(180deg, var(--mv-azul) 0%, #0060d2 100%); border-color: #fff;
+  box-shadow: 0 0 0 14px rgba(0,122,255,.22), 0 6px 16px rgba(0,0,0,.4);
+}
+.mv-dial.pulso .mv-dial-mango-surco { background: rgba(255,255,255,.85); }
 
 .mv-acciones-segmentado { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
 .mv-acciones-segmento {

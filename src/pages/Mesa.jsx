@@ -365,12 +365,31 @@ function BotonTimeout({ restantes, onClick, destacado }) {
 const ALTO_MUESCA_RUEDA = 18;
 const PASO_RUEDA_SEGUNDOS = 5;
 const TOPE_VISUAL_RUEDA = 68;
+// Cuánto deltaY (px) de la rueda del mouse/trackpad hace falta acumular
+// para que dispare una muesca — un mouse con rueda "de a clicks" manda
+// ±100 por click (dispara enseguida), un trackpad manda de a poco y
+// seguido (se va acumulando hasta juntar lo mismo).
+const ALTO_MUESCA_RUEDA_MOUSE = 40;
 
 function RuedaReloj({ segundos, corriendo, editando, minutosEdit, segundosEdit, onCambiarMinutos, onCambiarSegundos, onEmpezarEdicion, onConfirmarEdicion, onCancelarEdicion, onAjustar, onReiniciar }) {
   const [offsetVisual, setOffsetVisual] = useState(0);
   const [arrastrando, setArrastrando] = useState(false);
+  const [pulsoRueda, setPulsoRueda] = useState(false);
   const yAnteriorRef = useRef(0);
   const acumuladoRef = useRef(0);
+  const acumuladoRuedaRef = useRef(0);
+  const pulsoTimeoutRef = useRef(null);
+  const dialRef = useRef(null);
+  const onAjustarRef = useRef(onAjustar);
+  onAjustarRef.current = onAjustar;
+  const editandoRef = useRef(editando);
+  editandoRef.current = editando;
+
+  const destellar = () => {
+    setPulsoRueda(true);
+    clearTimeout(pulsoTimeoutRef.current);
+    pulsoTimeoutRef.current = setTimeout(() => setPulsoRueda(false), 200);
+  };
 
   const empezarArrastre = (e) => {
     if (editando) return;
@@ -399,6 +418,37 @@ function RuedaReloj({ segundos, corriendo, editando, minutosEdit, segundosEdit, 
     acumuladoRef.current = 0;
     setOffsetVisual(0);
   };
+
+  // Rueda de mouse/trackpad de verdad: girarla arriba de la perilla ajusta
+  // el reloj sin tener que arrastrar nada — el uso natural en escritorio.
+  // Va con addEventListener nativo (no onWheel de React) para poder llamar
+  // preventDefault de verdad y que no se scrollee la página al girarla
+  // arriba de la Mesa.
+  useEffect(() => {
+    const el = dialRef.current;
+    if (!el) return undefined;
+    const manejarRueda = (e) => {
+      if (editandoRef.current) return;
+      e.preventDefault();
+      acumuladoRuedaRef.current += e.deltaY;
+      let disparo = false;
+      while (acumuladoRuedaRef.current <= -ALTO_MUESCA_RUEDA_MOUSE) {
+        onAjustarRef.current(PASO_RUEDA_SEGUNDOS);
+        acumuladoRuedaRef.current += ALTO_MUESCA_RUEDA_MOUSE;
+        disparo = true;
+      }
+      while (acumuladoRuedaRef.current >= ALTO_MUESCA_RUEDA_MOUSE) {
+        onAjustarRef.current(-PASO_RUEDA_SEGUNDOS);
+        acumuladoRuedaRef.current -= ALTO_MUESCA_RUEDA_MOUSE;
+        disparo = true;
+      }
+      if (disparo) destellar();
+    };
+    el.addEventListener('wheel', manejarRueda, { passive: false });
+    return () => el.removeEventListener('wheel', manejarRueda);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => () => clearTimeout(pulsoTimeoutRef.current), []);
 
   return (
     <div className="mv-rueda-reloj">
@@ -431,15 +481,20 @@ function RuedaReloj({ segundos, corriendo, editando, minutosEdit, segundosEdit, 
       <div className="mv-rueda-fila">
         <button type="button" className="mv-pill mv-pill-reloj" onClick={() => onAjustar(-60)}>-1:00</button>
         <div
-          className={`mv-dial ${arrastrando ? 'arrastrando' : ''}`}
+          ref={dialRef}
+          className={`mv-dial ${arrastrando ? 'arrastrando' : ''} ${pulsoRueda ? 'pulso' : ''}`}
           onPointerDown={empezarArrastre}
           onPointerMove={moverArrastre}
           onPointerUp={terminarArrastre}
           onPointerCancel={terminarArrastre}
-          title="Arrastrar hacia arriba o abajo para ajustar el reloj rápido"
+          title="Girar la rueda del mouse, o arrastrar con el dedo, para ajustar el reloj"
         >
           <span className="mv-dial-indicio arriba">▲</span>
-          <span className="mv-dial-mango" style={{ transform: `translate(-50%, calc(-50% + ${offsetVisual}px))` }} />
+          <span className="mv-dial-mango" style={{ transform: `translate(-50%, calc(-50% + ${offsetVisual}px))` }}>
+            <span className="mv-dial-mango-surco" />
+            <span className="mv-dial-mango-surco" />
+            <span className="mv-dial-mango-surco" />
+          </span>
           <span className="mv-dial-indicio abajo">▼</span>
         </div>
         <button type="button" className="mv-pill mv-pill-reloj" onClick={() => onAjustar(60)}>+1:00</button>

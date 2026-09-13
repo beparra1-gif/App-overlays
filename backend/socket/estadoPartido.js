@@ -368,10 +368,36 @@ async function escribirReloj(partido, nuevoValor) {
   return resultado.rows[0];
 }
 
+// A diferencia de escribirReloj/fijarReloj (que reciben un valor YA
+// calculado), acá el cálculo del "actual" pasa a la propia sentencia SQL en
+// vez de leerse del objeto `partido` en JS: dos RELOJ_AJUSTAR seguidos y
+// rápidos (arrastrar la rueda, girar la rueda del mouse varias muescas
+// seguidas) llegan como dos eventos de socket separados, cada uno con su
+// propio `SELECT` de entrada — si el segundo arranca antes de que el
+// primero termine de escribir, los dos leen el mismo valor de partida y el
+// ajuste de uno se pierde. Con el delta aplicado en una sola sentencia
+// UPDATE, Postgres serializa los dos con el lock de fila de siempre: el
+// segundo espera a que el primero confirme y sigue desde ahí, así que
+// ningún ajuste se pierde sea cual sea la velocidad a la que lleguen. La
+// fórmula del "tiempo restante ya corrido" replica relojActual() de arriba,
+// pero contra el valor que la fila tiene EN ESE MOMENTO en la base, no una
+// copia vieja en memoria.
 export async function ajustarReloj(partido, deltaSegundos) {
-  const actual = relojActual(partido);
-  const nuevo = Math.max(0, actual + deltaSegundos);
-  return escribirReloj(partido, nuevo);
+  const resultado = await pool.query(
+    `UPDATE partidos
+     SET reloj_segundos = GREATEST(0,
+           (CASE WHEN reloj_corriendo AND reloj_referencia_en IS NOT NULL
+             THEN reloj_segundos - FLOOR(EXTRACT(EPOCH FROM (now() - reloj_referencia_en)))::int
+             ELSE reloj_segundos
+           END) + $1::int
+         ),
+         reloj_referencia_en = CASE WHEN reloj_corriendo THEN now() ELSE reloj_referencia_en END,
+         actualizado_en = now()
+     WHERE id = $2
+     RETURNING *`,
+    [Math.trunc(deltaSegundos), partido.id]
+  );
+  return resultado.rows[0];
 }
 
 // Fija el reloj a un tiempo EXACTO elegido a mano (minutos:segundos

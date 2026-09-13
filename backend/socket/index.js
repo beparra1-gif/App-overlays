@@ -51,6 +51,27 @@ const roomPartido = (publicToken) => `partido:${publicToken}`;
 const roomEscena = (escenaToken) => `escena:${escenaToken}`;
 const roomDiseno = (disenoId) => `diseno:${disenoId}`;
 
+// Serializa las acciones de un mismo partido en el orden en que llegan.
+// Cada 'accion' es un handler async (construirEstado incluido, que hace
+// sus propias consultas) — sin esto, dos acciones seguidas y rápidas para
+// el MISMO partido (p. ej. girar la rueda del mouse del reloj varias
+// veces seguidas) corren en paralelo, y no hay garantía de que la que
+// llegó primero termine y emita 'estado' primero: la más lenta podía
+// terminar después y su 'estado' (más viejo) pisaba al de una acción más
+// nueva que ya se había emitido. Encadenar cada tarea a la promesa de la
+// anterior, para ese mismo publicToken, hace que corran una por una en
+// orden de llegada — partidos distintos entre sí siguen sin bloquearse.
+const colaPorToken = new Map();
+function encolarPorToken(publicToken, tarea) {
+  const anterior = colaPorToken.get(publicToken) || Promise.resolve();
+  const siguiente = anterior.then(tarea, tarea);
+  colaPorToken.set(publicToken, siguiente.catch(() => {}));
+  return siguiente;
+}
+function serializarPorToken(manejador) {
+  return (datos = {}) => encolarPorToken(datos.publicToken, () => manejador(datos));
+}
+
 function usuarioAutorizado(token, partido) {
   if (!token) return false;
   try {
@@ -131,7 +152,7 @@ export function registrarSocketPartidos(io) {
       socket.emit('escena_viewers', { escenaToken, cantidad: cantidadViewers(escenaToken) });
     });
 
-    socket.on('accion', async ({ publicToken, tipo, token, payload = {} } = {}) => {
+    socket.on('accion', serializarPorToken(async ({ publicToken, tipo, token, payload = {} } = {}) => {
       try {
         if (!publicToken || !tipo) throw new Error('Solicitud incompleta');
         const partido = await cargarPartidoPorToken(publicToken);
@@ -342,7 +363,7 @@ export function registrarSocketPartidos(io) {
       } catch (error) {
         socket.emit('error_marcador', { error: error.message || 'No se pudo aplicar la acción' });
       }
-    });
+    }));
 
     socket.on('disconnect', () => {
       if (escenaUnida && partidoTokenUnido) avisarViewers(partidoTokenUnido, escenaUnida);
