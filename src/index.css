@@ -535,15 +535,22 @@ select {
   border-left-width: 0;
 }
 
-/* "Copiar la nómina de" arriba del formulario de "+ Nómina" en la Mesa
-   (ver Mesa.jsx) — separación del bloque de EquipoRoster que viene debajo. */
+/* Botones de "elegir/crear equipo" y "vaciar nómina" arriba del formulario
+   de "+ Nómina" en la Mesa (ver Mesa.jsx) — separación del bloque de
+   EquipoRoster que viene debajo. */
 .mv-copiar-nomina {
   margin-bottom: 14px;
   padding-bottom: 14px;
   border-bottom: 1px solid rgba(255, 255, 255, .1);
 }
-.mv-copiar-nomina label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #9aa0ab; }
-.mv-copiar-nomina select { width: 100%; box-sizing: border-box; }
+
+/* ModalElegirEquipo (Mesa.jsx) — buscador de equipo guardado por nombre/
+   rama/categoría, para copiar su nómina o crear uno nuevo. Un poco más
+   ancho que el modal-caja por defecto porque tiene buscador + 2 filtros +
+   lista, no solo un puñado de botones. */
+.mv-modal-elegir-equipo { width: min(480px, 92vw); }
+.mv-buscador-equipo { width: 100%; box-sizing: border-box; margin-top: 4px; }
+.mv-lista-equipos { max-height: 260px; overflow-y: auto; }
 
 /* Fila tipo "Ajustes" de iOS: etiqueta a la izquierda, switch a la derecha,
    ancho completo con un divisor fino abajo — así una pila de Toggle uno

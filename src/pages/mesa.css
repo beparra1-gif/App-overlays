@@ -403,32 +403,29 @@
    que en un monitor grande con el panel angosto igual forzaba 4 columnas
    apretadas. Cada sección (tiro/juego/falta) cae sola en 3 o 4 columnas
    según cuántos botones tenga, sin overrides por sección. */
-.fiba-botones-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(112px, 1fr)); gap: 12px; margin-top: 8px; }
+.fiba-botones-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(112px, 1fr)); gap: 10px; margin-top: 6px; }
 
-.mv-seccion-titulo { margin: 16px 0 0; font-size: 12px; font-weight: 800; color: var(--mv-texto-tenue); text-transform: uppercase; letter-spacing: .04em; }
-.mv-seccion-titulo:first-of-type { margin-top: 12px; }
+.mv-seccion-titulo { margin: 12px 0 0; font-size: 12px; font-weight: 800; color: var(--mv-texto-tenue); text-transform: uppercase; letter-spacing: .04em; }
+.mv-seccion-titulo:first-of-type { margin-top: 8px; }
 
 .btn-fiba {
-  border: none; padding: 14px 8px; border-radius: 16px; font-weight: 900; font-size: 14px;
+  border: none; padding: 10px 8px; border-radius: 14px; font-weight: 900; font-size: 13px;
   line-height: 1.15; cursor: pointer; color: white; box-shadow: 0 6px 16px rgba(0,0,0,.28); transition: .15s;
   display: flex; align-items: center; justify-content: center; text-align: center;
-  /* Antes era min-height fijo (90px) sobre un ancho que la grilla decide
-     solo — con pocas columnas (la fila de "tiro", 3 botones) quedaban bien
-     anchos pero apenas más altos que un botón normal, "alargados". Con
-     aspect-ratio el alto sigue al ancho real de cada columna. 2/1 (el alto
-     es la mitad del ancho) en vez de 1/1 (cuadrado): cuadrado obligaba a
-     scrollear para ver las 3 secciones completas — con este alto entran
-     tiro + juego + falta + Cambio sin scroll en la mayoría de las pantallas. */
-  aspect-ratio: 2 / 1;
-  min-height: 64px;
+  /* aspect-ratio: el alto sigue al ancho real de cada columna en vez de un
+     min-height fijo — 1/1 (cuadrado) obligaba a scrollear para ver las 3
+     secciones completas más "Cambio"; con esta proporción entra siempre,
+     verificado hasta en pantallas de 700px de alto. */
+  aspect-ratio: 2.3 / 1;
+  min-height: 52px;
 }
 .btn-fiba:active { transform: scale(.96); }
 .btn-fiba:disabled { opacity: .3; box-shadow: none; cursor: not-allowed; }
 /* Paleta profesional (planillas/broadcast FIBA) — tonos más apagados y
    oscuros en vez de los colores "de arcade" de antes, uno por sección. */
-.btn-fiba.tiro { background: linear-gradient(160deg, #2b5fa8 0%, #1b3c6e 100%); }
-.btn-fiba.juego { background: linear-gradient(160deg, #4b5768 0%, #29323e 100%); }
-.btn-fiba.falta { background: linear-gradient(160deg, #a1372f 0%, #6e211b 100%); }
+.btn-fiba.tiro { background: linear-gradient(160deg, #1f8cff 0%, #0a4fc4 100%); }
+.btn-fiba.juego { background: linear-gradient(160deg, #1eb0b8 0%, #0d6a72 100%); }
+.btn-fiba.falta { background: linear-gradient(160deg, #ff453a 0%, #a3110a 100%); }
 
 /* Panel flotante de acciones (PanelAcciones en Mesa.jsx) — antes este
    contenido (prompt + fiba-botones-grid + Cambio) vivía fijo en
@@ -477,7 +474,7 @@
   backdrop-filter: blur(20px) saturate(1.6);
   border: 1px solid rgba(255, 255, 255, .14);
   border-radius: 24px;
-  padding: 24px;
+  padding: 18px 20px;
   box-shadow: 0 1px 0 rgba(255, 255, 255, .08) inset, 0 18px 40px rgba(0, 0, 0, .5);
   animation: panelAccionesIn .28s cubic-bezier(.34, 1.3, .64, 1);
 }
@@ -562,16 +559,16 @@
    link más. Tono dorado/ámbar a propósito, distinto de tiro/juego/falta —
    "cambio" no es ninguna de esas tres categorías. */
 .mv-btn-cambio {
-  margin-top: 14px;
+  margin-top: 10px;
   width: 100%;
-  min-height: 68px;
+  min-height: 56px;
   font-size: 17px;
   font-weight: 900;
-  padding: 14px;
+  padding: 12px;
   border: none;
   border-radius: 18px;
   color: #fff;
-  background: linear-gradient(160deg, #cc9d3f 0%, #86641c 100%);
+  background: linear-gradient(160deg, #ffbb33 0%, #b5750a 100%);
   box-shadow: 0 10px 26px rgba(0, 0, 0, .35);
   cursor: pointer;
   display: flex; align-items: center; justify-content: center; gap: 10px;

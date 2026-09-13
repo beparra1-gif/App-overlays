@@ -76,6 +76,7 @@ export const api = {
   listarJugadores: (equipoId) => solicitud(`/equipos/${equipoId}/jugadores`),
   crearJugador: (equipoId, payload) => solicitud(`/equipos/${equipoId}/jugadores`, { method: 'POST', body: payload }),
   copiarNomina: (equipoId, desdeEquipoId) => solicitud(`/equipos/${equipoId}/copiar-nomina`, { method: 'POST', body: { desde_equipo_id: desdeEquipoId } }),
+  vaciarNomina: (equipoId) => solicitud(`/equipos/${equipoId}/vaciar-nomina`, { method: 'POST' }),
   actualizarJugador: (id, payload) => solicitud(`/jugadores/${id}`, { method: 'PUT', body: payload }),
   eliminarJugador: (id, opciones) => solicitud(`/jugadores/${id}${opciones?.forzar ? '?forzar=true' : ''}`, { method: 'DELETE' }),
 

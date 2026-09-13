@@ -243,6 +243,45 @@ router.post('/:id/jugadores', async (req, res) => {
   }
 });
 
+// Borra la nómina actual de un equipo, protegiendo a quien ya tenga jugadas
+// registradas en algún partido (eventos_partido) — se reusa desde
+// copiar-nomina (reemplazar por la del origen) y desde vaciar-nomina
+// (dejarla en blanco sin reemplazo). Nunca toca el plantel de OTRO equipo:
+// esto es "sacar del partido/equipo actual", no "borrar del club" — un
+// jugador que también juegue en otra categoría/rama (otro equipo_id) ni se
+// entera.
+async function vaciarNominaProtegida(equipoId) {
+  await pool.query(
+    `DELETE FROM jugadores
+     WHERE equipo_id = $1 AND temporal = false
+       AND NOT EXISTS (SELECT 1 FROM eventos_partido e WHERE e.jugador_id = jugadores.id)`,
+    [equipoId]
+  );
+}
+
+// "Vaciar nómina" (Mesa.jsx, popup "+ Nómina"): saca a todo el plantel de
+// ESTE equipo puntual (protegiendo a quien ya tenga jugadas), sin tocar los
+// datos guardados de ningún otro equipo — así se puede "empezar de nuevo"
+// con la nómina de un partido sin perder el plantel real del club en
+// "Equipos".
+router.post('/:id/vaciar-nomina', async (req, res) => {
+  const equipo = await equipoDelUsuario(req.params.id, req.userId);
+  if (!equipo) return res.status(404).json({ error: 'Equipo no encontrado' });
+
+  try {
+    await vaciarNominaProtegida(equipo.id);
+    await avisarRosterActualizado(req.app.locals.io, equipo.id, req.userId);
+    const nominaFinal = await pool.query(
+      'SELECT * FROM jugadores WHERE equipo_id = $1 AND temporal = false ORDER BY dorsal ASC NULLS LAST, nombre ASC',
+      [equipo.id]
+    );
+    res.json({ jugadores: nominaFinal.rows });
+  } catch (error) {
+    console.error('[POST /equipos/:id/vaciar-nomina]', error);
+    res.status(500).json({ error: 'No se pudo vaciar la nómina' });
+  }
+});
+
 // "Elegir nómina de los equipos guardados" (EquipoFicha.jsx): en vez de
 // tipear de nuevo un plantel que ya está cargado en OTRO equipo guardado
 // (el mismo club, una categoría/rama distinta, por ejemplo), se copia acá
@@ -274,12 +313,7 @@ router.post('/:id/copiar-nomina', async (req, res) => {
     );
     if (hayOrigen.rows.length === 0) return res.status(400).json({ error: 'Ese equipo todavía no tiene nómina cargada' });
 
-    await pool.query(
-      `DELETE FROM jugadores
-       WHERE equipo_id = $1 AND temporal = false
-         AND NOT EXISTS (SELECT 1 FROM eventos_partido e WHERE e.jugador_id = jugadores.id)`,
-      [equipo.id]
-    );
+    await vaciarNominaProtegida(equipo.id);
     await pool.query(
       `INSERT INTO jugadores (equipo_id, dorsal, nombre, temporal, partido_id)
        SELECT $1, o.dorsal, o.nombre, false, NULL

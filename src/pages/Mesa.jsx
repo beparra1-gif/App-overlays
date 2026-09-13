@@ -142,6 +142,157 @@ function ModalRoster({ onCerrar, children }) {
   );
 }
 
+const RAMA_OPCIONES = [
+  { value: '', label: 'Todas las ramas' },
+  { value: 'femenino', label: 'Femenino' },
+  { value: 'masculino', label: 'Masculino' },
+];
+
+// Buscador de equipo guardado para copiar su nómina — antes era un <select>
+// plano con TODOS los equipos del usuario mezclados; un club con muchas
+// categorías/ramas ("Cultura Sub-13 Femenino", "Cultura Sub-15 Masculino",
+// etc.) se volvía imposible de navegar ahí. Acá se busca por nombre/
+// categoría de texto libre, y se puede acotar más por rama/categoría en
+// desplegables aparte. Si ninguno de los guardados es el que hace falta,
+// "+ Crear equipo nuevo" arma uno (nombre + categoría + rama, igual que en
+// "Equipos") y deja cargarle la nómina ahí mismo (dorsal solo o dorsal +
+// nombre, misma lógica de siempre) antes de usarlo para el partido — ese
+// equipo queda guardado de verdad, reusable después desde cualquier lado,
+// no es algo temporal solo para hoy.
+function ModalElegirEquipo({ equipos, equipoActualId, onUsar, onCerrar }) {
+  const [busqueda, setBusqueda] = useState('');
+  const [filtroRama, setFiltroRama] = useState('');
+  const [filtroCategoria, setFiltroCategoria] = useState('');
+  const [creando, setCreando] = useState(false);
+  const [nombreNuevo, setNombreNuevo] = useState('');
+  const [categoriaNueva, setCategoriaNueva] = useState('');
+  const [ramaNueva, setRamaNueva] = useState('');
+  const [guardandoNuevo, setGuardandoNuevo] = useState(false);
+  const [equipoNuevo, setEquipoNuevo] = useState(null);
+  const [rosterNuevo, setRosterNuevo] = useState([]);
+  const [error, setError] = useState('');
+
+  const disponibles = equipos.filter((e) => e.id !== equipoActualId && e.jugadores_count > 0);
+  const categoriasDisponibles = [...new Set(disponibles.map((e) => e.categoria).filter(Boolean))].sort();
+
+  const filtrados = disponibles
+    .filter((e) => {
+      const texto = busqueda.trim().toLowerCase();
+      const coincideTexto = !texto || e.nombre.toLowerCase().includes(texto) || (e.categoria || '').toLowerCase().includes(texto);
+      const coincideRama = !filtroRama || e.rama === filtroRama;
+      const coincideCategoria = !filtroCategoria || e.categoria === filtroCategoria;
+      return coincideTexto && coincideRama && coincideCategoria;
+    })
+    .sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+  const crearEquipoNuevo = async (e) => {
+    e.preventDefault();
+    if (!nombreNuevo.trim()) return setError('Poné al menos el nombre del equipo');
+    setError('');
+    setGuardandoNuevo(true);
+    try {
+      const { equipo } = await api.crearEquipo({
+        nombre: nombreNuevo.trim(),
+        color: '#0a84ff',
+        categoria: categoriaNueva.trim() || null,
+        rama: ramaNueva || null,
+      });
+      setEquipoNuevo(equipo);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setGuardandoNuevo(false);
+    }
+  };
+
+  return (
+    <div className="modal-fondo" onClick={onCerrar}>
+      <div className="modal-caja mv-modal-elegir-equipo" onClick={(e) => e.stopPropagation()}>
+        {error && <p className="mensaje-error">{error}</p>}
+
+        {!creando ? (
+          <>
+            <h3>Elegir nómina de un equipo guardado</h3>
+            <input
+              className="mv-buscador-equipo"
+              placeholder="Buscar por nombre o categoría…"
+              value={busqueda}
+              onChange={(ev) => setBusqueda(ev.target.value)}
+              autoFocus
+            />
+            <div className="fila-form" style={{ marginTop: 8 }}>
+              <select value={filtroRama} onChange={(ev) => setFiltroRama(ev.target.value)}>
+                {RAMA_OPCIONES.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+              <select value={filtroCategoria} onChange={(ev) => setFiltroCategoria(ev.target.value)}>
+                <option value="">Todas las categorías</option>
+                {categoriasDisponibles.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+
+            <ul className="modal-lista-filas mv-lista-equipos" style={{ marginTop: 12 }}>
+              {filtrados.map((e) => (
+                <li key={e.id}>
+                  <button type="button" className="modal-fila-btn" onClick={() => onUsar(e.id)}>
+                    <span style={{ flex: 1 }}>{etiquetaEquipoGuardado(e)}</span>
+                    <span className="texto-tenue">{e.jugadores_count}</span>
+                  </button>
+                </li>
+              ))}
+              {filtrados.length === 0 && <li className="texto-tenue">Ningún equipo guardado coincide con la búsqueda.</li>}
+            </ul>
+
+            <button type="button" className="btn-secundario" style={{ width: '100%', marginTop: 12 }} onClick={() => setCreando(true)}>
+              + Crear equipo nuevo
+            </button>
+          </>
+        ) : !equipoNuevo ? (
+          <>
+            <h3>Crear equipo nuevo</h3>
+            <form className="fila-form" style={{ flexWrap: 'wrap' }} onSubmit={crearEquipoNuevo}>
+              <input placeholder="Nombre del equipo" value={nombreNuevo} onChange={(ev) => setNombreNuevo(ev.target.value)} style={{ flex: 1, minWidth: 160 }} autoFocus />
+              <input placeholder="Categoría (ej. Sub-15)" value={categoriaNueva} onChange={(ev) => setCategoriaNueva(ev.target.value)} style={{ maxWidth: 150 }} />
+              <select value={ramaNueva} onChange={(ev) => setRamaNueva(ev.target.value)} style={{ maxWidth: 150 }}>
+                <option value="">Rama (opcional)</option>
+                <option value="femenino">Femenino</option>
+                <option value="masculino">Masculino</option>
+              </select>
+              <button className="btn-secundario" type="submit" disabled={guardandoNuevo}>{guardandoNuevo ? 'Creando…' : 'Crear'}</button>
+            </form>
+            <button type="button" className="btn-link" onClick={() => setCreando(false)}>← Volver a buscar</button>
+          </>
+        ) : (
+          <>
+            {/* EquipoRoster ya trae su propio <h3>{equipo.nombre}</h3> —
+                acá no hace falta otro título repitiendo lo mismo arriba. */}
+            <EquipoRoster
+              equipo={equipoNuevo}
+              roster={rosterNuevo}
+              seleccionable={false}
+              onJugadorAgregado={(j) => setRosterNuevo((r) => [...r, j])}
+              permitirEliminar
+              onJugadorEliminado={(id) => setRosterNuevo((r) => r.filter((x) => x.id !== id))}
+              permitirEditar
+              onJugadorEditado={(actualizado) => setRosterNuevo((r) => r.map((x) => (x.id === actualizado.id ? actualizado : x)))}
+            />
+            <button
+              type="button"
+              className="btn-primario"
+              style={{ width: '100%', marginTop: 12 }}
+              disabled={rosterNuevo.length === 0}
+              onClick={() => onUsar(equipoNuevo.id)}
+            >
+              Usar esta nómina para el partido
+            </button>
+          </>
+        )}
+
+        <button className="btn-link" style={{ marginTop: 10 }} onClick={onCerrar}>Cerrar</button>
+      </div>
+    </div>
+  );
+}
+
 function contrasteTexto(hex) {
   const limpio = String(hex || '').replace('#', '');
   if (!/^[0-9A-Fa-f]{6}$/.test(limpio)) return '#fff';
@@ -457,6 +608,11 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
   // hace falta antes.
   const [equiposGuardados, setEquiposGuardados] = useState([]);
   const [copiandoNominaMesa, setCopiandoNominaMesa] = useState(false);
+  // Ventana de "Elegir/crear equipo guardado" (buscador por nombre/rama/
+  // categoría) dentro de "+ Nómina" — boolean nomás, ya sabemos para qué
+  // lado es por `modalNomina` (esta ventana solo se puede abrir con la de
+  // nómina ya abierta).
+  const [modalElegirEquipo, setModalElegirEquipo] = useState(false);
   const [detalleJugadores, setDetalleJugadores] = useState(false);
   // Al disparar Nómina/Estadísticas: si se tapa el marcador base mientras
   // esa capa está en pantalla, o se lo deja visible debajo (por defecto).
@@ -723,6 +879,27 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
       setError(err.message);
     } finally {
       setCopiandoNominaMesa(false);
+    }
+  };
+
+  // "Vaciar nómina de este partido" — saca a todo el plantel de ESTE
+  // equipo (protegiendo a quien ya tenga jugadas registradas), sin tocar
+  // el plantel guardado de ningún otro equipo en "Equipos". Mismo criterio
+  // de quinteto que copiarNominaEnMesa: si alguien que estaba en cancha ya
+  // no forma parte de la nómina, sale también del quinteto.
+  const vaciarNominaEnMesa = async (equipoKey) => {
+    const equipo = equipoKey === 'local' ? partido.equipoLocal : partido.equipoVisita;
+    if (!window.confirm(`¿Vaciar la nómina de ${equipo.nombre} para este partido? No se borra el plantel guardado en "Equipos" — solo se saca de este partido. A quien ya tenga jugadas anotadas no se lo puede sacar.`)) return;
+    setError('');
+    try {
+      const { jugadores } = await api.vaciarNomina(equipo.id);
+      (equipoKey === 'local' ? setRosterLocalCompleto : setRosterVisitaCompleto)(jugadores);
+      const idsNuevos = new Set(jugadores.map((j) => j.id));
+      const quinteto = equipoKey === 'local' ? partido.quintetoLocalIds : partido.quintetoVisitaIds;
+      const quintetoFiltrado = quinteto.filter((id) => idsNuevos.has(id));
+      if (quintetoFiltrado.length !== quinteto.length) cambiarQuinteto(equipoKey, quintetoFiltrado);
+    } catch (err) {
+      setError(err.message);
     }
   };
 
@@ -1309,29 +1486,21 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
       {mostrarResumen && <ModalResumen partido={partido} onCerrar={() => setMostrarResumen(false)} />}
 
       {modalNomina && (
-        <ModalRoster onCerrar={() => setModalNomina(null)}>
+        <ModalRoster onCerrar={() => { setModalNomina(null); setModalElegirEquipo(false); }}>
           <div className="tarjeta mv-copiar-nomina">
-            <label>
-              Copiar la nómina de un equipo guardado
-              <select
-                value=""
-                disabled={copiandoNominaMesa}
-                onChange={(e) => copiarNominaEnMesa(modalNomina, e.target.value)}
-              >
-                <option value="">— Elegí un equipo guardado —</option>
-                {equiposGuardados
-                  .filter((e) => e.id !== (modalNomina === 'local' ? partido.equipoLocal.id : partido.equipoVisita.id) && e.jugadores_count > 0)
-                  .sort((a, b) => a.nombre.localeCompare(b.nombre))
-                  .map((e) => (
-                    <option key={e.id} value={e.id}>{etiquetaEquipoGuardado(e)} ({e.jugadores_count})</option>
-                  ))}
-              </select>
-            </label>
-            {(modalNomina === 'local' ? rosterLocalCompleto : rosterVisitaCompleto).length > 0 && (
-              <p className="texto-tenue" style={{ margin: '6px 0 0', fontSize: 12 }}>
-                Elegir un equipo acá reemplaza la nómina de abajo por la suya.
-              </p>
-            )}
+            <div className="fila-form" style={{ flexWrap: 'wrap' }}>
+              <button type="button" className="btn-secundario" disabled={copiandoNominaMesa} onClick={() => setModalElegirEquipo(true)}>
+                🔍 Elegir/crear equipo guardado
+              </button>
+              {(modalNomina === 'local' ? rosterLocalCompleto : rosterVisitaCompleto).length > 0 && (
+                <button type="button" className="btn-link" onClick={() => vaciarNominaEnMesa(modalNomina)}>
+                  🗑 Vaciar nómina de este partido
+                </button>
+              )}
+            </div>
+            <p className="texto-tenue" style={{ margin: '6px 0 0', fontSize: 12 }}>
+              Elegir un equipo reemplaza la nómina de abajo por la suya — vaciarla no borra el plantel guardado en "Equipos", solo la saca de este partido.
+            </p>
           </div>
           <EquipoRoster
             equipo={modalNomina === 'local' ? partido.equipoLocal : partido.equipoVisita}
@@ -1345,6 +1514,18 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
             partidoId={partido.id}
           />
         </ModalRoster>
+      )}
+
+      {modalNomina && modalElegirEquipo && (
+        <ModalElegirEquipo
+          equipos={equiposGuardados}
+          equipoActualId={modalNomina === 'local' ? partido.equipoLocal.id : partido.equipoVisita.id}
+          onUsar={(id) => {
+            copiarNominaEnMesa(modalNomina, id);
+            setModalElegirEquipo(false);
+          }}
+          onCerrar={() => setModalElegirEquipo(false)}
+        />
       )}
 
       {modalQuinteto && (
