@@ -334,6 +334,12 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
   // — este interruptor es la salida manual para ver las 4 capas juntas como
   // se van a ver de verdad en la transmisión, sin cambiar de pestaña.
   const [previaGeneral, setPreviaGeneral] = useState(false);
+  // Poder ocultarla del todo — antes la previsualización siempre ocupaba el
+  // primer tramo de la pantalla de "Personalizar", así que en una notebook
+  // chica había que scrollear de más para llegar a los campos de edición
+  // cada vez. Arranca visible (el comportamiento de siempre) pero ahora se
+  // puede plegar cuando no hace falta mirarla.
+  const [mostrarPrevia, setMostrarPrevia] = useState(true);
   const [pestanaExterna, setPestanaExterna] = useState(inicial?._irADirecto || 'personalizar');
   // El partido de "Juego en vivo" se prepara solo (nunca hace falta pedirlo
   // a mano) y se queda guardado en este estado mientras la pantalla siga
@@ -732,27 +738,36 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
         <div style={{ marginBottom: 18 }}>
           <div className="previa-cabecera">
             <span className="previa-etiqueta">
-              {previaGeneral ? 'Vista general' : PREVIA_ETIQUETA[PREVIA_MODO_POR_SECCION[seccionAbierta]]}
+              {mostrarPrevia ? (previaGeneral ? 'Vista general' : PREVIA_ETIQUETA[PREVIA_MODO_POR_SECCION[seccionAbierta]]) : 'Previsualización oculta'}
               {partidoEnVivo && <span className="chip-en-uso" style={{ marginLeft: 8 }}>● en vivo</span>}
             </span>
-            <button type="button" className="btn-secundario btn-chico" onClick={() => setPreviaGeneral((v) => !v)}>
-              {previaGeneral ? 'Ver solo esto' : 'Ver todo junto'}
-            </button>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {mostrarPrevia && (
+                <button type="button" className="btn-secundario btn-chico" onClick={() => setPreviaGeneral((v) => !v)}>
+                  {previaGeneral ? 'Ver solo esto' : 'Ver todo junto'}
+                </button>
+              )}
+              <button type="button" className="btn-secundario btn-chico" onClick={() => setMostrarPrevia((v) => !v)}>
+                {mostrarPrevia ? '▲ Ocultar previsualización' : '▼ Mostrar previsualización'}
+              </button>
+            </div>
           </div>
-          <PreviaCombinada
-            plantillaId={plantillaBase}
-            config={config}
-            equipoLocalPreview={equipoLocalVivo}
-            equipoVisitaPreview={equipoVisitaVivo}
-            partidoReal={partidoEnVivo}
-            modo={previaGeneral ? 'general' : PREVIA_MODO_POR_SECCION[seccionAbierta]}
-            logosLibresEditable={seccionAbierta === 'logos'}
-            onArrastrarLogoLibre={(id, x, y) => actualizarLogoLibre(id, { xPercent: x, yPercent: y })}
-            animacionPuntosEditable={seccionAbierta === 'marcador'}
-            onArrastrarAnimacionPuntos={arrastrarAnimacionPuntos}
-            anunciosEditable={seccionAbierta === 'anuncios'}
-            onArrastrarAnuncios={arrastrarAnuncios}
-          />
+          {mostrarPrevia && (
+            <PreviaCombinada
+              plantillaId={plantillaBase}
+              config={config}
+              equipoLocalPreview={equipoLocalVivo}
+              equipoVisitaPreview={equipoVisitaVivo}
+              partidoReal={partidoEnVivo}
+              modo={previaGeneral ? 'general' : PREVIA_MODO_POR_SECCION[seccionAbierta]}
+              logosLibresEditable={seccionAbierta === 'logos'}
+              onArrastrarLogoLibre={(id, x, y) => actualizarLogoLibre(id, { xPercent: x, yPercent: y })}
+              animacionPuntosEditable={seccionAbierta === 'marcador'}
+              onArrastrarAnimacionPuntos={arrastrarAnimacionPuntos}
+              anunciosEditable={seccionAbierta === 'anuncios'}
+              onArrastrarAnuncios={arrastrarAnuncios}
+            />
+          )}
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>

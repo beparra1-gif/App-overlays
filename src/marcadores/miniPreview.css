@@ -36,9 +36,15 @@
    miniaturas de tarjeta, para que se lean varias capas superpuestas a la
    vez (marcador + nómina + estadísticas + anuncios), con marco propio para
    que se distinga del resto del formulario y sea cómoda de mirar mientras
-   se edita. */
+   se edita. Antes topaba en 900px de ancho — a esa escala (menos de la
+   mitad de 1920px reales) cualquier elemento que no fuera el marcador
+   (nómina, estadísticas, un logo chico) quedaba casi ilegible. 1600px sigue
+   siendo el MISMO mecanismo de siempre (el lienzo interno sigue siendo
+   1920×1080 reales, escalado por useEscalaLienzo a partir del ancho real
+   del marco — ver el comentario en .mini-preview-lienzo) — nada más se le
+   da más lugar en pantalla, así la escala que le toca es mayor. */
 .mini-preview-grande {
-  max-width: 900px;
+  max-width: 1600px;
   margin: 0 auto;
   border: 1px solid rgba(255, 255, 255, .12);
   border-radius: 12px;
@@ -52,7 +58,7 @@
   align-items: center;
   justify-content: space-between;
   margin: 0 auto 8px;
-  max-width: 900px;
+  max-width: 1600px;
 }
 .previa-etiqueta {
   font-size: 13px;
