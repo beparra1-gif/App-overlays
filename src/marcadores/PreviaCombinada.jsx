@@ -52,20 +52,27 @@ const OPACIDAD_CONTEXTO = 0.14;
 // agrandando" según la posición, en vez de quedarse fija con el 16:9 real
 // adentro.)
 //
-// `modo` decide qué capa queda RESALTADA (a opacidad plena, editable) —
-// las otras tres NO desaparecen: quedan dibujadas igual, bien tenues
-// (OPACIDAD_CONTEXTO) y bloqueadas (sin sus controles de arrastre), para
-// poder ver cómo queda un diseño respecto a los demás sin que compitan por
-// la atención ni se puedan tocar por accidente. Es el mismo criterio que
-// un editor de diseño gráfico con capas: una activa, el resto de fondo
-// como referencia.
-// - 'general': las 4 capas a la vista, TODAS a opacidad plena — la foto
-//   completa del diseño, sin ninguna resaltada en particular.
-// - 'marcador': el marcador a opacidad plena (+ logo/título) — nómina/
-//   estadísticas/anuncios quedan de fondo, tenues.
-// - 'nomina' / 'estadisticas' / 'anuncios': esa capa a opacidad plena —
-//   sea cual sea su interruptor "Mostrar..." (se está editando, tiene que
-//   verse) — el resto queda de fondo.
+// `modo` decide qué capa queda RESALTADA (a opacidad plena, editable).
+// Nómina y Estadísticas son disparos momentáneos en la transmisión real
+// (ver el comentario de `conNomina`/`conEstadisticas` más abajo) — por eso
+// NO quedan como referencia tenue de fondo en otras pestañas, para que la
+// vista de 'marcador' (la que se ve la mayor parte del partido) se parezca
+// de verdad a como se ve en vivo: el marcador solo, sin nada más encima.
+// Anuncios sí es una capa permanente real (anima sola cada jugada) y queda
+// de fondo tenue igual que antes. Es el mismo criterio que un editor de
+// diseño gráfico con capas: una activa, el resto de fondo como referencia
+// — pero solo para las capas que de verdad conviven siempre en pantalla.
+// - 'general': las 4 capas a la vista, TODAS a opacidad plena — una foto
+//   compuesta del diseño completo, útil para revisar que todo combine,
+//   aunque nómina/estadísticas nunca se vean así de verdad al mismo tiempo
+//   que el marcador en la transmisión.
+// - 'marcador': el marcador a opacidad plena (+ logo/título) — igual que
+//   se ve casi todo el partido en la transmisión real. Anuncios queda de
+//   fondo, tenue, si está habilitado; nómina/estadísticas no se dibujan.
+// - 'nomina' / 'estadisticas': esa capa sola, a opacidad plena — sea cual
+//   sea su interruptor "Mostrar..." (se está editando, tiene que verse) —
+//   el marcador queda de fondo, tenue, como referencia de alineación.
+// - 'anuncios': el anuncio a opacidad plena, marcador de fondo tenue.
 export default function PreviaCombinada({
   plantillaId, config, equipoLocalPreview, equipoVisitaPreview, partidoReal, modo = 'general',
   logosLibresEditable = false, onArrastrarLogoLibre,
@@ -117,14 +124,24 @@ export default function PreviaCombinada({
     : base;
 
   // El marcador es siempre la referencia de fondo — se dibuja en todos los
-  // modos (a opacidad plena en 'general'/'marcador'/'anuncios', tenue en
-  // 'nomina'/'estadisticas'). Nómina/Estadísticas/Anuncios, en cambio, solo
-  // se dibujan si son la pestaña activa (tiene que verse SIEMPRE mientras
-  // se edita, esté o no habilitada) o si están habilitadas para el diseño
-  // (ahí aparecen como referencia tenue en las demás pestañas) — si están
-  // apagadas del todo, no tiene sentido mostrarlas ni de fondo.
-  const conNomina = modo === 'nomina' || Boolean(config?.mostrarNomina);
-  const conEstadisticas = modo === 'estadisticas' || Boolean(config?.mostrarEstadisticas);
+  // modos. Nómina y Estadísticas, en la transmisión real, NO quedan nunca
+  // permanentes: EscenaPublica.jsx solo las dibuja mientras dura el pulso
+  // disparado a mano desde la Mesa (`cfg.mostrarNomina && nomina`, unos
+  // pocos segundos) — el resto del partido son invisibles, aunque el
+  // diseño las tenga habilitadas. Antes acá se dibujaban SIEMPRE que
+  // `config.mostrarNomina/mostrarEstadisticas` estuviera prendido (aunque
+  // fuera tenues, de fondo) — eso hacía que la vista previa se viera todo
+  // el tiempo más cargada/chica de lo que realmente se ve en la
+  // transmisión, que la mayor parte del partido es solo el marcador solo.
+  // Ahora solo se dibujan cuando son la pestaña que se está editando (tiene
+  // que verse SIEMPRE ahí, se use o no) o en 'general' ("Ver todo junto"),
+  // que es la única vista pensada como composición de las 4 capas a la vez
+  // a propósito, no como "cómo se ve ahora". Anuncios es distinto: en la
+  // transmisión real SÍ queda montado todo el partido (anima cada jugada
+  // sola, ver VistaAnuncios) mientras el diseño la tenga habilitada, así
+  // que ahí sí se mantiene el criterio anterior.
+  const conNomina = modo === 'nomina' || modo === 'general';
+  const conEstadisticas = modo === 'estadisticas' || modo === 'general';
   const conAnuncios = modo === 'anuncios' || Boolean(config?.anunciarJugadas);
   // La animación de sumar puntos solo se dispara con un cambio de puntaje
   // real — sin esto la pestaña Marcador nunca la mostraba, así que se
