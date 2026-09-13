@@ -354,6 +354,65 @@ function BotonTimeout({ restantes, onClick, destacado }) {
   );
 }
 
+// "Perilla" táctil para el reloj: mantener apretado ▲/▼ repite el ajuste
+// solo (arranca a los 380ms, después cada 110ms) — con un simple toque no
+// alcanza para corregir varios segundos rápido en medio de un partido en
+// vivo, y no tiene sentido tocar 8 veces seguidas el mismo botón. Un solo
+// dedo, mantenido, sube o baja el reloj tan rápido como haga falta.
+function useMantenerPulsado(callback) {
+  const timeoutRef = useRef(null);
+  const intervalRef = useRef(null);
+  const detener = () => {
+    clearTimeout(timeoutRef.current);
+    clearInterval(intervalRef.current);
+  };
+  const empezar = (e) => {
+    e.preventDefault();
+    callback();
+    timeoutRef.current = setTimeout(() => {
+      intervalRef.current = setInterval(callback, 110);
+    }, 380);
+  };
+  useEffect(() => detener, []);
+  return { onPointerDown: empezar, onPointerUp: detener, onPointerLeave: detener, onPointerCancel: detener };
+}
+
+function RuedaReloj({ segundos, corriendo, editando, minutosEdit, segundosEdit, onCambiarMinutos, onCambiarSegundos, onEmpezarEdicion, onConfirmarEdicion, onCancelarEdicion, onAjustar }) {
+  const subir = useMantenerPulsado(() => onAjustar(10));
+  const bajar = useMantenerPulsado(() => onAjustar(-10));
+  return (
+    <div className="mv-rueda-reloj">
+      <button type="button" className="mv-rueda-btn" title="Mantener para subir rápido — un toque suma 10s" {...subir}>▲</button>
+      {editando ? (
+        <span className="mv-rueda-edit">
+          <input
+            type="number" inputMode="numeric" min="0" max="99" autoFocus
+            value={minutosEdit}
+            onChange={(e) => onCambiarMinutos(e.target.value.replace(/[^0-9]/g, '').slice(0, 2))}
+            onKeyDown={(e) => { if (e.key === 'Enter') onConfirmarEdicion(); if (e.key === 'Escape') onCancelarEdicion(); }}
+            title="Minutos"
+          />
+          :
+          <input
+            type="number" inputMode="numeric" min="0" max="59"
+            value={segundosEdit}
+            onChange={(e) => onCambiarSegundos(e.target.value.replace(/[^0-9]/g, '').slice(0, 2))}
+            onKeyDown={(e) => { if (e.key === 'Enter') onConfirmarEdicion(); if (e.key === 'Escape') onCancelarEdicion(); }}
+            title="Segundos"
+          />
+          <button type="button" className="mv-pts-edit-btn ok" title="Guardar" onClick={onConfirmarEdicion}>✓</button>
+          <button type="button" className="mv-pts-edit-btn cancelar" title="Cancelar" onClick={onCancelarEdicion}>✕</button>
+        </span>
+      ) : (
+        <button type="button" className={`mv-rueda-valor ${corriendo ? 'corriendo' : ''}`} onClick={onEmpezarEdicion} title="Tocar para escribir el minuto:segundo exacto">
+          {formatearReloj(segundos)}
+        </button>
+      )}
+      <button type="button" className="mv-rueda-btn" title="Mantener para bajar rápido — un toque resta 10s" {...bajar}>▼</button>
+    </div>
+  );
+}
+
 // Corrección manual del marcador — para arreglar un error de carga sin
 // tener que deshacer jugada por jugada. Solo acepta dígitos: se limpia todo
 // lo que no sea número apenas se escribe, así nunca se puede mandar texto.
@@ -1240,37 +1299,12 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
 
             <div className="mv-centro">
               <span className="mv-chip-competicion">Partido en curso</span>
-              <div className="mv-reloj-control">
-                <div className="mv-reloj-flechas">
-                  <button type="button" className="mv-reloj-flecha" title="Sumar 10 segundos" onClick={() => emitirAccion('RELOJ_AJUSTAR', { segundos: 10 })}>▲</button>
-                  <button type="button" className="mv-reloj-flecha" title="Restar 10 segundos" onClick={() => emitirAccion('RELOJ_AJUSTAR', { segundos: -10 })}>▼</button>
-                </div>
-                {editandoReloj ? (
-                  <span className="mv-reloj-edit">
-                    <input
-                      type="number" inputMode="numeric" min="0" max="99" autoFocus
-                      value={minutosRelojEdit}
-                      onChange={(e) => setMinutosRelojEdit(e.target.value.replace(/[^0-9]/g, '').slice(0, 2))}
-                      onKeyDown={(e) => { if (e.key === 'Enter') confirmarEdicionReloj(); if (e.key === 'Escape') cancelarEdicionReloj(); }}
-                      title="Minutos"
-                    />
-                    :
-                    <input
-                      type="number" inputMode="numeric" min="0" max="59"
-                      value={segundosRelojEdit}
-                      onChange={(e) => setSegundosRelojEdit(e.target.value.replace(/[^0-9]/g, '').slice(0, 2))}
-                      onKeyDown={(e) => { if (e.key === 'Enter') confirmarEdicionReloj(); if (e.key === 'Escape') cancelarEdicionReloj(); }}
-                      title="Segundos"
-                    />
-                    <button type="button" className="mv-pts-edit-btn ok" title="Guardar" onClick={confirmarEdicionReloj}>✓</button>
-                    <button type="button" className="mv-pts-edit-btn cancelar" title="Cancelar" onClick={cancelarEdicionReloj}>✕</button>
-                  </span>
-                ) : (
-                  <button type="button" className="mv-reloj-chip" onClick={empezarEdicionReloj} title="Tocar para editar el reloj a mano">
-                    {formatearReloj(partido.relojSegundos)}
-                  </button>
-                )}
-              </div>
+              {/* Solo lectura acá — el control de verdad (editar a mano,
+                  subir/bajar rápido) vive debajo de "Control de Partido",
+                  más grande y pensado para el dedo, no para leer de reojo. */}
+              <span className={`mv-reloj-lectura ${partido.relojCorriendo ? 'corriendo' : ''}`}>
+                {formatearReloj(partido.relojSegundos)}
+              </span>
               <h4 className="mv-periodo-label">{etiquetaPeriodo(partido.periodo)}</h4>
               <button className="mv-btn-posesion" onClick={() => emitirAccion('POSESION_TOGGLE')} title="Cambiar posesión">⇄</button>
             </div>
@@ -1365,6 +1399,20 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
                   ↺ Reiniciar reloj
                 </button>
               </div>
+
+              <RuedaReloj
+                segundos={partido.relojSegundos}
+                corriendo={partido.relojCorriendo}
+                editando={editandoReloj}
+                minutosEdit={minutosRelojEdit}
+                segundosEdit={segundosRelojEdit}
+                onCambiarMinutos={setMinutosRelojEdit}
+                onCambiarSegundos={setSegundosRelojEdit}
+                onEmpezarEdicion={empezarEdicionReloj}
+                onConfirmarEdicion={confirmarEdicionReloj}
+                onCancelarEdicion={cancelarEdicionReloj}
+                onAjustar={(delta) => emitirAccion('RELOJ_AJUSTAR', { segundos: delta })}
+              />
 
               {/* Con plantel, tocar cualquier jugador/a ya elige el equipo activo
                   solo (ver elegirJugador) — estos botones quedaban de adorno,

@@ -26,17 +26,18 @@
    iOS) en todos los botones interactivos de la Mesa — antes solo algunos
    (btn-fiba, dorsales de cancha con hover) tenían algo parecido, y nada
    respondía al toque real en una tablet/celular. */
-.mv-wrap .mv-pill, .mv-wrap .mv-to-btn, .mv-wrap .mv-btn-posesion, .mv-wrap .mv-reloj-chip,
+.mv-wrap .mv-pill, .mv-wrap .mv-to-btn, .mv-wrap .mv-btn-posesion, .mv-wrap .mv-rueda-valor,
 .mv-wrap .mv-btn-nomina, .mv-wrap .mv-btn-quinteto, .mv-wrap .mv-oncourt-btn, .mv-wrap .mv-banco-btn,
 .mv-wrap .mv-acciones-segmento, .mv-wrap .mv-btn-cambio, .mv-wrap .mv-btn-electrico {
   transition: transform .1s ease, background .15s ease, box-shadow .15s ease;
 }
 .mv-wrap .mv-pill:active, .mv-wrap .mv-to-btn:active:not(:disabled), .mv-wrap .mv-btn-posesion:active,
-.mv-wrap .mv-reloj-chip:active, .mv-wrap .mv-btn-nomina:active, .mv-wrap .mv-btn-quinteto:active,
+.mv-wrap .mv-rueda-valor:active, .mv-wrap .mv-btn-nomina:active, .mv-wrap .mv-btn-quinteto:active,
 .mv-wrap .mv-oncourt-btn:active:not(.vacante):not(.bloqueado), .mv-wrap .mv-banco-btn:active,
 .mv-wrap .mv-acciones-segmento:active, .mv-wrap .mv-btn-cambio:active:not(:disabled), .mv-wrap .mv-btn-electrico:active:not(:disabled) {
   transform: scale(.95);
 }
+.mv-wrap .mv-rueda-btn { transition: transform .1s ease, background .15s ease, box-shadow .15s ease, border-color .15s ease; }
 @media (prefers-reduced-motion: reduce) {
   .mv-wrap * { transition: none !important; animation: none !important; }
 }
@@ -180,16 +181,6 @@
   background: var(--mv-input); border: 1px solid var(--mv-azul); border-radius: 8px; color: #fff; padding: 3px 4px;
 }
 
-/* Edición manual del reloj (minutos:segundos), en .mv-reloj-control junto a
-   las flechas ▲/▼ — mismo patrón que la corrección de puntaje
-   (.mv-pts-edit), a juego con el tamaño más grande del reloj de arriba. */
-.mv-reloj-edit { display: inline-flex; align-items: center; gap: 4px; }
-.mv-reloj-edit input {
-  width: 38px; font-size: 20px; font-family: 'Orbitron', monospace; text-align: center;
-  background: var(--mv-input); border: 1px solid var(--mv-azul); border-radius: 6px; color: #fff; padding: 2px 3px;
-}
-.mv-reloj-edit .mv-pts-edit-btn { width: 24px; height: 24px; font-size: 12px; }
-
 .mv-equipo-pie { display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 4px; }
 .mv-faltas { font-size: 10px; color: var(--mv-rojo); font-weight: 800; }
 
@@ -223,24 +214,21 @@
   padding: 3px 8px; color: #cfe7ff; font-size: 9px; font-weight: 800;
   background: rgba(0,122,255,.18); border: 1px solid rgba(0,122,255,.38);
 }
-/* El reloj es ahora el control principal de arriba (antes solo mostraba
-   el número, sin poder tocarlo — la edición vivía más abajo, en "Control
-   de Partido", duplicada) — más grande para leerse cómodo de un vistazo,
-   con flechas ▲/▼ al costado para sumar/restar 10s de a poco (además de
-   poder tocar el número para escribir el minuto:segundo exacto). */
-.mv-reloj-control { display: flex; align-items: center; gap: 6px; margin-top: 4px; }
-.mv-reloj-chip {
-  display: inline-block; font-size: 24px; color: var(--mv-verde); font-weight: 900;
+/* Reloj de arriba: ahora es solo lectura (el control de verdad — editar a
+   mano, subir/bajar rápido — vive debajo de "Control de Partido", ver
+   .mv-rueda-reloj) — se mantiene grande para leerse cómodo de un vistazo
+   mientras se mira el marcador, con un pulso suave mientras corre para que
+   se note de reojo que está contando sin tener que leer los segundos. */
+.mv-reloj-lectura {
+  display: inline-block; margin-top: 4px; font-size: 24px; color: var(--mv-verde); font-weight: 900;
   font-family: 'Orbitron', monospace; font-variant-numeric: tabular-nums;
   background: rgba(52,199,89,.1); padding: 4px 14px; border-radius: 10px; border: 1px solid var(--mv-verde);
-  cursor: pointer;
 }
-.mv-reloj-flechas { display: flex; flex-direction: column; gap: 3px; }
-.mv-reloj-flecha {
-  width: 24px; height: 20px; border-radius: 6px; border: 1px solid var(--mv-borde);
-  background: rgba(255,255,255,.06); color: var(--mv-texto-tenue); font-size: 10px; line-height: 1; cursor: pointer;
+.mv-reloj-lectura.corriendo { animation: mv-reloj-latido 2s ease-in-out infinite; }
+@keyframes mv-reloj-latido {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .72; }
 }
-.mv-reloj-flecha:hover { color: #fff; background: rgba(255,255,255,.14); }
 .mv-periodo-label { margin: 4px 0 0; color: #fff; font-size: 13px; }
 .mv-centro .mv-btn-posesion { margin-top: 6px; }
 .mv-btn-posesion {
@@ -387,6 +375,40 @@
 }
 .mv-btn-electrico:disabled { background: var(--mv-borde); color: var(--mv-texto-tenue); box-shadow: none; cursor: not-allowed; }
 
+/* "Perilla" de reloj: ▲ arriba / número en el medio / ▼ abajo, apilados
+   como una rueda vertical — botones grandes (64px) pensados para el dedo,
+   no para el mouse. Mantener apretado repite el ajuste solo (ver
+   useMantenerPulsado en Mesa.jsx); un solo toque suma/resta 10s. Vive
+   debajo de "Control de Partido" — antes este control vivía arriba, chico,
+   pegado al marcador; acá tiene lugar de sobra para ser cómodo de usar en
+   vivo, con el marcador que ya se mantiene el pulso arriba (.mv-reloj-lectura). */
+.mv-rueda-reloj {
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  margin-top: 14px; padding: 14px 10px; border-radius: 18px;
+  border: 1px solid var(--mv-borde); background: rgba(255,255,255,.03);
+}
+.mv-rueda-btn {
+  width: 64px; height: 64px; border-radius: 50%; flex-shrink: 0;
+  background: linear-gradient(180deg, rgba(255,255,255,.14) 0%, rgba(255,255,255,.04) 100%);
+  border: 1px solid var(--mv-borde); color: #fff; font-size: 24px; font-weight: 900;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  touch-action: none; user-select: none;
+}
+.mv-rueda-btn:active { background: linear-gradient(180deg, var(--mv-azul) 0%, #0060d2 100%); border-color: var(--mv-azul); transform: scale(.92); box-shadow: 0 0 0 8px rgba(0,122,255,.14); }
+.mv-rueda-valor {
+  min-width: 148px; font-size: 34px; color: var(--mv-verde); font-weight: 900;
+  font-family: 'Orbitron', monospace; font-variant-numeric: tabular-nums;
+  background: rgba(52,199,89,.1); padding: 8px 18px; border-radius: 14px; border: 1px solid var(--mv-verde);
+  cursor: pointer; line-height: 1;
+}
+.mv-rueda-valor.corriendo { animation: mv-reloj-latido 2s ease-in-out infinite; }
+.mv-rueda-edit { display: inline-flex; align-items: center; gap: 6px; }
+.mv-rueda-edit input {
+  width: 52px; font-size: 30px; font-family: 'Orbitron', monospace; text-align: center;
+  background: var(--mv-input); border: 1px solid var(--mv-azul); border-radius: 8px; color: #fff; padding: 4px 3px;
+}
+.mv-rueda-edit .mv-pts-edit-btn { width: 34px; height: 34px; font-size: 16px; }
+
 .mv-acciones-segmentado { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
 .mv-acciones-segmento {
   border: 1px solid var(--mv-borde); border-radius: 14px; background: rgba(255,255,255,.03);
@@ -520,6 +542,9 @@
 .mv-pantalla-completa .mv-banco-btn { min-height: 30px; padding: 3px; border-radius: 10px; }
 .mv-pantalla-completa .mv-banco-dorsal { font-size: .8rem; }
 .mv-pantalla-completa .mv-control-card { padding: 8px; margin-bottom: 8px; }
+.mv-pantalla-completa .mv-rueda-reloj { margin-top: 8px; padding: 8px 6px; gap: 6px; }
+.mv-pantalla-completa .mv-rueda-btn { width: 52px; height: 52px; font-size: 20px; }
+.mv-pantalla-completa .mv-rueda-valor { min-width: 120px; font-size: 26px; padding: 6px 12px; }
 .mv-pantalla-completa .fiba-botones-grid { gap: 6px; margin-top: 6px; }
 .mv-pantalla-completa .btn-fiba { min-height: 40px; padding: 8px 4px; font-size: 11px; border-radius: 12px; }
 .mv-pantalla-completa .mv-layout-grid { gap: 8px; }
