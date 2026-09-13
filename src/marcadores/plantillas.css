@@ -363,3 +363,44 @@ html:has(.plantilla-marcador) {
 .pz-periodo { margin-top: 3px; font-size: 11px; color: #cfd3dc; }
 .pz-patrocinador { margin-top: 10px; background: rgba(10, 12, 20, .8); border-radius: 10px; padding: 6px 12px; }
 .pz-patrocinador img { max-height: 40px; max-width: 220px; }
+
+/* 27. FIBA Broadcast — paneles de color con corte diagonal (mismo truco de
+   clip-path que Slant Dynamic, .psl-lado) apuntando HACIA los puntajes, con
+   un margen negativo para que el panel se superponga al fondo negro de la
+   franja y quede una unión diagonal continua, sin costura recta en el medio. */
+.pfb-wrap {
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+  height: 100%; padding-bottom: 26px; font-family: var(--pm-fuente, 'Anton', sans-serif);
+}
+.pfb-caja { display: flex; flex-direction: column; box-shadow: 0 16px 40px rgba(0, 0, 0, .5); }
+.pfb-fila-principal {
+  display: flex; align-items: stretch; background: var(--pm-tablero, #0a0a0d);
+  border-radius: 10px 10px 0 0; overflow: hidden;
+}
+.pfb-equipo {
+  display: flex; align-items: center; gap: 8px; padding: 10px 22px; min-width: 90px;
+  color: #fff; text-transform: uppercase; letter-spacing: .5px;
+}
+.pfb-local { clip-path: polygon(0 0, 100% 0, 82% 100%, 0 100%); margin-right: -16px; padding-right: 32px; }
+.pfb-visita { clip-path: polygon(18% 0, 100% 0, 100% 100%, 0 100%); margin-left: -16px; padding-left: 32px; flex-direction: row-reverse; }
+.pfb-logo { object-fit: contain; opacity: var(--pm-logo-opacidad, 1); }
+.pfb-nombre { font-size: calc(13px * var(--pm-escala-nombre, 1)); font-weight: 700; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pfb-pts {
+  display: flex; align-items: center; justify-content: center; min-width: 56px; padding: 0 6px;
+  font-size: calc(38px * var(--pm-escala-pts, 1)); font-weight: 900; color: var(--pm-marcador, #fff);
+  font-variant-numeric: tabular-nums;
+}
+.pfb-info {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  padding: 8px 20px; border-left: 1px solid rgba(255, 255, 255, .18);
+}
+.pfb-periodo { font-size: 12px; color: #cfd3dc; letter-spacing: 1px; }
+.pfb-reloj { font-size: 20px; font-weight: 900; color: var(--pm-marcador, #fff); font-variant-numeric: tabular-nums; }
+.pfb-fila-secundaria {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  background: var(--pm-banner, rgba(0, 0, 0, .7)); padding: 5px 18px; border-radius: 0 0 10px 10px;
+}
+.pfb-timeouts { display: flex; gap: 4px; }
+.pfb-to { width: 16px; height: 5px; border-radius: 2px; background: rgba(255, 255, 255, .22); }
+.pfb-to.activo { background: var(--color-to, #fff); }
+.pfb-faltas { font-size: 10px; font-weight: 700; letter-spacing: .6px; color: #cfd3dc; }

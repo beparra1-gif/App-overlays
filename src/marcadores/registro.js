@@ -24,6 +24,7 @@ import CompactoTOFO from './plantillas/CompactoTOFO';
 import RecordBlock from './plantillas/RecordBlock';
 import PildoraDoble from './plantillas/PildoraDoble';
 import Personalizado from './plantillas/Personalizado';
+import FibaBroadcast from './plantillas/FibaBroadcast';
 
 // Para agregar una plantilla nueva: crear el componente en ./plantillas
 // (recibe `{ partido, config }`, aplica estiloPersonalizado(config) en su
@@ -57,6 +58,7 @@ export const PLANTILLAS_MARCADOR = [
   { id: 'record-block', nombre: 'Record Block', Componente: RecordBlock },
   { id: 'pildora-doble', nombre: 'Píldora Doble', Componente: PildoraDoble },
   { id: 'personalizado', nombre: 'Personalizado (armá el tuyo)', Componente: Personalizado },
+  { id: 'fiba-broadcast', nombre: 'FIBA Broadcast', Componente: FibaBroadcast },
 ];
 
 export const obtenerPlantilla = (id) => PLANTILLAS_MARCADOR.find((p) => p.id === id) || PLANTILLAS_MARCADOR[0];
