@@ -354,35 +354,54 @@ function BotonTimeout({ restantes, onClick, destacado }) {
   );
 }
 
-// "Perilla" táctil para el reloj: mantener apretado ▲/▼ repite el ajuste
-// solo (arranca a los 380ms, después cada 110ms) — con un simple toque no
-// alcanza para corregir varios segundos rápido en medio de un partido en
-// vivo, y no tiene sentido tocar 8 veces seguidas el mismo botón. Un solo
-// dedo, mantenido, sube o baja el reloj tan rápido como haga falta.
-function useMantenerPulsado(callback) {
-  const timeoutRef = useRef(null);
-  const intervalRef = useRef(null);
-  const detener = () => {
-    clearTimeout(timeoutRef.current);
-    clearInterval(intervalRef.current);
-  };
-  const empezar = (e) => {
-    e.preventDefault();
-    callback();
-    timeoutRef.current = setTimeout(() => {
-      intervalRef.current = setInterval(callback, 110);
-    }, 380);
-  };
-  useEffect(() => detener, []);
-  return { onPointerDown: empezar, onPointerUp: detener, onPointerLeave: detener, onPointerCancel: detener };
-}
+// Rueda de arrastre para el reloj: en vez de tocar una flecha varias veces,
+// se arrastra el mango hacia arriba (suma tiempo, como tirar de una perilla)
+// o hacia abajo (resta) — cada ALTO_MUESCA_RUEDA px de arrastre dispara un
+// ajuste de PASO_RUEDA_SEGUNDOS, así que arrastrar más lejos o más rápido
+// ajusta más rápido, sin tener que tocar un botón muchas veces seguidas. El
+// mango vuelve solo al centro (elástico, por CSS) al soltar — es una
+// posición relativa de arrastre, no absoluta, así que nunca "se sale" del
+// reloj real por más que se arrastre lejos.
+const ALTO_MUESCA_RUEDA = 18;
+const PASO_RUEDA_SEGUNDOS = 5;
+const TOPE_VISUAL_RUEDA = 68;
 
-function RuedaReloj({ segundos, corriendo, editando, minutosEdit, segundosEdit, onCambiarMinutos, onCambiarSegundos, onEmpezarEdicion, onConfirmarEdicion, onCancelarEdicion, onAjustar }) {
-  const subir = useMantenerPulsado(() => onAjustar(10));
-  const bajar = useMantenerPulsado(() => onAjustar(-10));
+function RuedaReloj({ segundos, corriendo, editando, minutosEdit, segundosEdit, onCambiarMinutos, onCambiarSegundos, onEmpezarEdicion, onConfirmarEdicion, onCancelarEdicion, onAjustar, onReiniciar }) {
+  const [offsetVisual, setOffsetVisual] = useState(0);
+  const [arrastrando, setArrastrando] = useState(false);
+  const yAnteriorRef = useRef(0);
+  const acumuladoRef = useRef(0);
+
+  const empezarArrastre = (e) => {
+    if (editando) return;
+    setArrastrando(true);
+    yAnteriorRef.current = e.clientY;
+    acumuladoRef.current = 0;
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+  };
+  const moverArrastre = (e) => {
+    if (!arrastrando) return;
+    const deltaY = e.clientY - yAnteriorRef.current;
+    yAnteriorRef.current = e.clientY;
+    acumuladoRef.current += deltaY;
+    while (acumuladoRef.current <= -ALTO_MUESCA_RUEDA) {
+      onAjustar(PASO_RUEDA_SEGUNDOS);
+      acumuladoRef.current += ALTO_MUESCA_RUEDA;
+    }
+    while (acumuladoRef.current >= ALTO_MUESCA_RUEDA) {
+      onAjustar(-PASO_RUEDA_SEGUNDOS);
+      acumuladoRef.current -= ALTO_MUESCA_RUEDA;
+    }
+    setOffsetVisual((v) => Math.max(-TOPE_VISUAL_RUEDA, Math.min(TOPE_VISUAL_RUEDA, v + deltaY)));
+  };
+  const terminarArrastre = () => {
+    setArrastrando(false);
+    acumuladoRef.current = 0;
+    setOffsetVisual(0);
+  };
+
   return (
     <div className="mv-rueda-reloj">
-      <button type="button" className="mv-rueda-btn" title="Mantener para subir rápido — un toque suma 10s" {...subir}>▲</button>
       {editando ? (
         <span className="mv-rueda-edit">
           <input
@@ -408,7 +427,25 @@ function RuedaReloj({ segundos, corriendo, editando, minutosEdit, segundosEdit, 
           {formatearReloj(segundos)}
         </button>
       )}
-      <button type="button" className="mv-rueda-btn" title="Mantener para bajar rápido — un toque resta 10s" {...bajar}>▼</button>
+
+      <div className="mv-rueda-fila">
+        <button type="button" className="mv-pill mv-pill-reloj" onClick={() => onAjustar(-60)}>-1:00</button>
+        <div
+          className={`mv-dial ${arrastrando ? 'arrastrando' : ''}`}
+          onPointerDown={empezarArrastre}
+          onPointerMove={moverArrastre}
+          onPointerUp={terminarArrastre}
+          onPointerCancel={terminarArrastre}
+          title="Arrastrar hacia arriba o abajo para ajustar el reloj rápido"
+        >
+          <span className="mv-dial-indicio arriba">▲</span>
+          <span className="mv-dial-mango" style={{ transform: `translate(-50%, calc(-50% + ${offsetVisual}px))` }} />
+          <span className="mv-dial-indicio abajo">▼</span>
+        </div>
+        <button type="button" className="mv-pill mv-pill-reloj" onClick={() => onAjustar(60)}>+1:00</button>
+      </div>
+
+      <button type="button" className="mv-pill" style={{ width: '100%' }} onClick={onReiniciar}>↺ Reiniciar reloj</button>
     </div>
   );
 }
@@ -1384,20 +1421,11 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
                 >
                   {PERIODOS_DISPONIBLES.map((p) => <option key={p} value={p}>{etiquetaPeriodo(p)}</option>)}
                 </select>
-                <div className="mv-control-grid">
-                  <div className="mv-control-lado">
-                    <button className="mv-pill" onClick={() => emitirAccion('RELOJ_AJUSTAR', { segundos: 60 })}>+1:00</button>
-                    <button className="mv-pill" onClick={() => emitirAccion('RELOJ_AJUSTAR', { segundos: -60 })}>-1:00</button>
-                  </div>
-                  {partido.relojCorriendo ? (
-                    <button className="mv-btn-electrico" onClick={() => emitirAccion('RELOJ_PAUSAR')}>⏸ Pausar</button>
-                  ) : (
-                    <button className="mv-btn-electrico" onClick={() => emitirAccion('RELOJ_INICIAR')}>▶ Iniciar</button>
-                  )}
-                </div>
-                <button className="mv-pill" style={{ width: '100%', marginTop: 8 }} onClick={() => emitirAccion('RELOJ_REINICIAR')}>
-                  ↺ Reiniciar reloj
-                </button>
+                {partido.relojCorriendo ? (
+                  <button className="mv-btn-electrico mv-btn-electrico-grande" onClick={() => emitirAccion('RELOJ_PAUSAR')}>⏸ Pausar</button>
+                ) : (
+                  <button className="mv-btn-electrico mv-btn-electrico-grande" onClick={() => emitirAccion('RELOJ_INICIAR')}>▶ Iniciar</button>
+                )}
               </div>
 
               <RuedaReloj
@@ -1412,6 +1440,7 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
                 onConfirmarEdicion={confirmarEdicionReloj}
                 onCancelarEdicion={cancelarEdicionReloj}
                 onAjustar={(delta) => emitirAccion('RELOJ_AJUSTAR', { segundos: delta })}
+                onReiniciar={() => emitirAccion('RELOJ_REINICIAR')}
               />
 
               {/* Con plantel, tocar cualquier jugador/a ya elige el equipo activo

@@ -37,7 +37,6 @@
 .mv-wrap .mv-acciones-segmento:active, .mv-wrap .mv-btn-cambio:active:not(:disabled), .mv-wrap .mv-btn-electrico:active:not(:disabled) {
   transform: scale(.95);
 }
-.mv-wrap .mv-rueda-btn { transition: transform .1s ease, background .15s ease, box-shadow .15s ease, border-color .15s ease; }
 @media (prefers-reduced-motion: reduce) {
   .mv-wrap * { transition: none !important; animation: none !important; }
 }
@@ -352,8 +351,10 @@
 .mv-control-card h6 { margin: 0 0 8px; font-size: 12px; color: #fff; font-weight: 900; text-transform: uppercase; letter-spacing: .03em; }
 
 /* El período (cuarto/prórroga) arriba de todo, bien grande — es lo primero
-   que se mira/toca al entrar a este panel. Los controles de tiempo (ajuste
-   + iniciar/pausar) quedan debajo, en su propia fila. */
+   que se mira/toca al entrar a este panel. Iniciar/Pausar queda solo,
+   ocupando todo el ancho de la tarjeta (los ajustes de tiempo se movieron a
+   .mv-rueda-reloj, debajo, junto con +1:00/-1:00 y reiniciar — así el botón
+   no comparte columna con nada y puede ser bien grande). */
 .mv-select-periodo-grande {
   width: 100%;
   box-sizing: border-box;
@@ -363,9 +364,6 @@
   padding: 10px 14px;
   text-align: center;
 }
-.mv-control-grid { display: grid; grid-template-columns: minmax(0,1fr) minmax(120px,1.6fr); align-items: stretch; gap: 10px; margin-top: 10px; }
-.mv-control-lado { display: flex; flex-direction: column; gap: 6px; }
-.mv-control-lado .mv-pill { font-size: 11px; padding: 8px 6px; }
 
 .mv-btn-electrico {
   background: linear-gradient(180deg, #2f8cff 0%, #007aff 52%, #0060d2 100%);
@@ -374,27 +372,19 @@
   box-shadow: 0 10px 24px rgba(0,122,255,.24);
 }
 .mv-btn-electrico:disabled { background: var(--mv-borde); color: var(--mv-texto-tenue); box-shadow: none; cursor: not-allowed; }
+.mv-btn-electrico-grande { margin-top: 10px; padding: 18px 10px; font-size: 19px; border-radius: 16px; }
 
-/* "Perilla" de reloj: ▲ arriba / número en el medio / ▼ abajo, apilados
-   como una rueda vertical — botones grandes (64px) pensados para el dedo,
-   no para el mouse. Mantener apretado repite el ajuste solo (ver
-   useMantenerPulsado en Mesa.jsx); un solo toque suma/resta 10s. Vive
-   debajo de "Control de Partido" — antes este control vivía arriba, chico,
-   pegado al marcador; acá tiene lugar de sobra para ser cómodo de usar en
-   vivo, con el marcador que ya se mantiene el pulso arriba (.mv-reloj-lectura). */
+/* Control de tiempo: reloj grande tocable arriba, y debajo -1:00 / la rueda
+   de arrastre / +1:00, con "Reiniciar reloj" ocupando todo el ancho al
+   final — todo lo que toca al reloj junto, debajo de "Control de Partido"
+   (antes vivía repartido: la edición arriba pegada al marcador, +1:00/-1:00
+   y reiniciar en la tarjeta de arriba). El marcador de arriba solo mantiene
+   una lectura (con pulso mientras corre, ver .mv-reloj-lectura). */
 .mv-rueda-reloj {
   display: flex; flex-direction: column; align-items: center; gap: 10px;
   margin-top: 14px; padding: 14px 10px; border-radius: 18px;
   border: 1px solid var(--mv-borde); background: rgba(255,255,255,.03);
 }
-.mv-rueda-btn {
-  width: 64px; height: 64px; border-radius: 50%; flex-shrink: 0;
-  background: linear-gradient(180deg, rgba(255,255,255,.14) 0%, rgba(255,255,255,.04) 100%);
-  border: 1px solid var(--mv-borde); color: #fff; font-size: 24px; font-weight: 900;
-  cursor: pointer; display: flex; align-items: center; justify-content: center;
-  touch-action: none; user-select: none;
-}
-.mv-rueda-btn:active { background: linear-gradient(180deg, var(--mv-azul) 0%, #0060d2 100%); border-color: var(--mv-azul); transform: scale(.92); box-shadow: 0 0 0 8px rgba(0,122,255,.14); }
 .mv-rueda-valor {
   min-width: 148px; font-size: 34px; color: var(--mv-verde); font-weight: 900;
   font-family: 'Orbitron', monospace; font-variant-numeric: tabular-nums;
@@ -408,6 +398,44 @@
   background: var(--mv-input); border: 1px solid var(--mv-azul); border-radius: 8px; color: #fff; padding: 4px 3px;
 }
 .mv-rueda-edit .mv-pts-edit-btn { width: 34px; height: 34px; font-size: 16px; }
+
+.mv-rueda-fila { display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; }
+.mv-pill-reloj { min-width: 60px; min-height: 44px; flex-shrink: 0; }
+
+/* La rueda de verdad: un mango redondo que se arrastra hacia arriba (suma
+   tiempo) o abajo (resta) dentro de una pista tipo cápsula — cada muesca de
+   arrastre (ver ALTO_MUESCA_RUEDA en Mesa.jsx) dispara un ajuste, y el
+   mango vuelve solo al centro al soltar el dedo. `touch-action: none` es
+   necesario para que el navegador no interprete el arrastre como scroll de
+   la página en celular/tablet. */
+.mv-dial {
+  position: relative; width: 72px; height: 172px; border-radius: 36px; flex-shrink: 0;
+  background: linear-gradient(180deg, rgba(0,122,255,.16) 0%, rgba(255,255,255,.04) 50%, rgba(255,59,48,.1) 100%);
+  border: 1px solid var(--mv-borde);
+  touch-action: none; user-select: none; cursor: grab;
+  box-shadow: inset 0 2px 6px rgba(0,0,0,.35);
+}
+.mv-dial.arrastrando { cursor: grabbing; border-color: var(--mv-azul); }
+.mv-dial-indicio {
+  position: absolute; left: 50%; transform: translateX(-50%); color: var(--mv-texto-tenue);
+  font-size: 13px; opacity: .5; pointer-events: none;
+}
+.mv-dial-indicio.arriba { top: 10px; }
+.mv-dial-indicio.abajo { bottom: 10px; }
+.mv-dial-mango {
+  position: absolute; top: 50%; left: 50%; width: 52px; height: 52px; border-radius: 50%;
+  background: linear-gradient(180deg, #3a3d46 0%, #202226 100%);
+  border: 1px solid rgba(255,255,255,.22); box-shadow: 0 6px 16px rgba(0,0,0,.4);
+  pointer-events: none;
+}
+.mv-dial-mango::before, .mv-dial-mango::after, .mv-dial-mango {
+  transition: background .15s ease, border-color .15s ease;
+}
+.mv-dial.arrastrando .mv-dial-mango {
+  background: linear-gradient(180deg, var(--mv-azul) 0%, #0060d2 100%); border-color: #fff;
+  box-shadow: 0 0 0 10px rgba(0,122,255,.18), 0 6px 16px rgba(0,0,0,.4);
+}
+.mv-dial:not(.arrastrando) .mv-dial-mango { transition: transform .28s cubic-bezier(.34,1.56,.64,1), background .15s ease, border-color .15s ease; }
 
 .mv-acciones-segmentado { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
 .mv-acciones-segmento {
@@ -542,9 +570,12 @@
 .mv-pantalla-completa .mv-banco-btn { min-height: 30px; padding: 3px; border-radius: 10px; }
 .mv-pantalla-completa .mv-banco-dorsal { font-size: .8rem; }
 .mv-pantalla-completa .mv-control-card { padding: 8px; margin-bottom: 8px; }
+.mv-pantalla-completa .mv-btn-electrico-grande { padding: 12px 10px; font-size: 15px; }
 .mv-pantalla-completa .mv-rueda-reloj { margin-top: 8px; padding: 8px 6px; gap: 6px; }
-.mv-pantalla-completa .mv-rueda-btn { width: 52px; height: 52px; font-size: 20px; }
 .mv-pantalla-completa .mv-rueda-valor { min-width: 120px; font-size: 26px; padding: 6px 12px; }
+.mv-pantalla-completa .mv-dial { width: 58px; height: 130px; }
+.mv-pantalla-completa .mv-dial-mango { width: 42px; height: 42px; }
+.mv-pantalla-completa .mv-pill-reloj { min-width: 48px; min-height: 36px; }
 .mv-pantalla-completa .fiba-botones-grid { gap: 6px; margin-top: 6px; }
 .mv-pantalla-completa .btn-fiba { min-height: 40px; padding: 8px 4px; font-size: 11px; border-radius: 12px; }
 .mv-pantalla-completa .mv-layout-grid { gap: 8px; }
