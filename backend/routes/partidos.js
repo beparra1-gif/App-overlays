@@ -232,6 +232,28 @@ router.put('/:id/quintetos', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   const partido = await partidoDelUsuario(req.params.id, req.userId);
   if (!partido) return res.status(404).json({ error: 'Partido no encontrado' });
+
+  // Si este partido es el tablero ACTIVO de algún diseño (disenos_guardados.
+  // partido_activo_id), borrarlo lo deja huérfano — la columna tiene
+  // ON DELETE SET NULL, así que no rompe la base, pero la PRÓXIMA vez que
+  // se entra a "Juego en vivo" para ese diseño, al no encontrar un partido
+  // activo, se crea uno NUEVO con un public_token distinto: el enlace de
+  // OBS que ya estaba cargado ahí cambia solo, sin ningún aviso. Se bloquea
+  // acá para que el enlace en uso nunca cambie como efecto secundario de
+  // "Eliminar" — para borrar este partido de verdad, primero hay que dejar
+  // de usarlo como tablero activo (reiniciarlo con otro equipo, o abrir
+  // "Juego en vivo" con un diseño distinto).
+  const disenosQueLoUsan = await pool.query(
+    'SELECT nombre FROM disenos_guardados WHERE partido_activo_id = $1 AND user_id = $2',
+    [partido.id, req.userId]
+  );
+  if (disenosQueLoUsan.rows.length > 0) {
+    const nombres = disenosQueLoUsan.rows.map((d) => d.nombre).join(', ');
+    return res.status(409).json({
+      error: `Este partido es el tablero activo de "${nombres}" — no se puede eliminar mientras esté en uso, porque el enlace de ese diseño cambiaría. Reiniciá el partido o pasá ese diseño a otro partido primero.`,
+    });
+  }
+
   try {
     await pool.query('DELETE FROM partidos WHERE id = $1', [partido.id]);
     res.status(204).end();

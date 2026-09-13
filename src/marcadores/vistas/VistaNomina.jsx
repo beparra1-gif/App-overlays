@@ -51,9 +51,18 @@ export default function VistaNomina({ partido, modo = 'ambos', claveAnimacion = 
   const familia = familiaEfectiva(config, 'nomina', plantillaId);
   // Techo de ancho para el logo de fondo — antes, con un logo bien ancho (o
   // el tamaño llevado al máximo) podía crecer tanto que se metía en la zona
-  // del OTRO equipo y los dos escudos quedaban superpuestos. Con esto, cada
-  // uno queda confinado a su propia mitad de la pantalla como mucho.
-  const maxAnchoLogoFondo = '32vw';
+  // del OTRO equipo y los dos escudos quedaban superpuestos. El problema real
+  // reportado: ese techo (32vw fijo, sin importar el modo) frenaba el logo
+  // mucho antes de que el slider llegara a su tope real (400%) — a partir de
+  // cierto punto, seguir subiendo el número no cambiaba nada visible, porque
+  // el ancho ya estaba clavado en 32vw y el alto se reajustaba solo para
+  // mantener la proporción. Con "ambos" equipos en pantalla, compartiendo el
+  // ancho, ese cuidado sigue haciendo falta (se sube un poco, a 40vw, más
+  // lugar sin que lleguen a tocarse) — pero mostrando UN SOLO equipo
+  // (Local/Visita, sin nadie del otro lado con quien pisarse) no hay ningún
+  // motivo para seguir topándolo tan chico: ahí el logo puede ocupar casi
+  // toda la pantalla, así el slider tiene margen real para crecer de verdad.
+  const maxAnchoLogoFondo = modo === 'ambos' ? '40vw' : '88vw';
   // Ajuste fino de POSICIÓN del logo de fondo: un solo control mueve los DOS
   // logos a la vez, reflejados en espejo respecto del centro de la pantalla
   // — mover "hacia afuera" separa los dos escudos de los costados del

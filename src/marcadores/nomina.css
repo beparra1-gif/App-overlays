@@ -87,8 +87,13 @@ html:has(.nomina-overlay) {
    filas (z-index) — las filas siguen teniendo su propio fondo opaco
    encima, así que el logo se nota sobre todo asomando por los costados.
    `max-height` es un techo de seguridad: por más que el slider de tamaño
-   se lleve al máximo, nunca se sale de la pantalla ni tapa el título de
-   arriba. */
+   se lleve al máximo, nunca se sale por abajo de la pantalla. Antes era
+   78vh — junto con el `max-width` (ver el `maxAnchoLogoFondo` inline en
+   VistaNomina.jsx, que ahora también depende de si se muestran los dos
+   equipos o uno solo) terminaba frenando el logo mucho antes de que el
+   slider llegara a su tope real, así que "pedirle más" no cambiaba nada
+   visible. 88vh sigue dejando margen contra el título de arriba sin ser
+   un techo tan bajo. */
 .nomina-logo-fondo {
   position: absolute;
   top: 100%;
@@ -96,7 +101,7 @@ html:has(.nomina-overlay) {
   transform: translate(calc(-50% + var(--logofondo-offset-x, 0px)), var(--logofondo-offset-y, 0px));
   width: auto;
   max-width: none;
-  max-height: 78vh;
+  max-height: 88vh;
   object-fit: contain;
   pointer-events: none;
   z-index: 0;
