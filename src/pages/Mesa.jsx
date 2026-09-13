@@ -354,95 +354,80 @@ function BotonTimeout({ restantes, onClick, destacado }) {
   );
 }
 
-// Rueda de arrastre para el reloj: en vez de tocar una flecha varias veces,
-// se arrastra el mango hacia arriba (suma tiempo, como tirar de una perilla)
-// o hacia abajo (resta) — cada ALTO_MUESCA_RUEDA px de arrastre dispara un
-// ajuste de PASO_RUEDA_SEGUNDOS, así que arrastrar más lejos o más rápido
-// ajusta más rápido, sin tener que tocar un botón muchas veces seguidas. El
-// mango vuelve solo al centro (elástico, por CSS) al soltar — es una
-// posición relativa de arrastre, no absoluta, así que nunca "se sale" del
-// reloj real por más que se arrastre lejos.
-const ALTO_MUESCA_RUEDA = 18;
 const PASO_RUEDA_SEGUNDOS = 5;
-const TOPE_VISUAL_RUEDA = 68;
 // Cuánto deltaY (px) de la rueda del mouse/trackpad hace falta acumular
-// para que dispare una muesca — un mouse con rueda "de a clicks" manda
-// ±100 por click (dispara enseguida), un trackpad manda de a poco y
-// seguido (se va acumulando hasta juntar lo mismo).
+// para que dispare un paso — un mouse con rueda "de a clicks" manda ±100
+// por click (dispara enseguida), un trackpad manda de a poco y seguido (se
+// va acumulando hasta juntar lo mismo).
 const ALTO_MUESCA_RUEDA_MOUSE = 40;
 
+// Mantener apretado ▲/▼ repite el ajuste solo (arranca a los 380ms, después
+// cada 110ms) — con un simple toque no alcanza para corregir varios
+// segundos rápido en medio de un partido en vivo. Se probó antes una rueda
+// para arrastrar con el dedo (mango que sube/baja y vuelve solo al
+// centro) — resultó poco práctica al usarla de verdad (hay que calibrar la
+// distancia del arrastre cada vez, en vez de un toque directo y previsible),
+// así que quedan botones simples, con una animación de "pulso" más marcada
+// al soltar para que se sienta más satisfactorio tocarlos.
+function useMantenerPulsado(callback) {
+  const timeoutRef = useRef(null);
+  const intervalRef = useRef(null);
+  const detener = () => {
+    clearTimeout(timeoutRef.current);
+    clearInterval(intervalRef.current);
+  };
+  const empezar = (e) => {
+    e.preventDefault();
+    callback();
+    timeoutRef.current = setTimeout(() => {
+      intervalRef.current = setInterval(callback, 110);
+    }, 380);
+  };
+  useEffect(() => detener, []);
+  return { onPointerDown: empezar, onPointerUp: detener, onPointerLeave: detener, onPointerCancel: detener };
+}
+
 function RuedaReloj({ segundos, corriendo, editando, minutosEdit, segundosEdit, onCambiarMinutos, onCambiarSegundos, onEmpezarEdicion, onConfirmarEdicion, onCancelarEdicion, onAjustar, onReiniciar }) {
-  const [offsetVisual, setOffsetVisual] = useState(0);
-  const [arrastrando, setArrastrando] = useState(false);
-  const [pulsoRueda, setPulsoRueda] = useState(false);
-  const yAnteriorRef = useRef(0);
-  const acumuladoRef = useRef(0);
+  const [pulsoBoton, setPulsoBoton] = useState(null);
   const acumuladoRuedaRef = useRef(0);
   const pulsoTimeoutRef = useRef(null);
-  const dialRef = useRef(null);
+  const controlRef = useRef(null);
   const onAjustarRef = useRef(onAjustar);
   onAjustarRef.current = onAjustar;
   const editandoRef = useRef(editando);
   editandoRef.current = editando;
 
-  const destellar = () => {
-    setPulsoRueda(true);
+  const destellar = (lado) => {
+    setPulsoBoton(lado);
     clearTimeout(pulsoTimeoutRef.current);
-    pulsoTimeoutRef.current = setTimeout(() => setPulsoRueda(false), 200);
+    pulsoTimeoutRef.current = setTimeout(() => setPulsoBoton(null), 220);
   };
 
-  const empezarArrastre = (e) => {
-    if (editando) return;
-    setArrastrando(true);
-    yAnteriorRef.current = e.clientY;
-    acumuladoRef.current = 0;
-    e.currentTarget.setPointerCapture?.(e.pointerId);
-  };
-  const moverArrastre = (e) => {
-    if (!arrastrando) return;
-    const deltaY = e.clientY - yAnteriorRef.current;
-    yAnteriorRef.current = e.clientY;
-    acumuladoRef.current += deltaY;
-    while (acumuladoRef.current <= -ALTO_MUESCA_RUEDA) {
-      onAjustar(PASO_RUEDA_SEGUNDOS);
-      acumuladoRef.current += ALTO_MUESCA_RUEDA;
-    }
-    while (acumuladoRef.current >= ALTO_MUESCA_RUEDA) {
-      onAjustar(-PASO_RUEDA_SEGUNDOS);
-      acumuladoRef.current -= ALTO_MUESCA_RUEDA;
-    }
-    setOffsetVisual((v) => Math.max(-TOPE_VISUAL_RUEDA, Math.min(TOPE_VISUAL_RUEDA, v + deltaY)));
-  };
-  const terminarArrastre = () => {
-    setArrastrando(false);
-    acumuladoRef.current = 0;
-    setOffsetVisual(0);
-  };
+  const subir = useMantenerPulsado(() => { onAjustar(PASO_RUEDA_SEGUNDOS); destellar('arriba'); });
+  const bajar = useMantenerPulsado(() => { onAjustar(-PASO_RUEDA_SEGUNDOS); destellar('abajo'); });
 
-  // Rueda de mouse/trackpad de verdad: girarla arriba de la perilla ajusta
-  // el reloj sin tener que arrastrar nada — el uso natural en escritorio.
-  // Va con addEventListener nativo (no onWheel de React) para poder llamar
-  // preventDefault de verdad y que no se scrollee la página al girarla
-  // arriba de la Mesa.
+  // Rueda de mouse/trackpad de verdad: girarla arriba de los botones ajusta
+  // el reloj sin tener que tocar nada — cómodo en escritorio, además del
+  // toque en celular/tablet. Va con addEventListener nativo (no onWheel de
+  // React) para poder llamar preventDefault de verdad y que no se
+  // scrollee la página al girarla arriba de la Mesa.
   useEffect(() => {
-    const el = dialRef.current;
+    const el = controlRef.current;
     if (!el) return undefined;
     const manejarRueda = (e) => {
       if (editandoRef.current) return;
       e.preventDefault();
       acumuladoRuedaRef.current += e.deltaY;
-      let disparo = false;
       while (acumuladoRuedaRef.current <= -ALTO_MUESCA_RUEDA_MOUSE) {
         onAjustarRef.current(PASO_RUEDA_SEGUNDOS);
         acumuladoRuedaRef.current += ALTO_MUESCA_RUEDA_MOUSE;
-        disparo = true;
+        destellar('arriba');
       }
       while (acumuladoRuedaRef.current >= ALTO_MUESCA_RUEDA_MOUSE) {
         onAjustarRef.current(-PASO_RUEDA_SEGUNDOS);
         acumuladoRuedaRef.current -= ALTO_MUESCA_RUEDA_MOUSE;
-        disparo = true;
+        destellar('abajo');
       }
-      if (disparo) destellar();
     };
     el.addEventListener('wheel', manejarRueda, { passive: false });
     return () => el.removeEventListener('wheel', manejarRueda);
@@ -478,24 +463,11 @@ function RuedaReloj({ segundos, corriendo, editando, minutosEdit, segundosEdit, 
         </button>
       )}
 
-      <div className="mv-rueda-fila">
+      <div className="mv-rueda-fila" ref={controlRef} title="Mantener apretado para subir/bajar rápido — también funciona con la rueda del mouse">
         <button type="button" className="mv-pill mv-pill-reloj" onClick={() => onAjustar(-60)}>-1:00</button>
-        <div
-          ref={dialRef}
-          className={`mv-dial ${arrastrando ? 'arrastrando' : ''} ${pulsoRueda ? 'pulso' : ''}`}
-          onPointerDown={empezarArrastre}
-          onPointerMove={moverArrastre}
-          onPointerUp={terminarArrastre}
-          onPointerCancel={terminarArrastre}
-          title="Girar la rueda del mouse, o arrastrar con el dedo, para ajustar el reloj"
-        >
-          <span className="mv-dial-indicio arriba">▲</span>
-          <span className="mv-dial-mango" style={{ transform: `translate(-50%, calc(-50% + ${offsetVisual}px))` }}>
-            <span className="mv-dial-mango-surco" />
-            <span className="mv-dial-mango-surco" />
-            <span className="mv-dial-mango-surco" />
-          </span>
-          <span className="mv-dial-indicio abajo">▼</span>
+        <div className="mv-rueda-botones">
+          <button type="button" className={`mv-rueda-btn ${pulsoBoton === 'arriba' ? 'pulso' : ''}`} title="Mantener para subir rápido — un toque suma 5s" {...subir}>▲</button>
+          <button type="button" className={`mv-rueda-btn ${pulsoBoton === 'abajo' ? 'pulso' : ''}`} title="Mantener para bajar rápido — un toque resta 5s" {...bajar}>▼</button>
         </div>
         <button type="button" className="mv-pill mv-pill-reloj" onClick={() => onAjustar(60)}>+1:00</button>
       </div>
