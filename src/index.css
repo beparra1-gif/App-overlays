@@ -243,6 +243,19 @@ select {
   gap: 16px;
 }
 
+/* Agrupa las tarjetas de "Equipos" por nombre de club — un club con varias
+   categorías/ramas (mismo nombre, distinta tarjeta) queda todo junto bajo
+   un mismo título en vez de salteado por la grilla entera. */
+.grupo-equipos { margin-bottom: 28px; }
+.grupo-equipos-titulo {
+  margin: 0 0 10px;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--texto-tenue);
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--borde);
+}
+
 .grilla-dos-columnas {
   display: grid;
   grid-template-columns: 1fr 1fr;

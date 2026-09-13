@@ -37,9 +37,36 @@ function PanelJugadores({ equipo, onCerrar }) {
     }
   };
 
-  const eliminar = async (id) => {
-    await api.eliminarJugador(id);
-    cargar();
+  // Antes borraba directo, sin preguntar nada — un toque de más en
+  // "Eliminar" perdía la nómina sin aviso. Mismo criterio que EquipoRoster
+  // (usado en la Mesa/"Personalizar tablero"): confirma, y si el jugador ya
+  // tiene jugadas anotadas en algún partido (eventos_partido), el backend
+  // lo bloquea con un 409 — ahí se pregunta de nuevo, explicando qué se
+  // pierde, antes de forzarlo.
+  const eliminar = async (jugador) => {
+    if (!window.confirm(`¿Sacar a ${jugador.nombre || `#${jugador.dorsal}`} de la nómina? Esta acción no se puede deshacer.`)) return;
+    setError('');
+    try {
+      await api.eliminarJugador(jugador.id);
+      cargar();
+    } catch (err) {
+      if (err.data?.eventos_bloqueando) {
+        const cantidad = err.data.eventos_bloqueando;
+        const confirmado = window.confirm(
+          `${jugador.nombre || `#${jugador.dorsal}`} ya tiene ${cantidad} jugada${cantidad === 1 ? '' : 's'} anotada${cantidad === 1 ? '' : 's'} en algún partido. ` +
+          `El puntaje de esos partidos no cambia, pero se pierde el detalle de esas jugadas para este jugador. Esta acción no se puede deshacer. ¿Eliminarlo igual?`
+        );
+        if (!confirmado) return;
+        try {
+          await api.eliminarJugador(jugador.id, { forzar: true });
+          cargar();
+        } catch (err2) {
+          setError(err2.message);
+        }
+        return;
+      }
+      setError(err.message);
+    }
   };
 
   const iniciarEdicion = (j) => {
@@ -93,7 +120,7 @@ function PanelJugadores({ equipo, onCerrar }) {
                 <span className="dorsal-chip">{j.dorsal ?? '-'}</span>
                 {j.nombre}
                 <button className="btn-link" onClick={() => iniciarEdicion(j)}>Editar</button>
-                <button className="btn-link" onClick={() => eliminar(j.id)}>Eliminar</button>
+                <button className="btn-link" onClick={() => eliminar(j)}>Eliminar</button>
               </>
             )}
           </li>
@@ -242,6 +269,32 @@ export default function Equipos() {
 
   const agregarLogoALista = (logo) => setLogos((prev) => [logo, ...prev]);
 
+  // Agrupa por NOMBRE de equipo y adentro ordena por rama — un club con
+  // varias categorías/ramas ("Cultura Sub-15 Femenino", "Cultura Sub-17
+  // Masculino", etc., todas con el mismo nombre) antes aparecían salteadas
+  // por toda la grilla en el orden que tocara; ahora quedan todas juntas
+  // bajo un mismo título, separadas por rama adentro.
+  const ORDEN_RAMA = { femenino: 0, masculino: 1 };
+  const gruposEquipos = (() => {
+    const porNombre = new Map();
+    for (const eq of equipos.filter((eq) => !eq.borrador)) {
+      const clave = eq.nombre.trim().toLowerCase();
+      if (!porNombre.has(clave)) porNombre.set(clave, { nombre: eq.nombre, equipos: [] });
+      porNombre.get(clave).equipos.push(eq);
+    }
+    return [...porNombre.values()]
+      .map((grupo) => ({
+        ...grupo,
+        equipos: [...grupo.equipos].sort((a, b) => {
+          const ramaA = ORDEN_RAMA[a.rama] ?? 2;
+          const ramaB = ORDEN_RAMA[b.rama] ?? 2;
+          if (ramaA !== ramaB) return ramaA - ramaB;
+          return (a.categoria || '').localeCompare(b.categoria || '');
+        }),
+      }))
+      .sort((a, b) => a.nombre.localeCompare(b.nombre));
+  })();
+
   return (
     <div className="pagina">
       <h1>Equipos</h1>
@@ -260,47 +313,52 @@ export default function Equipos() {
         </p>
       )}
 
-      <div className="grilla-tarjetas">
-        {equipos.filter((eq) => !eq.borrador).map((eq) => (
-          <div className="tarjeta" key={eq.id} style={{ borderColor: eq.color }}>
-            {editandoId === eq.id ? (
-              <FilaEdicion
-                equipo={eq}
-                logos={logos}
-                onLogoSubido={agregarLogoALista}
-                onGuardar={(payload) => guardarEdicion(eq.id, payload)}
-                onCancelar={() => setEditandoId(null)}
-              />
-            ) : (
-              <>
-                <div className="tarjeta-header">
-                  {eq.logo_url
-                    ? <img src={eq.logo_url} alt="" style={{ width: 28, height: 28, objectFit: 'contain' }} />
-                    : <span className="chip-color" style={{ background: eq.color }} />}
-                  <strong>{eq.nombre}</strong>
-                  {eq.en_uso && <span className="chip-en-uso" title="Es el equipo que un diseño tiene puesto ahora mismo">🟢 En uso</span>}
-                </div>
-                {(eq.categoria || eq.rama) && (
-                  <p className="texto-tenue" style={{ fontSize: 12, margin: '2px 0' }}>
-                    {[eq.categoria, eq.rama === 'femenino' ? 'Femenino' : eq.rama === 'masculino' ? 'Masculino' : null].filter(Boolean).join(' · ')}
-                  </p>
+      {gruposEquipos.map((grupo) => (
+        <div key={grupo.nombre.toLowerCase()} className="grupo-equipos">
+          <h3 className="grupo-equipos-titulo">{grupo.nombre}</h3>
+          <div className="grilla-tarjetas">
+            {grupo.equipos.map((eq) => (
+              <div className="tarjeta" key={eq.id} style={{ borderColor: eq.color }}>
+                {editandoId === eq.id ? (
+                  <FilaEdicion
+                    equipo={eq}
+                    logos={logos}
+                    onLogoSubido={agregarLogoALista}
+                    onGuardar={(payload) => guardarEdicion(eq.id, payload)}
+                    onCancelar={() => setEditandoId(null)}
+                  />
+                ) : (
+                  <>
+                    <div className="tarjeta-header">
+                      {eq.logo_url
+                        ? <img src={eq.logo_url} alt="" style={{ width: 28, height: 28, objectFit: 'contain' }} />
+                        : <span className="chip-color" style={{ background: eq.color }} />}
+                      <strong>{eq.nombre}</strong>
+                      {eq.en_uso && <span className="chip-en-uso" title="Es el equipo que un diseño tiene puesto ahora mismo">🟢 En uso</span>}
+                    </div>
+                    {(eq.categoria || eq.rama) && (
+                      <p className="texto-tenue" style={{ fontSize: 12, margin: '2px 0' }}>
+                        {[eq.categoria, eq.rama === 'femenino' ? 'Femenino' : eq.rama === 'masculino' ? 'Masculino' : null].filter(Boolean).join(' · ')}
+                      </p>
+                    )}
+                    <p className="texto-tenue">{eq.jugadores_count} jugador(es)</p>
+                    <div className="tarjeta-acciones">
+                      <button className="btn-secundario" onClick={() => setEquipoAbierto(eq)}>Nómina</button>
+                      <button className="btn-secundario" onClick={() => setEditandoId(eq.id)}>Editar</button>
+                      {eq.en_uso ? (
+                        <span className="texto-tenue" title="No se puede borrar mientras un diseño lo tenga en uso">Eliminar</span>
+                      ) : (
+                        <button className="btn-link" onClick={() => eliminar(eq)}>Eliminar</button>
+                      )}
+                    </div>
+                  </>
                 )}
-                <p className="texto-tenue">{eq.jugadores_count} jugador(es)</p>
-                <div className="tarjeta-acciones">
-                  <button className="btn-secundario" onClick={() => setEquipoAbierto(eq)}>Nómina</button>
-                  <button className="btn-secundario" onClick={() => setEditandoId(eq.id)}>Editar</button>
-                  {eq.en_uso ? (
-                    <span className="texto-tenue" title="No se puede borrar mientras un diseño lo tenga en uso">Eliminar</span>
-                  ) : (
-                    <button className="btn-link" onClick={() => eliminar(eq)}>Eliminar</button>
-                  )}
-                </div>
-              </>
-            )}
+              </div>
+            ))}
           </div>
-        ))}
-        {equipos.filter((eq) => !eq.borrador).length === 0 && <p className="texto-tenue">Todavía no creaste ningún equipo.</p>}
-      </div>
+        </div>
+      ))}
+      {gruposEquipos.length === 0 && <p className="texto-tenue">Todavía no creaste ningún equipo.</p>}
       <p className="texto-tenue" style={{ marginTop: 10, fontSize: 12 }}>
         Los equipos "En uso" son los que algún diseño tiene puestos ahora mismo en "Juego en vivo" — el resto son equipos
         sueltos (de pruebas, o de partidos ya terminados) que podés editar, reusar o borrar sin que afecten nada en curso.
