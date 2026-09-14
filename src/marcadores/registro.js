@@ -73,4 +73,17 @@ export const PLANTILLAS_MARCADOR = [
   { id: 'creador-libre', nombre: '🎨 Creador Libre (armá el tuyo desde cero)', Componente: CreadorLibre },
 ];
 
-export const obtenerPlantilla = (id) => PLANTILLAS_MARCADOR.find((p) => p.id === id) || PLANTILLAS_MARCADOR[0];
+// Una plantilla PERSONALIZADA guardada (ver plantillas_personalizadas en el
+// backend) no vive como un componente de código — es una "receta" (config
+// con creadorElementos) que un diseño usa con un plantilla_base sintético
+// `custom-<id>`, para que cada una tenga su propia fila en disenos_guardados
+// (1 por plantilla_base) sin pisarse entre sí ni con el "Creador Libre" en
+// blanco. Acá se resuelve ese id sintético al MISMO componente que
+// "Creador Libre" — el que realmente dibuja es el config (los elementos),
+// no el componente, así que cualquier `custom-*` cae bien.
+export const obtenerPlantilla = (id) => {
+  if (typeof id === 'string' && id.startsWith('custom-')) {
+    return PLANTILLAS_MARCADOR.find((p) => p.id === 'creador-libre');
+  }
+  return PLANTILLAS_MARCADOR.find((p) => p.id === id) || PLANTILLAS_MARCADOR[0];
+};

@@ -977,7 +977,7 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           <p className="texto-tenue" style={{ margin: '0 0 10px' }}>
-            Plantilla: <strong>{PLANTILLAS_MARCADOR.find((p) => p.id === plantillaBase)?.nombre}</strong>
+            Plantilla: <strong>{PLANTILLAS_MARCADOR.find((p) => p.id === plantillaBase)?.nombre || inicial?._nombrePlantilla || 'Plantilla propia (Creador)'}</strong>
           </p>
 
             <div className="pestanas-personalizacion">
@@ -1884,10 +1884,15 @@ export default function Disenos() {
   const [plantillasOcultas, setPlantillasOcultas] = useState([]);
   const [editando, setEditando] = useState(null); // null | { id?, nombre?, plantilla_base, config? }
   const [error, setError] = useState('');
+  // Plantillas armadas a mano en el Creador y guardadas para reusar (ver
+  // Paso 4 del panel Creador) — propias de este usuario, se muestran
+  // aparte de las 39 de fábrica, arriba del todo en el catálogo.
+  const [plantillasPersonalizadas, setPlantillasPersonalizadas] = useState([]);
 
   const cargar = () => {
     api.listarDisenos().then((d) => setDisenos(d.disenos));
     api.listarPlantillasOcultas().then((d) => setPlantillasOcultas(d.plantillas));
+    api.listarPlantillasPersonalizadas().then((d) => setPlantillasPersonalizadas(d.plantillas));
   };
 
   useEffect(() => { cargar(); }, []);
@@ -1946,6 +1951,34 @@ export default function Disenos() {
     setEditando(existente || { plantilla_base: plantillaId });
   };
 
+  // Igual que usarPlantilla, pero para una plantilla PERSONALIZADA (ver el
+  // comentario en registro.js sobre el plantilla_base sintético
+  // `custom-<id>`) — la primera vez que se usa, el diseño nuevo arranca
+  // con el config guardado en la plantilla (los elementos ya armados);
+  // las veces siguientes reabre el mismo diseño donde haya quedado.
+  const usarPlantillaPersonalizada = async (plantillaPersonalizada) => {
+    const idSintetico = `custom-${plantillaPersonalizada.id}`;
+    const { disenos: frescos } = await api.listarDisenos();
+    setDisenos(frescos);
+    const existente = frescos.find((d) => d.plantilla_base === idSintetico);
+    setEditando(existente || {
+      plantilla_base: idSintetico,
+      nombre: plantillaPersonalizada.nombre,
+      config: plantillaPersonalizada.config,
+      _nombrePlantilla: plantillaPersonalizada.nombre,
+    });
+  };
+
+  const eliminarPlantillaPersonalizada = async (plantilla) => {
+    if (!window.confirm(`¿Eliminar la plantilla "${plantilla.nombre}" para siempre? Esto NO borra ningún diseño que ya hayas armado con ella (esos siguen con su propio enlace de OBS) — solo deja de aparecer como punto de partida nuevo.`)) return;
+    try {
+      await api.eliminarPlantillaPersonalizada(plantilla.id);
+      setPlantillasPersonalizadas((p) => p.filter((x) => x.id !== plantilla.id));
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   // Ya NO borra la fila — la vacía de vuelta a los valores de fábrica de
   // la plantilla (ver el comentario junto a mensajeConfirmarRestablecer).
   // La fila sigue con el mismo id, así que cualquier escena que la tenga
@@ -1976,6 +2009,35 @@ export default function Disenos() {
           onCancelar={() => setEditando(null)}
         />
       ) : (
+        <>
+        {plantillasPersonalizadas.length > 0 && (
+          <div className="grupo-equipos">
+            <h3 className="grupo-equipos-titulo">🎨 Tus plantillas (armadas en el Creador)</h3>
+            <div className="grilla-tarjetas">
+              {plantillasPersonalizadas.map((plantilla) => {
+                const idSintetico = `custom-${plantilla.id}`;
+                const guardado = disenos.find((d) => d.plantilla_base === idSintetico);
+                return (
+                  <div className="tarjeta" key={idSintetico}>
+                    <MiniPreviewMarcador plantillaId="creador-libre" config={guardado?.config || plantilla.config || {}} />
+                    <strong>{plantilla.nombre}</strong>
+                    <div className="tarjeta-acciones">
+                      <button className="btn-primario" onClick={() => usarPlantillaPersonalizada(plantilla)}>Usar este diseño</button>
+                      <button
+                        type="button"
+                        className="btn-link"
+                        title="Elimina esta plantilla propia — no afecta a ningún diseño ya armado con ella"
+                        onClick={() => eliminarPlantillaPersonalizada(plantilla)}
+                      >
+                        🗑️ Eliminar plantilla
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
         <div className="grilla-tarjetas">
           {PLANTILLAS_MARCADOR.filter((p) => !plantillasOcultas.includes(p.id)).map((p) => {
             const guardado = disenos.find((d) => d.plantilla_base === p.id);
@@ -2013,6 +2075,7 @@ export default function Disenos() {
             );
           })}
         </div>
+        </>
       )}
     </div>
   );
