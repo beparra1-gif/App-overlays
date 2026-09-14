@@ -15,6 +15,7 @@ import logosRoutes from './routes/logos.js';
 import disenosRoutes from './routes/disenos.js';
 import escenasRoutes from './routes/escenas.js';
 import posicionesRoutes from './routes/posiciones.js';
+import plantillasPersonalizadasRoutes from './routes/plantillasPersonalizadas.js';
 import adminRoutes from './routes/admin.js';
 import { registrarSocketPartidos } from './socket/index.js';
 
@@ -45,6 +46,7 @@ app.use('/api/logos', logosRoutes);
 app.use('/api/disenos', disenosRoutes);
 app.use('/api/escenas', escenasRoutes);
 app.use('/api/posiciones', posicionesRoutes);
+app.use('/api/plantillas-personalizadas', plantillasPersonalizadasRoutes);
 app.use('/api/admin', adminRoutes);
 
 const io = new Server(server, { cors: corsOptions });

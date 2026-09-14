@@ -691,6 +691,41 @@ select {
   gap: 6px;
 }
 
+/* Pasos del Creador de marcador — cada paso (punto de partida, agregar
+   elementos, ajustarlos, guardar como plantilla) en su propia tarjeta
+   numerada, para que se lea como una secuencia y no como una lista larga
+   de controles sueltos. */
+.creador-paso {
+  background: var(--tarjeta);
+  border: 1px solid var(--borde);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+}
+.creador-paso-titulo {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  color: var(--primario);
+}
+
+/* Selector de tipografía con vista previa real (ver SelectorFuente en
+   Disenos.jsx) — la muestra de abajo siempre se ve, sin depender de abrir
+   el desplegable (los <option> también llevan su propia fuente, pero un
+   menú nativo abierto no es capturable/visible de forma confiable en
+   todos los navegadores). */
+.selector-fuente-wrap { display: flex; flex-direction: column; gap: 4px; }
+.selector-fuente-muestra {
+  font-size: 18px;
+  padding: 6px 10px;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  background: var(--fondo);
+  color: var(--texto);
+}
+
 /* Pestañas de los apartados (Marcador/Nómina/Estadísticas/Anuncios): un
    botón por apartado, se abre uno solo a la vez en vez de apilar los 4. */
 .pestanas-personalizacion {

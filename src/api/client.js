@@ -136,6 +136,11 @@ export const api = {
   crearPosicion: (payload) => solicitud('/posiciones', { method: 'POST', body: payload }),
   eliminarPosicion: (id) => solicitud(`/posiciones/${id}`, { method: 'DELETE' }),
 
+  listarPlantillasPersonalizadas: () => solicitud('/plantillas-personalizadas'),
+  crearPlantillaPersonalizada: (payload) => solicitud('/plantillas-personalizadas', { method: 'POST', body: payload }),
+  renombrarPlantillaPersonalizada: (id, nombre) => solicitud(`/plantillas-personalizadas/${id}`, { method: 'PUT', body: { nombre } }),
+  eliminarPlantillaPersonalizada: (id) => solicitud(`/plantillas-personalizadas/${id}`, { method: 'DELETE' }),
+
   adminListarUsuarios: () => solicitud('/admin/usuarios'),
   adminListarDisenosDeUsuario: (userId) => solicitud(`/admin/usuarios/${userId}/disenos`),
   adminEliminarDiseno: (id) => solicitud(`/admin/disenos/${id}`, { method: 'DELETE' }),

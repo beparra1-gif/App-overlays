@@ -226,6 +226,81 @@ const TIPOS_ELEMENTO_DATO = [
   { tipo: 'logoVisita', etiqueta: 'Logo Visita' },
 ];
 
+// Pares Local/Visita agregables "reflejados" de una sola vez (ver
+// agregarParReflejado) — quedan enlazados por parId, así que arrastrar
+// cualquiera de los dos mueve al otro en espejo.
+const PARES_REFLEJADOS = [
+  { local: 'nombreLocal', visita: 'nombreVisita', etiqueta: 'Nombres' },
+  { local: 'ptsLocal', visita: 'ptsVisita', etiqueta: 'Puntos' },
+  { local: 'faltasLocal', visita: 'faltasVisita', etiqueta: 'Faltas' },
+  { local: 'logoLocal', visita: 'logoVisita', etiqueta: 'Logos' },
+];
+
+// Diseños de tablero predefinidos para el Creador — puntos de partida
+// listos para usar (y después seguir editando/arrastrando a gusto), no
+// resultados finales fijos. El orden de cada array YA es el orden de
+// apilado (la forma de fondo va primero, así queda detrás del texto).
+const PRESETS_CREADOR = [
+  {
+    id: 'clasico-centrado',
+    nombre: 'Clásico centrado',
+    elementos: [
+      { tipo: 'forma', xPercent: 50, yPercent: 86, ancho: 640, alto: 150, color: 'rgba(8,10,18,.85)', radio: 20 },
+      { tipo: 'nombreLocal', xPercent: 24, yPercent: 78, tamano: 22, colorAuto: true, mayusculas: true, negrita: true },
+      { tipo: 'ptsLocal', xPercent: 24, yPercent: 90, tamano: 58, color: '#ffffff', negrita: true },
+      { tipo: 'nombreVisita', xPercent: 76, yPercent: 78, tamano: 22, colorAuto: true, mayusculas: true, negrita: true },
+      { tipo: 'ptsVisita', xPercent: 76, yPercent: 90, tamano: 58, color: '#ffffff', negrita: true },
+      { tipo: 'reloj', xPercent: 50, yPercent: 82, tamano: 32, color: '#ffd60a', negrita: true },
+      { tipo: 'periodo', xPercent: 50, yPercent: 91, tamano: 16, color: '#cfd3dc', negrita: false },
+    ],
+  },
+  {
+    id: 'franja-superior',
+    nombre: 'Franja superior (broadcast)',
+    elementos: [
+      { tipo: 'forma', xPercent: 50, yPercent: 6, ancho: 760, alto: 66, color: 'rgba(6,8,14,.9)', radio: 8 },
+      { tipo: 'nombreLocal', xPercent: 20, yPercent: 6, tamano: 20, colorAuto: true, mayusculas: true, negrita: true },
+      { tipo: 'ptsLocal', xPercent: 35, yPercent: 6, tamano: 32, color: '#ffffff', negrita: true },
+      { tipo: 'reloj', xPercent: 50, yPercent: 6, tamano: 24, color: '#ffd60a', negrita: true },
+      { tipo: 'ptsVisita', xPercent: 65, yPercent: 6, tamano: 32, color: '#ffffff', negrita: true },
+      { tipo: 'nombreVisita', xPercent: 80, yPercent: 6, tamano: 20, colorAuto: true, mayusculas: true, negrita: true },
+    ],
+  },
+  {
+    id: 'esquina-compacta',
+    nombre: 'Esquina compacta',
+    elementos: [
+      { tipo: 'forma', xPercent: 15, yPercent: 12, ancho: 300, alto: 130, color: 'rgba(6,8,14,.92)', radio: 14 },
+      { tipo: 'nombreLocal', xPercent: 15, yPercent: 6, tamano: 16, colorAuto: true, mayusculas: true, negrita: true },
+      { tipo: 'ptsLocal', xPercent: 8, yPercent: 15, tamano: 34, color: '#ffffff', negrita: true },
+      { tipo: 'reloj', xPercent: 15, yPercent: 15, tamano: 18, color: '#ffd60a', negrita: true },
+      { tipo: 'ptsVisita', xPercent: 22, yPercent: 15, tamano: 34, color: '#ffffff', negrita: true },
+      { tipo: 'nombreVisita', xPercent: 15, yPercent: 20, tamano: 13, colorAuto: true, mayusculas: true, negrita: true },
+    ],
+  },
+];
+
+// Selector de fuente con vista previa real — cada <option> se renderiza en
+// su propia tipografía (Chromium lo soporta) y, para que se vea SIN tener
+// que abrir el desplegable, una muestra chica debajo con la fuente ya
+// elegida. Reusado en todo lugar donde se elige tipografía (Marcador/
+// Nómina/Estadísticas/Anuncios y el Creador), a pedido — antes cada uno
+// era un <select> con solo el nombre en texto plano.
+function SelectorFuente({ value, onChange, incluirAutomatica = true, fuentePorDefecto = "'Oswald', sans-serif" }) {
+  const fuenteMuestra = value || fuentePorDefecto;
+  return (
+    <div className="selector-fuente-wrap">
+      <select value={value || ''} onChange={(e) => onChange(e.target.value)}>
+        {incluirAutomatica && <option value="">Automática (la de la plantilla)</option>}
+        {FUENTES_DISPONIBLES.filter((f) => f.id).map((f) => (
+          <option key={f.id} value={f.id} style={{ fontFamily: f.id }}>{f.etiqueta}</option>
+        ))}
+      </select>
+      <div className="selector-fuente-muestra" style={{ fontFamily: fuenteMuestra }}>Aa Bb 88 — Ejemplo</div>
+    </div>
+  );
+}
+
 // La ficha de "Equipos" no tiene capa propia en pantalla — lo que se
 // configura ahí (nombre, título, reloj) se ve todo DENTRO del marcador, así
 // que la vista previa de esa pestaña es la misma que la de "Marcador". Los
@@ -307,11 +382,9 @@ function SeccionEstiloCapa({ prefijo, config, cambiarConfig, tituloSeparado = tr
         </select>
       </label>
       <div className="fila-form">
-        <label>
+        <label style={{ flex: 1 }}>
           Tipo de letra {tituloSeparado ? `del ${etiquetaTitulo.toLowerCase()}` : 'del aviso'}
-          <select value={g('TituloFuente') || ''} onChange={(e) => set('TituloFuente')(e.target.value)}>
-            {FUENTES_DISPONIBLES.map((f) => <option key={f.id} value={f.id}>{f.etiqueta}</option>)}
-          </select>
+          <SelectorFuente value={g('TituloFuente')} onChange={set('TituloFuente')} />
         </label>
       </div>
       <Toggle etiqueta={`${tituloSeparado ? etiquetaTitulo : 'Aviso'} en negrita`} checked={Boolean(g('TituloNegrita'))} onChange={set('TituloNegrita')} />
@@ -319,18 +392,23 @@ function SeccionEstiloCapa({ prefijo, config, cambiarConfig, tituloSeparado = tr
   );
 }
 
-// Mensaje de confirmación antes de borrar un diseño — distinto según si ese
-// diseño tiene un partido activo (con su propio enlace de OBS ya en uso):
-// borrar el diseño NUNCA borra ese enlace (la escena solo pierde el diseño,
-// ver ON DELETE SET NULL en la base), pero el marcador de ESE enlace vuelve
-// a verse en blanco al toque, y la próxima vez que se use esta plantilla se
-// arma un diseño (y eventualmente un partido/enlace) nuevo de cero — nada de
-// esto debe ser una sorpresa después de apretar Eliminar.
-function mensajeConfirmarEliminar(diseno) {
+// "Eliminar definitivamente" un diseño ANTES hacía un DELETE de verdad —
+// como la fila desaparecía, cualquier escena que lo tuviera asignado
+// (escenas.diseno_id, ON DELETE SET NULL) se quedaba sin diseño, y el
+// enlace de OBS ya pegado en la transmisión dejaba de mostrar el marcador
+// personalizado. Ahora "eliminar" un diseño es RESTABLECERLO: la fila
+// sigue existiendo (mismo id), solo se le vacía `config` a `{}` (vuelve a
+// los valores de fábrica de esa plantilla) — cualquier escena que lo tenga
+// asignado sigue apuntando a la MISMA fila, así que el enlace de OBS nunca
+// se rompe ni cambia, se use lo que se use después. El único borrado de
+// verdad que existe ahora es el de una plantilla PERSONALIZADA guardada
+// (ver plantillas-personalizadas) — esa sí es una "receta" reusable sin
+// ningún enlace de OBS propio atado.
+function mensajeConfirmarRestablecer(diseno) {
   if (diseno?.partido_activo_id) {
-    return `"${diseno.nombre}" tiene un partido en curso con su propio enlace de OBS. Si lo eliminás, ese enlace deja de mostrar este diseño (el marcador vuelve a verse en blanco) y la próxima vez que uses esta plantilla vas a armar un diseño y un enlace nuevos. Esta acción no se puede deshacer. ¿Eliminar igual?`;
+    return `"${diseno.nombre}" tiene un partido en curso con su propio enlace de OBS. Restablecerlo lo vuelve a los valores de fábrica de la plantilla (colores, posición, todo) — el enlace de OBS sigue funcionando igual, sin cambiar. Esta acción no se puede deshacer. ¿Restablecer igual?`;
   }
-  return `¿Eliminar "${diseno.nombre}"? Esta acción no se puede deshacer.`;
+  return `¿Restablecer "${diseno.nombre}" a los valores de fábrica de la plantilla? Esta acción no se puede deshacer (pero el enlace de OBS no cambia).`;
 }
 
 function nombreAutomatico(plantillaBase) {
@@ -339,7 +417,7 @@ function nombreAutomatico(plantillaBase) {
   return `${nombrePlantilla} — ${fecha}`;
 }
 
-function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
+function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
   const [plantillaBase] = useState(inicial?.plantilla_base || PLANTILLAS_MARCADOR[0].id);
   const [configRaw, setConfigRaw] = useState({ ...CONFIG_INICIAL, ...(inicial?.config || {}) });
   const [error, setError] = useState('');
@@ -391,6 +469,28 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
   // Elemento libre elegido para editar en el panel "Creador" — solo
   // estado de UI (qué inspector mostrar), no se guarda en el diseño.
   const [elementoSeleccionadoId, setElementoSeleccionadoId] = useState(null);
+  // "Guardar como plantilla nueva" (Creador → Paso 4): la plantilla queda
+  // en la cuenta del usuario y aparece en el catálogo principal junto a
+  // las de fábrica — independiente de ESTE diseño puntual, que sigue
+  // guardándose solo como siempre.
+  const [nombreNuevaPlantilla, setNombreNuevaPlantilla] = useState('');
+  const [guardandoPlantilla, setGuardandoPlantilla] = useState(false);
+  const [mensajePlantilla, setMensajePlantilla] = useState('');
+  const guardarComoPlantilla = async () => {
+    if (!nombreNuevaPlantilla.trim()) return setMensajePlantilla('Ponele un nombre a la plantilla primero.');
+    if (creadorElementos.length === 0) return setMensajePlantilla('Agregá al menos un elemento antes de guardarla.');
+    setGuardandoPlantilla(true);
+    setMensajePlantilla('');
+    try {
+      await api.crearPlantillaPersonalizada({ nombre: nombreNuevaPlantilla.trim(), plantilla_base: 'creador-libre', config: { creadorElementos } });
+      setMensajePlantilla(`"${nombreNuevaPlantilla.trim()}" guardada ✓ — ya aparece en el catálogo de Diseños.`);
+      setNombreNuevaPlantilla('');
+    } catch (err) {
+      setMensajePlantilla(err.message);
+    } finally {
+      setGuardandoPlantilla(false);
+    }
+  };
   // Estado EN VIVO del partido embebido en "Juego en vivo" (Mesa lo reporta
   // por su propio callback, sin abrir una segunda conexión de socket) — si
   // ya hay un partido preparado, la vista previa de "Personalizar tablero"
@@ -493,31 +593,78 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
   // grandes y centrados por defecto; un texto libre nace chico, para no
   // taparlo todo apenas se agrega).
   const creadorElementos = Array.isArray(config.creadorElementos) ? config.creadorElementos : [];
-  const agregarElemento = (tipo) => {
+  const crearElemento = (tipo, extra = {}) => {
     const esDato = tipo !== 'texto' && tipo !== 'forma' && tipo !== 'logoLocal' && tipo !== 'logoVisita';
-    const nuevo = {
+    return {
       id: `el-${Date.now()}-${Math.random().toString(36).slice(2)}`,
       tipo,
       xPercent: 50,
       yPercent: 50,
+      rotacion: 0,
       tamano: tipo === 'forma' ? undefined : (tipo === 'logoLocal' || tipo === 'logoVisita' ? 90 : (esDato ? 44 : 28)),
       ancho: tipo === 'forma' ? 220 : undefined,
       alto: tipo === 'forma' ? 90 : undefined,
+      radio: tipo === 'forma' ? 12 : undefined,
       color: tipo === 'forma' ? 'rgba(10,12,20,.85)' : '#ffffff',
       colorAuto: esDato,
       negrita: true,
       mayusculas: esDato,
       texto: tipo === 'texto' ? 'Texto libre' : undefined,
+      ...extra,
     };
+  };
+  const agregarElemento = (tipo) => {
+    const nuevo = crearElemento(tipo);
     cambiarConfig('creadorElementos', [...creadorElementos, nuevo]);
     setElementoSeleccionadoId(nuevo.id);
   };
+  // "Par reflejado": agrega Local y Visita juntos, ya enlazados por `parId`
+  // — arrastrar cualquiera de los dos mueve al otro en espejo (mismo Y,
+  // X reflejado respecto del centro), así el tablero queda siempre
+  // simétrico sin tener que ajustar los dos lados a mano cada vez.
+  const agregarParReflejado = (tipoLocal, tipoVisita) => {
+    const local = crearElemento(tipoLocal, { xPercent: 25, yPercent: 50 });
+    const visita = crearElemento(tipoVisita, { xPercent: 75, yPercent: 50, parId: local.id });
+    local.parId = visita.id;
+    cambiarConfig('creadorElementos', [...creadorElementos, local, visita]);
+    setElementoSeleccionadoId(local.id);
+  };
   const actualizarElemento = (id, cambios) => {
-    cambiarConfig('creadorElementos', creadorElementos.map((el) => (el.id === id ? { ...el, ...cambios } : el)));
+    let siguiente = creadorElementos.map((el) => (el.id === id ? { ...el, ...cambios } : el));
+    // Si se movió (arrastre) y tiene un par reflejado, el par se actualiza
+    // en espejo: mismo Y, X reflejado respecto del centro (100 - x).
+    if ((cambios.xPercent !== undefined || cambios.yPercent !== undefined)) {
+      const el = siguiente.find((e) => e.id === id);
+      if (el?.parId) {
+        siguiente = siguiente.map((e) => (
+          e.id === el.parId
+            ? { ...e, xPercent: 100 - (Number.isFinite(el.xPercent) ? el.xPercent : 50), yPercent: el.yPercent }
+            : e
+        ));
+      }
+    }
+    cambiarConfig('creadorElementos', siguiente);
   };
   const eliminarElemento = (id) => {
     cambiarConfig('creadorElementos', creadorElementos.filter((el) => el.id !== id));
     setElementoSeleccionadoId((actual) => (actual === id ? null : actual));
+  };
+  // Orden de apilado: el último del array se dibuja arriba de todos (ver
+  // ElementosLibres.jsx) — "traer al frente"/"enviar atrás" mueve el
+  // elemento a una punta u otra del array, sin necesitar z-index.
+  const moverElementoCapa = (id, direccion) => {
+    const indice = creadorElementos.findIndex((el) => el.id === id);
+    if (indice === -1) return;
+    const siguiente = creadorElementos.filter((el) => el.id !== id);
+    const elemento = creadorElementos[indice];
+    if (direccion === 'frente') siguiente.push(elemento);
+    else siguiente.unshift(elemento);
+    cambiarConfig('creadorElementos', siguiente);
+  };
+  const aplicarPresetCreador = (elementos) => {
+    if (creadorElementos.length > 0 && !window.confirm('Esto reemplaza los elementos actuales del Creador por los del diseño elegido. ¿Continuar?')) return;
+    cambiarConfig('creadorElementos', elementos.map((el) => ({ ...el, id: `el-${Date.now()}-${Math.random().toString(36).slice(2)}` })));
+    setElementoSeleccionadoId(null);
   };
 
   const posX = Number.isFinite(config.posX) ? config.posX : 50;
@@ -636,20 +783,15 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [config]);
 
+  // Mismo botón que el de "Restablecer" en el catálogo (ver
+  // restablecerDiseno) — desde acá no hace falta pegarle al backend: ya
+  // estás editando este diseño, así que alcanza con volver `config` al
+  // estado inicial en memoria; el autoguardado (más abajo) lo persiste
+  // solo. La fila (y el enlace de OBS de cualquier escena que la use)
+  // nunca se toca.
   const restablecerPreferencias = () => {
-    if (!window.confirm('¿Restablecer todas las preferencias de este diseño a los valores originales de la plantilla?')) return;
+    if (!window.confirm('¿Restablecer todas las preferencias de este diseño a los valores originales de la plantilla? El enlace de OBS no cambia.')) return;
     setConfig(CONFIG_INICIAL);
-  };
-
-  const eliminarDesdeAqui = async () => {
-    if (!inicial?.id) return;
-    if (!window.confirm(mensajeConfirmarEliminar(inicial))) return;
-    setError('');
-    try {
-      await onEliminar(inicial.id);
-    } catch (err) {
-      setError(err.message);
-    }
   };
 
   // Arma (o reusa) los equipos escritos en la pestaña "Equipos" y crea el
@@ -726,16 +868,6 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
             {guardando ? 'Guardando…' : guardadoOk ? 'Guardado ✓' : ''}
           </span>
           <button type="button" className="btn-link" onClick={onCancelar}>← Volver al catálogo</button>
-          {inicial?.id && (
-            <button
-              type="button"
-              className="btn-link"
-              title="Borra este diseño para siempre — si querés solo volver a los colores originales, usá Restablecer más abajo"
-              onClick={eliminarDesdeAqui}
-            >
-              🗑️ Eliminar definitivamente
-            </button>
-          )}
           <button type="button" className="btn-secundario" title="Deshacer (Ctrl+Z)" disabled={historialRef.current.length === 0} onClick={deshacer}>↶ Deshacer</button>
           <button type="button" className="btn-secundario" title="Rehacer (Ctrl+Shift+Z)" disabled={futuroRef.current.length === 0} onClick={rehacer}>↷ Rehacer</button>
         </div>
@@ -976,9 +1108,7 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
           <p className="seccion-titulo">Tipografía</p>
           <label>
             Tipo de letra del marcador (y de nómina/estadísticas/anuncios, para que todo combine)
-            <select value={config.fuenteMarcador || ''} onChange={(e) => cambiarConfig('fuenteMarcador', e.target.value)}>
-              {FUENTES_DISPONIBLES.map((f) => <option key={f.id} value={f.id}>{f.etiqueta}</option>)}
-            </select>
+            <SelectorFuente value={config.fuenteMarcador} onChange={(v) => cambiarConfig('fuenteMarcador', v)} />
           </label>
 
           <p className="seccion-titulo">Tamaño de los textos</p>
@@ -1535,121 +1665,202 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
         {/* ───────── CREADOR (Canva libre del marcador) ───────── */}
         <div className="grupo-personalizacion" hidden={seccionAbierta !== 'creador'}>
           <div className="grupo-titulo">🎨 Creador de marcador</div>
-          <p className="texto-tenue" style={{ margin: '0 0 10px' }}>
-            Armá el marcador elemento por elemento: agregá lo que necesites de la lista, arrastralo en la vista previa
-            de arriba a donde quieras, y ajustá tipografía/color/tamaño acá abajo. Funciona sobre CUALQUIER plantilla —
-            para un lienzo completamente en blanco, elegí la plantilla "🎨 Creador Libre" en el catálogo.
+          <p className="texto-tenue" style={{ margin: '0 0 14px' }}>
+            Armá el marcador paso a paso: elegí un punto de partida, agregá elementos, ajustalos uno por uno arrastrando
+            directo en la vista previa de arriba, y guardá el resultado como una plantilla propia si querés reusarla.
+            Funciona sobre CUALQUIER plantilla — para un lienzo completamente en blanco, elegí "🎨 Creador Libre" en el catálogo.
           </p>
-          <div className="grupo-titulo" style={{ fontSize: 12, marginTop: 4 }}>Datos del partido</div>
-          <div className="modal-opciones-grid" style={{ marginBottom: 10 }}>
-            {TIPOS_ELEMENTO_DATO.map((t) => (
-              <button key={t.tipo} type="button" className="btn-secundario btn-chico" onClick={() => agregarElemento(t.tipo)}>
-                + {t.etiqueta}
-              </button>
-            ))}
+
+          <div className="creador-paso">
+            <h4 className="creador-paso-titulo">Paso 1 · Punto de partida (opcional)</h4>
+            <p className="texto-tenue" style={{ margin: '0 0 8px', fontSize: 12 }}>
+              Cargá un diseño predefinido para no empezar de cero — después seguís ajustando cada pieza a gusto.
+            </p>
+            <div className="fila-form" style={{ margin: 0 }}>
+              {PRESETS_CREADOR.map((p) => (
+                <button key={p.id} type="button" className="btn-secundario btn-chico" onClick={() => aplicarPresetCreador(p.elementos)}>
+                  🖼️ {p.nombre}
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="fila-form" style={{ margin: '0 0 14px' }}>
-            <button type="button" className="btn-secundario" onClick={() => agregarElemento('texto')}>+ Texto libre</button>
-            <button type="button" className="btn-secundario" onClick={() => agregarElemento('forma')}>+ Forma / fondo</button>
+
+          <div className="creador-paso">
+            <h4 className="creador-paso-titulo">Paso 2 · Agregar elementos</h4>
+            <p className="texto-tenue" style={{ margin: '0 0 6px', fontSize: 12 }}>
+              Los "reflejados" agregan Local y Visita juntos, ya enlazados: mover uno mueve al otro en espejo, así el
+              tablero queda siempre simétrico (lo que se ajusta a la izquierda se refleja solo a la derecha).
+            </p>
+            <div className="modal-opciones-grid" style={{ marginBottom: 10 }}>
+              {PARES_REFLEJADOS.map((p) => (
+                <button key={p.local} type="button" className="btn-primario btn-chico" onClick={() => agregarParReflejado(p.local, p.visita)}>
+                  🔗 {p.etiqueta} (Local + Visita)
+                </button>
+              ))}
+            </div>
+            <p className="texto-tenue" style={{ margin: '0 0 6px', fontSize: 12 }}>O agregá un solo lado / un dato suelto:</p>
+            <div className="modal-opciones-grid" style={{ marginBottom: 10 }}>
+              {TIPOS_ELEMENTO_DATO.map((t) => (
+                <button key={t.tipo} type="button" className="btn-secundario btn-chico" onClick={() => agregarElemento(t.tipo)}>
+                  + {t.etiqueta}
+                </button>
+              ))}
+            </div>
+            <div className="fila-form" style={{ margin: 0 }}>
+              <button type="button" className="btn-secundario" onClick={() => agregarElemento('texto')}>+ Texto libre</button>
+              <button type="button" className="btn-secundario" onClick={() => agregarElemento('forma')}>+ Forma / fondo</button>
+            </div>
           </div>
 
-          {creadorElementos.length === 0 ? (
-            <p className="texto-tenue">Todavía no agregaste ningún elemento.</p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {creadorElementos.map((el) => {
-                const info = TIPOS_ELEMENTO_DATO.find((t) => t.tipo === el.tipo);
-                const etiquetaTipo = info?.etiqueta || (el.tipo === 'texto' ? 'Texto libre' : el.tipo === 'forma' ? 'Forma / fondo' : el.tipo);
-                const esTexto = el.tipo === 'texto';
-                const esForma = el.tipo === 'forma';
-                const esLogo = el.tipo === 'logoLocal' || el.tipo === 'logoVisita';
-                const tieneColorEquipo = el.tipo.endsWith('Local') || el.tipo.endsWith('Visita');
-                return (
-                  <div
-                    key={el.id}
-                    className="tarjeta"
-                    style={{ display: 'flex', flexDirection: 'column', gap: 8, borderColor: elementoSeleccionadoId === el.id ? 'var(--primario)' : undefined }}
-                    onClick={() => setElementoSeleccionadoId(el.id)}
-                  >
-                    <div className="fila-form" style={{ margin: 0, justifyContent: 'space-between' }}>
-                      <strong style={{ fontSize: 13 }}>{etiquetaTipo}</strong>
-                      <button type="button" className="btn-link" onClick={(e) => { e.stopPropagation(); eliminarElemento(el.id); }}>🗑️ Quitar</button>
-                    </div>
+          <div className="creador-paso">
+            <h4 className="creador-paso-titulo">Paso 3 · Ajustar cada elemento</h4>
+            {creadorElementos.length === 0 ? (
+              <p className="texto-tenue">Todavía no agregaste ningún elemento — empezá por el Paso 2.</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {creadorElementos.map((el, indice) => {
+                  const info = TIPOS_ELEMENTO_DATO.find((t) => t.tipo === el.tipo);
+                  const etiquetaTipo = info?.etiqueta || (el.tipo === 'texto' ? 'Texto libre' : el.tipo === 'forma' ? 'Forma / fondo' : el.tipo);
+                  const esTexto = el.tipo === 'texto';
+                  const esForma = el.tipo === 'forma';
+                  const esLogo = el.tipo === 'logoLocal' || el.tipo === 'logoVisita';
+                  const tieneColorEquipo = el.tipo.endsWith('Local') || el.tipo.endsWith('Visita');
+                  return (
+                    <div
+                      key={el.id}
+                      className="tarjeta"
+                      style={{ display: 'flex', flexDirection: 'column', gap: 8, borderColor: elementoSeleccionadoId === el.id ? 'var(--primario)' : undefined }}
+                      onClick={() => setElementoSeleccionadoId(el.id)}
+                    >
+                      <div className="fila-form" style={{ margin: 0, justifyContent: 'space-between' }}>
+                        <strong style={{ fontSize: 13 }}>
+                          {etiquetaTipo}
+                          {el.parId && <span className="texto-tenue" title="Enlazado en espejo con su par Local/Visita" style={{ fontSize: 11, fontWeight: 400 }}> 🔗 reflejado</span>}
+                        </strong>
+                        <span style={{ display: 'flex', gap: 4 }}>
+                          <button type="button" className="btn-link" title="Enviar atrás" disabled={indice === 0} onClick={(e) => { e.stopPropagation(); moverElementoCapa(el.id, 'atras'); }}>⬇️</button>
+                          <button type="button" className="btn-link" title="Traer al frente" disabled={indice === creadorElementos.length - 1} onClick={(e) => { e.stopPropagation(); moverElementoCapa(el.id, 'frente'); }}>⬆️</button>
+                          <button type="button" className="btn-link" onClick={(e) => { e.stopPropagation(); eliminarElemento(el.id); }}>🗑️ Quitar</button>
+                        </span>
+                      </div>
 
-                    {esTexto && (
-                      <input
-                        value={el.texto || ''}
-                        onChange={(e) => actualizarElemento(el.id, { texto: e.target.value })}
-                        placeholder="Escribí el texto…"
-                      />
-                    )}
+                      {esTexto && (
+                        <input
+                          value={el.texto || ''}
+                          onChange={(e) => actualizarElemento(el.id, { texto: e.target.value })}
+                          placeholder="Escribí el texto…"
+                        />
+                      )}
 
-                    {esForma ? (
-                      <>
-                        <div className="fila-form" style={{ margin: 0 }}>
-                          <input type="color" value={/^#/.test(el.color) ? el.color : '#0a0c14'} onChange={(e) => actualizarElemento(el.id, { color: e.target.value })} />
+                      <CampoRango etiqueta="Ángulo" valor={el.rotacion ?? 0} min={-180} max={180} onChange={(v) => actualizarElemento(el.id, { rotacion: v })} />
+
+                      {esForma ? (
+                        <>
                           <label className="mv-check-detalle" style={{ color: 'inherit' }}>
-                            <input type="checkbox" checked={!!el.formaRedonda} onChange={(e) => actualizarElemento(el.id, { formaRedonda: e.target.checked })} />
-                            Redonda (círculo/píldora)
+                            <input type="checkbox" checked={!!el.gradiente} onChange={(e) => actualizarElemento(el.id, { gradiente: e.target.checked })} />
+                            Degradado de color
                           </label>
-                        </div>
-                        <CampoRango etiqueta="Ancho" valor={el.ancho ?? 220} min={20} max={800} onChange={(v) => actualizarElemento(el.id, { ancho: v })} />
-                        <CampoRango etiqueta="Alto" valor={el.alto ?? 90} min={20} max={800} onChange={(v) => actualizarElemento(el.id, { alto: v })} />
-                        <CampoRango etiqueta="Transparencia" valor={el.opacidad ?? 100} min={5} max={100} onChange={(v) => actualizarElemento(el.id, { opacidad: v })} />
-                      </>
-                    ) : esLogo ? (
-                      <>
-                        <CampoRango etiqueta="Tamaño" valor={el.tamano ?? 90} min={20} max={400} onChange={(v) => actualizarElemento(el.id, { tamano: v })} />
-                        <CampoRango etiqueta="Transparencia" valor={el.opacidad ?? 100} min={10} max={100} onChange={(v) => actualizarElemento(el.id, { opacidad: v })} />
-                      </>
-                    ) : (
-                      <>
-                        <select value={el.fuente || ''} onChange={(e) => actualizarElemento(el.id, { fuente: e.target.value })}>
-                          {FUENTES_DISPONIBLES.map((f) => <option key={f.id} value={f.id}>{f.etiqueta}</option>)}
-                        </select>
-                        <CampoRango etiqueta="Tamaño" valor={el.tamano ?? 32} min={10} max={160} onChange={(v) => actualizarElemento(el.id, { tamano: v })} />
-                        <div className="fila-form" style={{ margin: 0 }}>
-                          <label className="mv-check-detalle" style={{ color: 'inherit' }}>
-                            <input type="checkbox" checked={el.negrita !== false} onChange={(e) => actualizarElemento(el.id, { negrita: e.target.checked })} />
-                            Negrita
-                          </label>
-                          <label className="mv-check-detalle" style={{ color: 'inherit' }}>
-                            <input type="checkbox" checked={!!el.mayusculas} onChange={(e) => actualizarElemento(el.id, { mayusculas: e.target.checked })} />
-                            MAYÚSCULAS
-                          </label>
-                        </div>
-                        {tieneColorEquipo && (
-                          <label className="mv-check-detalle" style={{ color: 'inherit' }}>
-                            <input type="checkbox" checked={el.colorAuto !== false} onChange={(e) => actualizarElemento(el.id, { colorAuto: e.target.checked })} />
-                            Usar el color del equipo
-                          </label>
-                        )}
-                        {(!tieneColorEquipo || el.colorAuto === false) && (
                           <div className="fila-form" style={{ margin: 0 }}>
-                            <span className="texto-tenue" style={{ fontSize: 12 }}>Color del texto</span>
-                            <input type="color" value={/^#/.test(el.color) ? el.color : '#ffffff'} onChange={(e) => actualizarElemento(el.id, { color: e.target.value })} />
+                            <input type="color" value={/^#/.test(el.color) ? el.color : '#0a0c14'} onChange={(e) => actualizarElemento(el.id, { color: e.target.value })} />
+                            {el.gradiente && (
+                              <>
+                                <input type="color" value={/^#/.test(el.color2) ? el.color2 : '#4a4a4a'} onChange={(e) => actualizarElemento(el.id, { color2: e.target.value })} />
+                                <CampoRango etiqueta="Ángulo del degradado" valor={el.gradienteAngulo ?? 90} min={0} max={360} onChange={(v) => actualizarElemento(el.id, { gradienteAngulo: v })} />
+                              </>
+                            )}
                           </div>
-                        )}
-                        <div className="fila-form" style={{ margin: 0 }}>
+                          <CampoRango etiqueta="Ancho" valor={el.ancho ?? 220} min={20} max={800} onChange={(v) => actualizarElemento(el.id, { ancho: v })} />
+                          <CampoRango etiqueta="Alto" valor={el.alto ?? 90} min={20} max={800} onChange={(v) => actualizarElemento(el.id, { alto: v })} />
+                          <CampoRango
+                            etiqueta="Redondeo de esquinas"
+                            valor={el.radio ?? 12}
+                            min={0} max={400}
+                            onChange={(v) => actualizarElemento(el.id, { radio: v })}
+                            ayuda="Llevalo al máximo para un círculo o una píldora perfecta."
+                          />
+                          <CampoRango etiqueta="Transparencia" valor={el.opacidad ?? 100} min={5} max={100} onChange={(v) => actualizarElemento(el.id, { opacidad: v })} />
+                        </>
+                      ) : esLogo ? (
+                        <>
+                          <CampoRango etiqueta="Tamaño" valor={el.tamano ?? 90} min={20} max={400} onChange={(v) => actualizarElemento(el.id, { tamano: v })} />
+                          <CampoRango etiqueta="Transparencia" valor={el.opacidad ?? 100} min={10} max={100} onChange={(v) => actualizarElemento(el.id, { opacidad: v })} />
+                        </>
+                      ) : (
+                        <>
+                          <SelectorFuente value={el.fuente} onChange={(v) => actualizarElemento(el.id, { fuente: v })} />
+                          <CampoRango etiqueta="Tamaño" valor={el.tamano ?? 32} min={10} max={160} onChange={(v) => actualizarElemento(el.id, { tamano: v })} />
+                          <div className="fila-form" style={{ margin: 0 }}>
+                            <label className="mv-check-detalle" style={{ color: 'inherit' }}>
+                              <input type="checkbox" checked={el.negrita !== false} onChange={(e) => actualizarElemento(el.id, { negrita: e.target.checked })} />
+                              Negrita
+                            </label>
+                            <label className="mv-check-detalle" style={{ color: 'inherit' }}>
+                              <input type="checkbox" checked={!!el.mayusculas} onChange={(e) => actualizarElemento(el.id, { mayusculas: e.target.checked })} />
+                              MAYÚSCULAS
+                            </label>
+                          </div>
+                          {tieneColorEquipo && (
+                            <label className="mv-check-detalle" style={{ color: 'inherit' }}>
+                              <input type="checkbox" checked={el.colorAuto !== false} onChange={(e) => actualizarElemento(el.id, { colorAuto: e.target.checked })} />
+                              Usar el color del equipo
+                            </label>
+                          )}
+                          {(!tieneColorEquipo || el.colorAuto === false) && (
+                            <div className="fila-form" style={{ margin: 0 }}>
+                              <span className="texto-tenue" style={{ fontSize: 12 }}>Color del texto</span>
+                              <input type="color" value={/^#/.test(el.color) ? el.color : '#ffffff'} onChange={(e) => actualizarElemento(el.id, { color: e.target.value })} />
+                            </div>
+                          )}
                           <label className="mv-check-detalle" style={{ color: 'inherit' }}>
                             <input type="checkbox" checked={!!el.fondoColor} onChange={(e) => actualizarElemento(el.id, { fondoColor: e.target.checked ? 'rgba(10,12,20,.75)' : null })} />
                             Fondo detrás del texto
                           </label>
                           {el.fondoColor && (
-                            <input
-                              type="color"
-                              value={/^#/.test(el.fondoColor) ? el.fondoColor : '#0a0c14'}
-                              onChange={(e) => actualizarElemento(el.id, { fondoColor: e.target.value })}
-                            />
+                            <>
+                              <div className="fila-form" style={{ margin: 0 }}>
+                                <input type="color" value={/^#/.test(el.fondoColor) ? el.fondoColor : '#0a0c14'} onChange={(e) => actualizarElemento(el.id, { fondoColor: e.target.value })} />
+                                <label className="mv-check-detalle" style={{ color: 'inherit' }}>
+                                  <input type="checkbox" checked={!!el.gradiente} onChange={(e) => actualizarElemento(el.id, { gradiente: e.target.checked })} />
+                                  Degradado
+                                </label>
+                              </div>
+                              {el.gradiente && (
+                                <div className="fila-form" style={{ margin: 0 }}>
+                                  <input type="color" value={/^#/.test(el.fondoColor2) ? el.fondoColor2 : '#4a4a4a'} onChange={(e) => actualizarElemento(el.id, { fondoColor2: e.target.value })} />
+                                  <CampoRango etiqueta="Ángulo del degradado" valor={el.gradienteAngulo ?? 90} min={0} max={360} onChange={(v) => actualizarElemento(el.id, { gradienteAngulo: v })} />
+                                </div>
+                              )}
+                            </>
                           )}
-                        </div>
-                      </>
-                    )}
-                  </div>
-                );
-              })}
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div className="creador-paso">
+            <h4 className="creador-paso-titulo">Paso 4 · Guardar como plantilla propia</h4>
+            <p className="texto-tenue" style={{ margin: '0 0 8px', fontSize: 12 }}>
+              Guarda ESTE armado (todos los elementos de arriba) como una plantilla nueva en tu cuenta — va a aparecer
+              en el catálogo de Diseños junto a las de fábrica, lista para elegir en cualquier partido futuro con su
+              propio enlace fijo de OBS, igual que las demás. Este diseño puntual se sigue guardando solo, como siempre.
+            </p>
+            <div className="fila-form" style={{ margin: 0 }}>
+              <input
+                placeholder="Nombre de la plantilla (ej. Mi marcador de liga)"
+                value={nombreNuevaPlantilla}
+                onChange={(e) => setNombreNuevaPlantilla(e.target.value)}
+                style={{ flex: 1, minWidth: 200 }}
+              />
+              <button type="button" className="btn-primario" disabled={guardandoPlantilla} onClick={guardarComoPlantilla}>
+                {guardandoPlantilla ? 'Guardando…' : '💾 Guardar como plantilla nueva'}
+              </button>
             </div>
-          )}
+            {mensajePlantilla && <p className={mensajePlantilla.includes('✓') ? 'mensaje-exito' : 'mensaje-error'} style={{ marginTop: 8 }}>{mensajePlantilla}</p>}
+          </div>
         </div>
 
         <button
@@ -1735,10 +1946,14 @@ export default function Disenos() {
     setEditando(existente || { plantilla_base: plantillaId });
   };
 
-  const eliminar = async (id) => {
+  // Ya NO borra la fila — la vacía de vuelta a los valores de fábrica de
+  // la plantilla (ver el comentario junto a mensajeConfirmarRestablecer).
+  // La fila sigue con el mismo id, así que cualquier escena que la tenga
+  // asignada (enlace de OBS ya pegado en una transmisión) sigue
+  // apuntando a algo real — nunca se queda sin diseño.
+  const restablecerDiseno = async (id) => {
     try {
-      await api.eliminarDiseno(id);
-      setEditando(null);
+      await api.actualizarDiseno(id, { config: {} });
       cargar();
     } catch (err) {
       setError(err.message);
@@ -1758,7 +1973,6 @@ export default function Disenos() {
         <FormularioDiseno
           inicial={editando}
           onGuardar={guardar}
-          onEliminar={eliminar}
           onCancelar={() => setEditando(null)}
         />
       ) : (
@@ -1775,12 +1989,12 @@ export default function Disenos() {
                     <button
                       type="button"
                       className="btn-link"
-                      title="Elimina definitivamente este diseño guardado — si solo querés cambiarle algo, entrá con 'Usar este diseño'"
+                      title="Vuelve este diseño a los valores de fábrica de la plantilla — el enlace de OBS sigue funcionando igual, nunca se rompe. Si solo querés cambiarle algo, entrá con 'Usar este diseño'"
                       onClick={() => {
-                        if (window.confirm(mensajeConfirmarEliminar(guardado))) eliminar(guardado.id);
+                        if (window.confirm(mensajeConfirmarRestablecer(guardado))) restablecerDiseno(guardado.id);
                       }}
                     >
-                      🗑️ Eliminar definitivamente
+                      ↺ Restablecer a valores de fábrica
                     </button>
                   )}
                 </div>
