@@ -408,3 +408,145 @@ html:has(.plantilla-marcador) {
 .pfb-to { width: 16px; height: 5px; border-radius: 2px; background: rgba(255, 255, 255, .22); }
 .pfb-to.activo { background: var(--color-to, #fff); }
 .pfb-faltas { font-size: 10px; font-weight: 700; letter-spacing: .6px; color: #cfd3dc; }
+
+/* 28. Halo Digital — HUD circular, el puntaje vive dentro de un anillo que
+   gira solo (mitad del color de cada equipo), sin ninguna caja/barra
+   rectangular como el resto. `mask` recorta el conic-gradient a un anillo
+   fino (deja ver el centro oscuro adentro) — soportado en cualquier
+   Chromium/OBS Browser Source moderno. */
+.phd-wrap { display: flex; align-items: center; justify-content: center; height: 100%; font-family: var(--pm-fuente, 'Exo 2', sans-serif); }
+.phd-caja { display: flex; align-items: center; gap: 22px; }
+.phd-lado { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 90px; }
+.phd-logo { object-fit: contain; opacity: var(--pm-logo-opacidad, 1); }
+.phd-nombre { font-size: calc(13px * var(--pm-escala-nombre, 1)); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+.phd-faltas { font-size: 10px; color: #ff453a; font-weight: 700; }
+.phd-anillo {
+  position: relative; width: 190px; height: 190px; border-radius: 50%;
+  background: radial-gradient(circle at center, rgba(10, 14, 24, .94) 60%, rgba(10, 14, 24, .78) 100%);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  box-shadow: 0 0 40px rgba(0, 0, 0, .5);
+}
+.phd-anillo-giro {
+  position: absolute; inset: -4px; border-radius: 50%;
+  background: conic-gradient(from 0deg, var(--color-local, #0af) 0deg 175deg, transparent 175deg 185deg, var(--color-visita, #f30) 185deg 355deg, transparent 355deg 360deg);
+  animation: phd-girar 6s linear infinite;
+  mask: radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 6px));
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 6px));
+}
+@keyframes phd-girar { to { transform: rotate(360deg); } }
+.phd-centro { display: flex; align-items: baseline; gap: 6px; font-family: 'Orbitron', monospace; }
+.phd-pts { font-size: calc(46px * var(--pm-escala-pts, 1)); font-weight: 900; color: var(--pm-marcador, #fff); }
+.phd-separador { font-size: 28px; color: rgba(255, 255, 255, .4); }
+.phd-info { display: flex; flex-direction: column; align-items: center; margin-top: 2px; }
+.phd-reloj { font-size: 14px; font-weight: 700; color: #8de8ff; }
+.phd-periodo { font-size: 10px; color: #9aa0ac; letter-spacing: 1px; }
+
+/* 29. Diario Deportivo — portada de periódico: papel crema con trama
+   halftone, regla doble tipo masthead, tipografía con serifa. Única
+   plantilla clara de las 28 — a propósito, para que se distinga de un
+   vistazo. */
+.pdd-wrap { display: flex; align-items: flex-end; justify-content: center; height: 100%; padding-bottom: 26px; font-family: var(--pm-fuente, 'Cinzel', serif); }
+.pdd-caja {
+  background: var(--pm-tablero, #f4efe3);
+  background-image: radial-gradient(rgba(0, 0, 0, .08) 1px, transparent 1px);
+  background-size: 6px 6px;
+  color: #14120f;
+  border: 3px solid #14120f;
+  padding: 14px 28px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, .45);
+}
+.pdd-cabecera { display: flex; justify-content: space-between; align-items: center; gap: 20px; border-bottom: 3px double #14120f; padding-bottom: 4px; margin-bottom: 8px; }
+.pdd-masthead { font-size: 11px; letter-spacing: 3px; font-weight: 700; text-transform: uppercase; }
+.pdd-fecha { font-size: 11px; letter-spacing: 1px; font-family: 'Oswald', sans-serif; white-space: nowrap; }
+.pdd-cuerpo { display: flex; align-items: center; gap: 14px; }
+.pdd-equipo { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 80px; }
+.pdd-logo { object-fit: contain; filter: grayscale(1) contrast(1.15); opacity: var(--pm-logo-opacidad, 1); }
+.pdd-nombre { font-size: calc(13px * var(--pm-escala-nombre, 1)); font-weight: 700; text-transform: uppercase; letter-spacing: .5px; }
+.pdd-faltas { font-size: 10px; font-weight: 700; }
+.pdd-pts { font-size: calc(44px * var(--pm-escala-pts, 1)); font-weight: 900; color: var(--pm-marcador, #14120f); font-family: 'Cinzel', serif; }
+.pdd-vs { font-size: 22px; font-weight: 700; }
+
+/* 30. Anillo de Campeones — medallón circular con borde dorado giratorio y
+   un listón (ribbon, punta recortada en V vía clip-path) colgando debajo
+   con reloj/período. */
+.pac-wrap { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; padding-bottom: 8px; font-family: var(--pm-fuente, 'Cinzel', serif); }
+.pac-medallon { position: relative; width: 230px; height: 230px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+.pac-aro-externo {
+  position: absolute; inset: 0; border-radius: 50%;
+  background: conic-gradient(from 90deg, #d4af37, #fff6cf, #d4af37, #8a6d1d, #d4af37);
+  animation: pac-girar 8s linear infinite;
+  mask: radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 6px));
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 6px));
+}
+@keyframes pac-girar { to { transform: rotate(360deg); } }
+.pac-contenido {
+  position: relative; width: 84%; height: 84%; border-radius: 50%;
+  background: var(--pm-tablero, radial-gradient(circle, #10131c 0%, #05060a 100%));
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  box-shadow: inset 0 0 30px rgba(0, 0, 0, .6);
+}
+.pac-fila-equipos { display: flex; align-items: center; gap: 14px; }
+.pac-equipo { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.pac-logo { object-fit: contain; opacity: var(--pm-logo-opacidad, 1); }
+.pac-pts { font-size: calc(30px * var(--pm-escala-pts, 1)); font-weight: 900; color: var(--pm-marcador, #ffd60a); }
+.pac-vs { font-size: 11px; color: #8a6d1d; font-weight: 700; letter-spacing: 1px; }
+.pac-nombres { display: flex; gap: 16px; font-size: calc(9px * var(--pm-escala-nombre, 1)); font-weight: 700; text-transform: uppercase; letter-spacing: .5px; }
+.pac-liston {
+  margin-top: -14px; background: var(--pm-banner, #d4af37); color: #1a1305; padding: 6px 22px 9px;
+  display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 12px;
+  clip-path: polygon(0 0, 100% 0, 92% 82%, 50% 100%, 8% 82%);
+}
+.pac-reloj { font-family: 'Orbitron', monospace; }
+
+/* 31. Tablero de Madera — gabinete de marcador de gimnasio viejo: bisel de
+   madera grueso, dígitos tipo "flip" (cada número en su propia ficha, con
+   la línea de bisagra al medio) — la única con un gabinete físico de
+   verdad en vez de un panel plano. */
+.ptm-wrap { display: flex; align-items: flex-end; justify-content: center; height: 100%; padding-bottom: 24px; font-family: var(--pm-fuente, 'Oswald', sans-serif); }
+.ptm-caja {
+  display: flex; align-items: center; gap: 26px;
+  background: var(--pm-tablero, repeating-linear-gradient(100deg, #6b4423 0px 8px, #5a3a1e 8px 16px));
+  border: 8px solid #2b1a0d; border-radius: 6px; padding: 16px 28px;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, .55), inset 0 0 0 2px rgba(255, 220, 160, .15);
+}
+.ptm-equipo { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.ptm-logo { object-fit: contain; opacity: var(--pm-logo-opacidad, 1); }
+.ptm-nombre { font-size: calc(12px * var(--pm-escala-nombre, 1)); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #f3e2c2; }
+.ptm-marcador-digital { display: flex; gap: 3px; }
+.ptm-digito {
+  display: flex; align-items: center; justify-content: center;
+  width: calc(30px * var(--pm-escala-pts, 1)); height: calc(42px * var(--pm-escala-pts, 1));
+  background: #1a1005; color: #ffb400; font-family: 'Courier New', monospace; font-weight: 900;
+  font-size: calc(28px * var(--pm-escala-pts, 1)); border-radius: 3px;
+  border: 2px solid #3a2612;
+  position: relative;
+}
+.ptm-digito::after { content: ''; position: absolute; left: 2px; right: 2px; top: 50%; height: 1px; background: rgba(0, 0, 0, .5); }
+.ptm-faltas { font-size: 9px; color: #ff8a5c; font-weight: 700; }
+.ptm-centro { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.ptm-periodo { font-size: 13px; color: #f3e2c2; font-weight: 700; }
+.ptm-reloj { font-family: 'Courier New', monospace; font-size: 20px; color: #ffb400; font-weight: 900; }
+
+/* 32. HUD Táctico — esquinas tipo mira militar, esquema oliva/negro/ámbar,
+   sin curvas en ningún lado (a propósito, en contraste con el resto). */
+.pht-wrap { display: flex; align-items: flex-end; justify-content: center; height: 100%; padding-bottom: 24px; font-family: var(--pm-fuente, 'Rajdhani', sans-serif); }
+.pht-caja {
+  position: relative; background: var(--pm-tablero, rgba(12, 14, 10, .92));
+  border: 1px solid rgba(180, 190, 140, .35); padding: 14px 30px 10px;
+  min-width: 480px;
+}
+.pht-esquina { position: absolute; width: 16px; height: 16px; border: 2px solid var(--pm-banner, #c8d84a); }
+.pht-caja .esquina-tl { top: -1px; left: -1px; border-right: none; border-bottom: none; }
+.pht-caja .esquina-tr { top: -1px; right: -1px; border-left: none; border-bottom: none; }
+.pht-caja .esquina-bl { bottom: -1px; left: -1px; border-right: none; border-top: none; }
+.pht-caja .esquina-br { bottom: -1px; right: -1px; border-left: none; border-top: none; }
+.pht-fila { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.pht-equipo { display: flex; align-items: center; gap: 10px; }
+.pht-logo { object-fit: contain; opacity: var(--pm-logo-opacidad, 1); }
+.pht-nombre { font-size: calc(14px * var(--pm-escala-nombre, 1)); font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #c8d84a; }
+.pht-pts { font-size: calc(36px * var(--pm-escala-pts, 1)); font-weight: 800; color: var(--pm-marcador, #fff); font-variant-numeric: tabular-nums; }
+.pht-centro { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 0 14px; border-left: 1px solid rgba(180, 190, 140, .25); border-right: 1px solid rgba(180, 190, 140, .25); }
+.pht-status { font-size: 9px; color: #ff5c33; font-weight: 700; letter-spacing: 1px; }
+.pht-reloj { font-family: 'Courier New', monospace; font-size: 20px; font-weight: 700; color: #fff; }
+.pht-periodo { font-size: 10px; color: #9aa08a; letter-spacing: 1px; }
+.pht-pie { display: flex; justify-content: space-between; margin-top: 8px; font-size: 9px; color: #ff8a5c; font-weight: 700; letter-spacing: 1px; }

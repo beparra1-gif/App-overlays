@@ -190,11 +190,15 @@ export const estiloUbicacion = (valor) => UBICACIONES[valor] || UBICACIONES.cent
 // con el marcador elegido, en vez de un único diseño genérico reciclado
 // para las 25 plantillas.
 const FAMILIA_POR_PLANTILLA = {
-  clasico: 'clasico', ncaa: 'clasico', 'championship-gold': 'clasico', 'euro-divider': 'clasico',
+  clasico: 'clasico', ncaa: 'clasico', 'championship-gold': 'clasico', 'euro-divider': 'clasico', 'anillo-campeones': 'clasico',
   nba: 'broadcast', ticker: 'broadcast', 'espn-ticker': 'broadcast', 'lower-third': 'broadcast', 'broadcast-bonus': 'broadcast', 'fiba-broadcast': 'broadcast',
   neon: 'neon', 'arena-glow': 'neon', 'retro-led': 'neon', 'gradient-wave': 'neon',
   street: 'streetball', split: 'streetball', 'slant-dynamic': 'streetball', 'outline-bold': 'streetball', 'compacto-tofo': 'streetball', 'record-block': 'streetball',
   minimal: 'cristal', 'corner-min': 'cristal', glass: 'cristal', 'card-stack': 'cristal', 'circle-focus': 'cristal', 'pildora-doble': 'cristal',
+  'halo-digital': 'holografico',
+  'diario-deportivo': 'editorial',
+  'tablero-madera': 'madera',
+  'hud-tactico': 'tactico',
 };
 
 export const familiaDePlantilla = (plantillaId) => FAMILIA_POR_PLANTILLA[plantillaId] || 'clasico';
@@ -233,6 +237,11 @@ const FUENTE_POR_PLANTILLA = {
   'record-block': "'Russo One', sans-serif",
   'pildora-doble': "'Poppins', sans-serif",
   'fiba-broadcast': "'Anton', sans-serif",
+  'halo-digital': "'Exo 2', sans-serif",
+  'diario-deportivo': "'Cinzel', serif",
+  'anillo-campeones': "'Cinzel', serif",
+  'tablero-madera': "'Oswald', sans-serif",
+  'hud-tactico': "'Rajdhani', sans-serif",
 };
 
 export const fuenteDePlantilla = (plantillaId) => FUENTE_POR_PLANTILLA[plantillaId] || "'Oswald', sans-serif";
@@ -320,6 +329,10 @@ export const FAMILIAS_VISUALES = {
   neon: { modoAlerta: 'superpone' },
   streetball: { modoAlerta: 'arriba' },
   cristal: { modoAlerta: 'arriba' },
+  holografico: { modoAlerta: 'superpone' },
+  editorial: { modoAlerta: 'arriba' },
+  madera: { modoAlerta: 'arriba' },
+  tactico: { modoAlerta: 'superpone' },
 };
 
 // Ancla la escena de Anuncios EXACTAMENTE al borde de la caja del marcador

@@ -290,3 +290,49 @@ html:has(.nomina-overlay) {
 
 @keyframes nm-neon-pulso { 0%, 100% { box-shadow: 0 0 8px var(--pm-banner, #0ff); } 50% { box-shadow: 0 0 22px var(--pm-banner, #0ff); } }
 @keyframes nm-cristal-brillo { 0%, 100% { background: rgba(255, 255, 255, .10); } 50% { background: rgba(255, 255, 255, .2); } }
+
+/* Familias de las 5 plantillas nuevas (ver el comentario junto a
+   FAMILIA_POR_PLANTILLA en utils.js). "editorial" es la única familia
+   clara — fija el color del contenedor a oscuro-sobre-crema; el título
+   ya lo hereda solo (su CSS usa `color: var(--nomina-titulo, inherit)`),
+   pero .nomina-stats tiene su propio gris fijo de respaldo, así que ese sí
+   necesita el override explícito. */
+.fam-holografico .nomina-jugador {
+  background: rgba(8, 14, 24, .85); border: 1px solid var(--pm-banner, #4fd8ff);
+  text-transform: uppercase; letter-spacing: .5px;
+  animation: nomina-entrada .4s ease forwards, nm-holo-scan 2.4s linear infinite;
+}
+@keyframes nm-holo-scan {
+  0%, 100% { box-shadow: 0 0 8px rgba(79, 216, 255, .15); }
+  50% { box-shadow: 0 0 20px rgba(79, 216, 255, .4); }
+}
+
+.fam-editorial .nomina-overlay { color: #14120f; }
+.fam-editorial .nomina-jugador,
+.fam-editorial .np-tarjeta,
+.fam-editorial .np-chip {
+  background: var(--nomina-fondo, #f4efe3);
+  background-image: radial-gradient(rgba(0, 0, 0, .06) 1px, transparent 1px);
+  background-size: 5px 5px;
+  color: #14120f;
+  border: 2px solid #14120f;
+  border-radius: 0;
+  font-family: 'Cinzel', serif;
+}
+.fam-editorial .nomina-jugador { animation-duration: .35s; }
+.fam-editorial .nomina-stats { color: rgba(20, 18, 15, .7); }
+
+.fam-madera .nomina-jugador {
+  background: var(--nomina-fondo, repeating-linear-gradient(100deg, #6b4423 0px 8px, #5a3a1e 8px 16px));
+  border: 3px solid #2b1a0d; color: #f3e2c2; border-radius: 4px;
+  font-family: 'Oswald', sans-serif;
+}
+.fam-madera .nomina-dorsal { color: #ffb400; }
+
+.fam-tactico .nomina-jugador {
+  background: var(--nomina-fondo, rgba(12, 14, 10, .92));
+  border: 1px solid rgba(180, 190, 140, .4); border-radius: 0;
+  text-transform: uppercase; letter-spacing: 1px;
+  font-family: 'Rajdhani', sans-serif;
+}
+.fam-tactico .nomina-dorsal { color: #c8d84a; }

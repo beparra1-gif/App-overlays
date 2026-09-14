@@ -25,6 +25,11 @@ import RecordBlock from './plantillas/RecordBlock';
 import PildoraDoble from './plantillas/PildoraDoble';
 import Personalizado from './plantillas/Personalizado';
 import FibaBroadcast from './plantillas/FibaBroadcast';
+import HaloDigital from './plantillas/HaloDigital';
+import DiarioDeportivo from './plantillas/DiarioDeportivo';
+import AnilloCampeones from './plantillas/AnilloCampeones';
+import TableroMadera from './plantillas/TableroMadera';
+import HudTactico from './plantillas/HudTactico';
 
 // Para agregar una plantilla nueva: crear el componente en ./plantillas
 // (recibe `{ partido, config }`, aplica estiloPersonalizado(config) en su
@@ -59,6 +64,11 @@ export const PLANTILLAS_MARCADOR = [
   { id: 'pildora-doble', nombre: 'Píldora Doble', Componente: PildoraDoble },
   { id: 'personalizado', nombre: 'Personalizado (armá el tuyo)', Componente: Personalizado },
   { id: 'fiba-broadcast', nombre: 'FIBA Broadcast', Componente: FibaBroadcast },
+  { id: 'halo-digital', nombre: 'Halo Digital', Componente: HaloDigital },
+  { id: 'diario-deportivo', nombre: 'Diario Deportivo', Componente: DiarioDeportivo },
+  { id: 'anillo-campeones', nombre: 'Anillo de Campeones', Componente: AnilloCampeones },
+  { id: 'tablero-madera', nombre: 'Tablero de Madera', Componente: TableroMadera },
+  { id: 'hud-tactico', nombre: 'HUD Táctico', Componente: HudTactico },
 ];
 
 export const obtenerPlantilla = (id) => PLANTILLAS_MARCADOR.find((p) => p.id === id) || PLANTILLAS_MARCADOR[0];
