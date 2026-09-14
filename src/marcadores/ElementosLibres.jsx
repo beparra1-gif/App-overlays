@@ -1,28 +1,31 @@
 import { useRef, useState } from 'react';
 import { formatearReloj, etiquetaPeriodo, indicadorFaltas } from './utils';
+import './elementosLibres.css';
 
 // "Elementos libres" es el corazón del Creador de marcador (una especie de
 // Canva acotado a la caja del marcador, ver CreadorLibre.jsx): cada
 // elemento es un dato del partido (nombre, puntos, reloj, período, faltas,
 // logo) o un texto/forma libre, con su PROPIA posición (x/y % del lienzo,
-// mismo mecanismo que LogosLibres), tipografía, color, ángulo y tamaño —
-// sin ningún layout fijo de por medio. El orden en el array ES el orden de
-// apilado (el último se dibuja arriba de todos) — "traer al frente"/
-// "enviar atrás" en el panel de Disenos.jsx simplemente reordena el array,
-// nada de z-index explícito hace falta. No es exclusivo de la plantilla
-// "Creador Libre": se dibuja arriba de CUALQUIER plantilla (ver
+// mismo mecanismo que LogosLibres), tipografía, color, ángulo, tamaño y
+// animación — sin ningún layout fijo de por medio. El orden en el array ES
+// el orden de apilado (el último se dibuja arriba de todos) — "traer al
+// frente"/"enviar atrás" en el panel de Disenos.jsx simplemente reordena
+// el array, nada de z-index explícito hace falta. No es exclusivo de la
+// plantilla "Creador Libre": se dibuja arriba de CUALQUIER plantilla (ver
 // VistaMarcador.jsx, junto a LogosLibres) para quien quiera sumarle un
 // texto suelto a un diseño ya armado, sin tener que empezar de cero.
 //
 // `editable` (solo en el panel de "Creador" de Personalizar diseño):
 // arrastrar cualquier elemento lo reposiciona en vivo, igual que un logo
-// libre, con líneas guía que aparecen y "pegan" el arrastre al cruzar el
-// centro del lienzo o la posición de otro elemento — mismo espíritu que
-// las guías de alineación de Canva/Figma. Tocar un elemento lo selecciona
-// (`onSeleccionar`) para editar su tipografía/color/tamaño/ángulo en el
-// panel de al lado. Si tiene `parId` (par reflejado Local/Visita, armado
-// desde el panel), Disenos.jsx sincroniza al par en espejo — acá no hace
-// falta saberlo, solo reportar la posición de ESTE elemento.
+// libre — vía Pointer Events, así que funciona igual con mouse, touch (un
+// iPad/tablet) o lápiz —, con líneas guía que aparecen y "pegan" el
+// arrastre al cruzar el centro del lienzo o la posición de otro elemento —
+// mismo espíritu que las guías de alineación de Canva/Figma. Tocar un
+// elemento lo selecciona (`onSeleccionar`) para editar su tipografía/
+// color/tamaño/ángulo/animación en el panel de al lado. Si tiene `parId`
+// (par reflejado Local/Visita, armado desde el panel), Disenos.jsx
+// sincroniza al par en espejo — acá no hace falta saberlo, solo reportar
+// la posición de ESTE elemento.
 const TEXTO_POR_TIPO = (partido, config, tipo) => {
   switch (tipo) {
     case 'nombreLocal': return partido.equipoLocal.nombre;
@@ -42,6 +45,17 @@ const EQUIPO_DEL_TIPO = (partido, tipo) => {
   if (tipo === 'logoVisita' || tipo === 'nombreVisita' || tipo === 'ptsVisita' || tipo === 'faltasVisita') return partido.equipoVisita;
   return null;
 };
+
+// Recorte de esquinas independiente por vértice (top-left/top-right/
+// bottom-right/bottom-left, en px) — a diferencia de un border-radius
+// (curva pareja), esto arma un octágono con un corte RECTO en cada
+// esquina, del largo que se le pida a cada una — con un solo vértice
+// cortado bien grande ya sale una cinta/paralelogramo tipo "FIBA
+// Broadcast"; con las 4 iguales, un octágono parejo. En 0 los 4, es un
+// rectángulo común.
+function clipPathVertices(tl, tr, br, bl) {
+  return `polygon(${tl}px 0, calc(100% - ${tr}px) 0, 100% ${tr}px, 100% calc(100% - ${br}px), calc(100% - ${br}px) 100%, ${bl}px 100%, 0 calc(100% - ${bl}px), 0 ${tl}px)`;
+}
 
 // Qué tan cerca (en % del lienzo) hace falta estar de una guía para que el
 // arrastre "pegue" ahí — bastante angosto a propósito: tiene que sentirse
@@ -102,11 +116,19 @@ export default function ElementosLibres({ partido, config, editable = false, onA
         const equipo = EQUIPO_DEL_TIPO(partido, el.tipo);
         const colorAuto = equipo && el.colorAuto !== false;
         const rotacion = Number(el.rotacion) || 0;
+        const opacidadBase = (el.opacidad ?? 100) / 100;
+        // `--tf-base` (ver elementosLibres.css): el translate+rotate de
+        // siempre, disponible como variable para que las animaciones que
+        // SÍ tocan `transform` (pulso/flotar/girar) lo combinen con su
+        // propio movimiento en vez de perder el centrado/ángulo elegido.
+        const tfBase = `translate(-50%, -50%) rotate(${rotacion}deg)`;
         const posicion = {
           position: 'absolute',
           left: `${Number.isFinite(el.xPercent) ? el.xPercent : 50}%`,
           top: `${Number.isFinite(el.yPercent) ? el.yPercent : 50}%`,
-          transform: `translate(-50%, -50%) rotate(${rotacion}deg)`,
+          transform: tfBase,
+          '--tf-base': tfBase,
+          '--op-base': opacidadBase,
           pointerEvents: editable ? 'auto' : 'none',
           cursor: editable ? 'grab' : 'default',
           touchAction: editable ? 'none' : 'auto',
@@ -114,6 +136,7 @@ export default function ElementosLibres({ partido, config, editable = false, onA
           outlineOffset: 4,
           userSelect: 'none',
         };
+        const claseAnimacion = el.animacion && el.animacion !== 'ninguna' ? `elemento-anim-${el.animacion}` : '';
         const handlers = editable ? {
           onPointerDown: (e) => {
             e.currentTarget.setPointerCapture(e.pointerId);
@@ -123,19 +146,28 @@ export default function ElementosLibres({ partido, config, editable = false, onA
         } : {};
 
         if (el.tipo === 'forma') {
-          const fondo = el.gradiente
-            ? `linear-gradient(${Number(el.gradienteAngulo) || 90}deg, ${el.color || '#0a0c14'}, ${el.color2 || '#4a4a4a'})`
-            : (el.color || 'rgba(10,12,20,.85)');
+          const usaImagen = Boolean(el.usarImagen && el.imagenUrl);
+          const fondo = usaImagen
+            ? undefined
+            : (el.gradiente
+              ? `linear-gradient(${Number(el.gradienteAngulo) || 90}deg, ${el.color || '#0a0c14'}, ${el.color2 || '#4a4a4a'})`
+              : (el.color || 'rgba(10,12,20,.85)'));
+          const esquinaCortada = el.esquinaModo === 'cortada';
           return (
             <div
               key={el.id}
+              className={claseAnimacion}
               style={{
                 ...posicion,
                 width: `${el.ancho || 200}px`,
                 height: `${el.alto || 80}px`,
                 background: fondo,
-                borderRadius: `${el.radio ?? 12}px`,
-                opacity: (el.opacidad ?? 100) / 100,
+                backgroundImage: usaImagen ? `url(${el.imagenUrl})` : undefined,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                borderRadius: esquinaCortada ? 0 : `${el.radio ?? 12}px`,
+                clipPath: esquinaCortada ? clipPathVertices(el.corteTL || 0, el.corteTR || 0, el.corteBR || 0, el.corteBL || 0) : 'none',
+                opacity: opacidadBase,
               }}
               {...handlers}
             />
@@ -144,13 +176,23 @@ export default function ElementosLibres({ partido, config, editable = false, onA
 
         if (esLogo) {
           if (!equipo?.logo_url) return null;
+          const alto = el.alto;
+          const ajuste = el.ajuste || 'contain';
           return (
             <img
               key={el.id}
+              className={claseAnimacion}
               src={equipo.logo_url}
               alt=""
               draggable={false}
-              style={{ ...posicion, width: `${el.tamano || 80}px`, height: 'auto', objectFit: 'contain', opacity: (el.opacidad ?? 100) / 100 }}
+              style={{
+                ...posicion,
+                width: `${el.tamano || 80}px`,
+                height: alto ? `${alto}px` : 'auto',
+                objectFit: alto ? ajuste : 'contain',
+                borderRadius: el.radio ? `${el.radio}px` : 0,
+                opacity: opacidadBase,
+              }}
               {...handlers}
             />
           );
@@ -164,6 +206,7 @@ export default function ElementosLibres({ partido, config, editable = false, onA
         return (
           <span
             key={el.id}
+            className={claseAnimacion}
             style={{
               ...posicion,
               whiteSpace: 'nowrap',
@@ -177,6 +220,7 @@ export default function ElementosLibres({ partido, config, editable = false, onA
               textTransform: el.mayusculas ? 'uppercase' : 'none',
               letterSpacing: el.mayusculas ? '1px' : 'normal',
               textShadow: el.fondoColor ? 'none' : '0 2px 6px rgba(0,0,0,.55)',
+              opacity: opacidadBase,
             }}
             {...handlers}
           >

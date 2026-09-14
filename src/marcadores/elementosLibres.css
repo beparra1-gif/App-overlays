@@ -1,0 +1,37 @@
+/* Animaciones opcionales de un Elemento libre (ver el selector "Animación"
+   en el panel Creador, Disenos.jsx) — mismo criterio en cada una: nunca
+   tocan `transform` de forma que pise el translate(-50%,-50%)/rotate() que
+   ya trae el elemento inline (eso rompería el centrado/ángulo elegido a
+   mano) — la animación de "girar" es la única excepción a propósito (gira
+   ella sola, de forma continua, así que mientras está activa manda ella).
+   `--tf-base` lo fija ElementosLibres.jsx en cada elemento (el mismo
+   translate+rotate de siempre) para que "flotar"/"girar" puedan combinarlo
+   con su propio movimiento sin perder la posición/ángulo base. */
+@keyframes elemento-anim-pulso {
+  0%, 100% { transform: var(--tf-base) scale(1); }
+  50% { transform: var(--tf-base) scale(1.08); }
+}
+.elemento-anim-pulso { animation: elemento-anim-pulso 1.6s ease-in-out infinite; }
+
+@keyframes elemento-anim-brillo {
+  0%, 100% { filter: drop-shadow(0 0 2px rgba(255,255,255,.15)); }
+  50% { filter: drop-shadow(0 0 14px rgba(255,255,255,.85)); }
+}
+.elemento-anim-brillo { animation: elemento-anim-brillo 1.8s ease-in-out infinite; }
+
+@keyframes elemento-anim-flotar {
+  0%, 100% { transform: var(--tf-base) translateY(0px); }
+  50% { transform: var(--tf-base) translateY(-10px); }
+}
+.elemento-anim-flotar { animation: elemento-anim-flotar 2.4s ease-in-out infinite; }
+
+@keyframes elemento-anim-girar {
+  to { transform: var(--tf-base) rotate(360deg); }
+}
+.elemento-anim-girar { animation: elemento-anim-girar 5s linear infinite; }
+
+@keyframes elemento-anim-parpadeo {
+  0%, 100% { opacity: var(--op-base, 1); }
+  50% { opacity: calc(var(--op-base, 1) * .25); }
+}
+.elemento-anim-parpadeo { animation: elemento-anim-parpadeo 1.3s steps(2, jump-none) infinite; }

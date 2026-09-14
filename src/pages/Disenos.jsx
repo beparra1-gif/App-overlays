@@ -226,6 +226,19 @@ const TIPOS_ELEMENTO_DATO = [
   { tipo: 'logoVisita', etiqueta: 'Logo Visita' },
 ];
 
+// Animaciones opcionales por elemento (ver elementosLibres.css) — mismo
+// selector para texto/logo/forma, cada tipo de elemento sabe combinarla
+// con su propia posición/ángulo sin perderlos (ver --tf-base en
+// ElementosLibres.jsx).
+const ANIMACIONES_ELEMENTO = [
+  { id: 'ninguna', etiqueta: 'Sin animación' },
+  { id: 'pulso', etiqueta: 'Pulso (late)' },
+  { id: 'brillo', etiqueta: 'Brillo intermitente' },
+  { id: 'flotar', etiqueta: 'Flotar (sube y baja)' },
+  { id: 'girar', etiqueta: 'Girar sin parar' },
+  { id: 'parpadeo', etiqueta: 'Parpadeo' },
+];
+
 // Pares Local/Visita agregables "reflejados" de una sola vez (ver
 // agregarParReflejado) — quedan enlazados por parId, así que arrastrar
 // cualquiera de los dos mueve al otro en espejo.
@@ -1752,37 +1765,117 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
                         />
                       )}
 
-                      <CampoRango etiqueta="Ángulo" valor={el.rotacion ?? 0} min={-180} max={180} onChange={(v) => actualizarElemento(el.id, { rotacion: v })} />
+                      <div className="fila-form" style={{ margin: 0 }}>
+                        <CampoRango
+                          etiqueta="Ángulo (girar todo el elemento)"
+                          valor={el.rotacion ?? 0} min={-180} max={180}
+                          onChange={(v) => actualizarElemento(el.id, { rotacion: v })}
+                        />
+                        <label style={{ flex: 1, minWidth: 160 }}>
+                          Animación
+                          <select value={el.animacion || 'ninguna'} onChange={(e) => actualizarElemento(el.id, { animacion: e.target.value })}>
+                            {ANIMACIONES_ELEMENTO.map((a) => <option key={a.id} value={a.id}>{a.etiqueta}</option>)}
+                          </select>
+                        </label>
+                      </div>
 
                       {esForma ? (
                         <>
                           <label className="mv-check-detalle" style={{ color: 'inherit' }}>
-                            <input type="checkbox" checked={!!el.gradiente} onChange={(e) => actualizarElemento(el.id, { gradiente: e.target.checked })} />
-                            Degradado de color
+                            <input type="checkbox" checked={!!el.usarImagen} onChange={(e) => actualizarElemento(el.id, { usarImagen: e.target.checked })} />
+                            Rellenar con una imagen/logo (en vez de color)
                           </label>
-                          <div className="fila-form" style={{ margin: 0 }}>
-                            <input type="color" value={/^#/.test(el.color) ? el.color : '#0a0c14'} onChange={(e) => actualizarElemento(el.id, { color: e.target.value })} />
-                            {el.gradiente && (
-                              <>
-                                <input type="color" value={/^#/.test(el.color2) ? el.color2 : '#4a4a4a'} onChange={(e) => actualizarElemento(el.id, { color2: e.target.value })} />
-                                <CampoRango etiqueta="Ángulo del degradado" valor={el.gradienteAngulo ?? 90} min={0} max={360} onChange={(v) => actualizarElemento(el.id, { gradienteAngulo: v })} />
-                              </>
-                            )}
-                          </div>
+                          {el.usarImagen ? (
+                            <SelectorLogo
+                              logos={logos}
+                              value={el.imagenUrl || ''}
+                              onChange={(url) => actualizarElemento(el.id, { imagenUrl: url })}
+                              onLogoSubido={(l) => { setLogos((prev) => [l, ...prev]); actualizarElemento(el.id, { imagenUrl: urlLogo(l.filename) }); }}
+                            />
+                          ) : (
+                            <>
+                              <label className="mv-check-detalle" style={{ color: 'inherit' }}>
+                                <input type="checkbox" checked={!!el.gradiente} onChange={(e) => actualizarElemento(el.id, { gradiente: e.target.checked })} />
+                                Degradado de color
+                              </label>
+                              <div className="fila-form" style={{ margin: 0 }}>
+                                <input type="color" value={/^#/.test(el.color) ? el.color : '#0a0c14'} onChange={(e) => actualizarElemento(el.id, { color: e.target.value })} />
+                                {el.gradiente && (
+                                  <>
+                                    <input type="color" value={/^#/.test(el.color2) ? el.color2 : '#4a4a4a'} onChange={(e) => actualizarElemento(el.id, { color2: e.target.value })} />
+                                    <CampoRango etiqueta="Ángulo del degradado" valor={el.gradienteAngulo ?? 90} min={0} max={360} onChange={(v) => actualizarElemento(el.id, { gradienteAngulo: v })} />
+                                  </>
+                                )}
+                              </div>
+                            </>
+                          )}
                           <CampoRango etiqueta="Ancho" valor={el.ancho ?? 220} min={20} max={800} onChange={(v) => actualizarElemento(el.id, { ancho: v })} />
                           <CampoRango etiqueta="Alto" valor={el.alto ?? 90} min={20} max={800} onChange={(v) => actualizarElemento(el.id, { alto: v })} />
-                          <CampoRango
-                            etiqueta="Redondeo de esquinas"
-                            valor={el.radio ?? 12}
-                            min={0} max={400}
-                            onChange={(v) => actualizarElemento(el.id, { radio: v })}
-                            ayuda="Llevalo al máximo para un círculo o una píldora perfecta."
-                          />
+
+                          <p className="texto-tenue" style={{ margin: '4px 0 0', fontSize: 12 }}>Esquinas (ángulo de cada vértice — no es el ángulo de giro de arriba)</p>
+                          <div className="fila-form" style={{ margin: 0 }}>
+                            <label className="mv-check-detalle" style={{ color: 'inherit' }}>
+                              <input
+                                type="radio" name={`esquina-${el.id}`}
+                                checked={el.esquinaModo !== 'cortada'}
+                                onChange={() => actualizarElemento(el.id, { esquinaModo: 'redondeada' })}
+                              />
+                              Redondeada
+                            </label>
+                            <label className="mv-check-detalle" style={{ color: 'inherit' }}>
+                              <input
+                                type="radio" name={`esquina-${el.id}`}
+                                checked={el.esquinaModo === 'cortada'}
+                                onChange={() => actualizarElemento(el.id, { esquinaModo: 'cortada' })}
+                              />
+                              Cortada (recta, en ángulo — ribbon/paralelogramo)
+                            </label>
+                          </div>
+                          {el.esquinaModo === 'cortada' ? (
+                            <div className="fila-form" style={{ margin: 0 }}>
+                              <CampoRango etiqueta="Vértice arriba-izq." valor={el.corteTL ?? 0} min={0} max={300} onChange={(v) => actualizarElemento(el.id, { corteTL: v })} />
+                              <CampoRango etiqueta="Vértice arriba-der." valor={el.corteTR ?? 0} min={0} max={300} onChange={(v) => actualizarElemento(el.id, { corteTR: v })} />
+                              <CampoRango etiqueta="Vértice abajo-der." valor={el.corteBR ?? 0} min={0} max={300} onChange={(v) => actualizarElemento(el.id, { corteBR: v })} />
+                              <CampoRango etiqueta="Vértice abajo-izq." valor={el.corteBL ?? 0} min={0} max={300} onChange={(v) => actualizarElemento(el.id, { corteBL: v })} />
+                            </div>
+                          ) : (
+                            <CampoRango
+                              etiqueta="Redondeo de esquinas"
+                              valor={el.radio ?? 12}
+                              min={0} max={400}
+                              onChange={(v) => actualizarElemento(el.id, { radio: v })}
+                              ayuda="Llevalo al máximo para un círculo o una píldora perfecta."
+                            />
+                          )}
                           <CampoRango etiqueta="Transparencia" valor={el.opacidad ?? 100} min={5} max={100} onChange={(v) => actualizarElemento(el.id, { opacidad: v })} />
                         </>
                       ) : esLogo ? (
                         <>
-                          <CampoRango etiqueta="Tamaño" valor={el.tamano ?? 90} min={20} max={400} onChange={(v) => actualizarElemento(el.id, { tamano: v })} />
+                          <CampoRango etiqueta="Ancho" valor={el.tamano ?? 90} min={20} max={400} onChange={(v) => actualizarElemento(el.id, { tamano: v })} />
+                          <div className="fila-form" style={{ margin: 0 }}>
+                            <label className="mv-check-detalle" style={{ color: 'inherit' }}>
+                              <input type="checkbox" checked={Boolean(el.alto)} onChange={(e) => actualizarElemento(el.id, { alto: e.target.checked ? (el.tamano ?? 90) : null })} />
+                              Fijar alto propio (si no, se mantiene proporcional)
+                            </label>
+                          </div>
+                          {Boolean(el.alto) && (
+                            <>
+                              <CampoRango etiqueta="Alto" valor={el.alto ?? 90} min={20} max={400} onChange={(v) => actualizarElemento(el.id, { alto: v })} />
+                              <label>
+                                Ajuste de la imagen adentro
+                                <select value={el.ajuste || 'contain'} onChange={(e) => actualizarElemento(el.id, { ajuste: e.target.value })}>
+                                  <option value="contain">Contener (se ve completo, puede dejar huecos)</option>
+                                  <option value="cover">Cubrir (llena todo, puede recortar bordes)</option>
+                                  <option value="fill">Estirar (llena todo, puede deformar)</option>
+                                </select>
+                              </label>
+                            </>
+                          )}
+                          <CampoRango
+                            etiqueta="Redondeo (marco circular/píldora)"
+                            valor={el.radio ?? 0} min={0} max={200}
+                            onChange={(v) => actualizarElemento(el.id, { radio: v })}
+                          />
                           <CampoRango etiqueta="Transparencia" valor={el.opacidad ?? 100} min={10} max={100} onChange={(v) => actualizarElemento(el.id, { opacidad: v })} />
                         </>
                       ) : (
