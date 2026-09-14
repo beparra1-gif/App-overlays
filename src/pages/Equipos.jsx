@@ -154,19 +154,37 @@ function CamposCategoriaRama({ categoria, rama, onCambiarCategoria, onCambiarRam
   );
 }
 
+// Identificador corto (ej. "CHI", "USA") — opcional, solo lo usan algunas
+// plantillas de marcador tipo transmisión (FIBA Broadcast) que necesitan
+// pocas letras en vez del nombre completo. El backend ya lo limpia
+// (mayúsculas, solo letras/números, 4 caracteres) — acá alcanza con topar
+// la escritura en el mismo largo para que el campo no "salte" al guardar.
+function CampoCodigo({ codigo, onCambiar }) {
+  return (
+    <input
+      placeholder="Código (opcional, ej. CHI)"
+      value={codigo}
+      onChange={(e) => onCambiar(e.target.value.toUpperCase().slice(0, 4))}
+      style={{ maxWidth: 130 }}
+      title="Identificador corto para plantillas de marcador tipo transmisión (ej. FIBA Broadcast) — sin cargarlo, esas plantillas muestran el nombre completo"
+    />
+  );
+}
+
 function FilaEdicion({ equipo, logos, onLogoSubido, onGuardar, onCancelar }) {
   const [nombre, setNombre] = useState(equipo.nombre);
   const [color, setColor] = useState(equipo.color);
   const [logoUrl, setLogoUrl] = useState(equipo.logo_url || '');
   const [categoria, setCategoria] = useState(equipo.categoria || '');
   const [rama, setRama] = useState(equipo.rama || '');
+  const [codigo, setCodigo] = useState(equipo.codigo || '');
   const [error, setError] = useState('');
 
   const guardar = async (e) => {
     e.preventDefault();
     setError('');
     try {
-      await onGuardar({ nombre: nombre.trim(), color, logo_url: logoUrl || null, categoria: categoria.trim() || null, rama: rama || null });
+      await onGuardar({ nombre: nombre.trim(), color, logo_url: logoUrl || null, categoria: categoria.trim() || null, rama: rama || null, codigo: codigo.trim() || null });
     } catch (err) {
       setError(err.message);
     }
@@ -179,6 +197,7 @@ function FilaEdicion({ equipo, logos, onLogoSubido, onGuardar, onCancelar }) {
       <input type="color" value={color} onChange={(e) => setColor(e.target.value)} />
       <SelectorLogo logos={logos} value={logoUrl} onChange={setLogoUrl} onLogoSubido={onLogoSubido} />
       <CamposCategoriaRama categoria={categoria} rama={rama} onCambiarCategoria={setCategoria} onCambiarRama={setRama} />
+      <CampoCodigo codigo={codigo} onCambiar={setCodigo} />
       <button className="btn-primario" type="submit">Guardar</button>
       <button className="btn-secundario" type="button" onClick={onCancelar}>Cancelar</button>
     </form>
@@ -193,6 +212,7 @@ export default function Equipos() {
   const [logoUrl, setLogoUrl] = useState('');
   const [categoria, setCategoria] = useState('');
   const [rama, setRama] = useState('');
+  const [codigo, setCodigo] = useState('');
   const [error, setError] = useState('');
   const [exito, setExito] = useState('');
   const [equipoAbierto, setEquipoAbierto] = useState(null);
@@ -214,11 +234,12 @@ export default function Equipos() {
     e.preventDefault();
     setError('');
     try {
-      await api.crearEquipo({ nombre, color, logo_url: logoUrl || null, categoria: categoria.trim() || null, rama: rama || null });
+      await api.crearEquipo({ nombre, color, logo_url: logoUrl || null, categoria: categoria.trim() || null, rama: rama || null, codigo: codigo.trim() || null });
       setNombre('');
       setLogoUrl('');
       setCategoria('');
       setRama('');
+      setCodigo('');
       cargar();
       avisar('Equipo creado ✓');
     } catch (err) {
@@ -305,6 +326,7 @@ export default function Equipos() {
         <input type="color" value={color} onChange={(e) => setColor(e.target.value)} />
         <SelectorLogo logos={logos} value={logoUrl} onChange={setLogoUrl} onLogoSubido={agregarLogoALista} />
         <CamposCategoriaRama categoria={categoria} rama={rama} onCambiarCategoria={setCategoria} onCambiarRama={setRama} />
+        <CampoCodigo codigo={codigo} onCambiar={setCodigo} />
         <button className="btn-primario" type="submit">Crear equipo</button>
       </form>
       {logos.length === 0 && (
@@ -334,6 +356,14 @@ export default function Equipos() {
                         ? <img src={eq.logo_url} alt="" style={{ width: 28, height: 28, objectFit: 'contain' }} />
                         : <span className="chip-color" style={{ background: eq.color }} />}
                       <strong>{eq.nombre}</strong>
+                      {eq.codigo && (
+                        <span
+                          title="Código corto (usado por plantillas de marcador tipo transmisión, ej. FIBA Broadcast)"
+                          style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.5px', color: 'var(--texto-tenue)', border: '1px solid var(--borde)', borderRadius: 999, padding: '2px 8px' }}
+                        >
+                          {eq.codigo}
+                        </span>
+                      )}
                       {eq.en_uso && <span className="chip-en-uso" title="Es el equipo que un diseño tiene puesto ahora mismo">🟢 En uso</span>}
                     </div>
                     {(eq.categoria || eq.rama) && (

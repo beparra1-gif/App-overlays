@@ -125,8 +125,8 @@ async function logoFondoPara(logoUrl, userId) {
 export async function construirEstado(partido) {
   const minutosPorJugador = await minutosJugados(partido);
   const [equipoLocal, equipoVisita] = await Promise.all([
-    pool.query('SELECT id, nombre, color, logo_url FROM equipos WHERE id = $1', [partido.equipo_local_id]),
-    pool.query('SELECT id, nombre, color, logo_url FROM equipos WHERE id = $1', [partido.equipo_visita_id]),
+    pool.query('SELECT id, nombre, color, logo_url, codigo FROM equipos WHERE id = $1', [partido.equipo_local_id]),
+    pool.query('SELECT id, nombre, color, logo_url, codigo FROM equipos WHERE id = $1', [partido.equipo_visita_id]),
   ]);
 
   const [rosterLocal, rosterVisita, patrocinadores, logoFondoLocal, logoFondoVisita] = await Promise.all([

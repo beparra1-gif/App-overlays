@@ -97,6 +97,11 @@ const EquipoFicha = forwardRef(function EquipoFicha({ titulo, valorDefecto, equi
   const [nombre, setNombre] = useState(equipoActivo?.nombre || valorDefecto);
   const [color, setColor] = useState(equipoActivo?.color || '#0a84ff');
   const [logoUrl, setLogoUrl] = useState(equipoActivo?.logo_url || '');
+  // Código corto (CHI, USA — se carga en "Equipos", ver CampoCodigo en
+  // Equipos.jsx) — acá solo se PROPAGA el del equipo elegido/activo hacia
+  // la vista previa (onCambio); esta ficha no tiene un input propio para
+  // editarlo, eso vive en la página Equipos.
+  const [codigo, setCodigo] = useState(equipoActivo?.codigo || '');
   const [logoTocado, setLogoTocado] = useState(Boolean(equipoActivo?.logo_url));
   const [equipoId, setEquipoId] = useState(equipoActivo?.id || null);
   const [roster, setRoster] = useState([]);
@@ -232,6 +237,7 @@ const EquipoFicha = forwardRef(function EquipoFicha({ titulo, valorDefecto, equi
     setNombre(equipo.nombre);
     setColor(equipo.color || color);
     setLogoUrl(equipo.logo_url || '');
+    setCodigo(equipo.codigo || '');
     setEquipoId(equipo.id);
     const { jugadores } = await api.listarJugadores(equipo.id);
     setRoster(jugadores);
@@ -313,9 +319,9 @@ const EquipoFicha = forwardRef(function EquipoFicha({ titulo, valorDefecto, equi
   // La vista previa combinada refleja al instante lo que se está tipeando o
   // eligiendo acá (nombre, color, logo), sin esperar a que se guarde nada.
   useEffect(() => {
-    onCambio?.({ nombre: nombre || valorDefecto, color, logo_url: logoUrl || null });
+    onCambio?.({ nombre: nombre || valorDefecto, color, logo_url: logoUrl || null, codigo: codigo || null });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nombre, color, logoUrl]);
+  }, [nombre, color, logoUrl, codigo]);
 
   // Elegir "Nómina nueva" o "Elegir de los equipos guardados" es lo único
   // que hace falta para que el equipo quede resuelto — si todavía no había

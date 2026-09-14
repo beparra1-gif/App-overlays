@@ -85,20 +85,29 @@ const limpiarRama = (valor) => {
   return RAMAS_VALIDAS.includes(r) ? r : null;
 };
 
+// Solo letras/números, sin espacios — el uso es un identificador corto tipo
+// transmisión (CHI, USA), no un texto libre. Se guarda en mayúsculas para no
+// depender de cómo lo haya tipeado cada usuario.
+const limpiarCodigo = (valor) => {
+  const c = String(valor || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4);
+  return c || null;
+};
+
 router.post('/', async (req, res) => {
   const nombre = String(req.body?.nombre || '').trim();
   const color = String(req.body?.color || '#0a84ff').trim();
   const logoUrl = req.body?.logo_url ? String(req.body.logo_url).trim() : null;
   const categoria = req.body?.categoria ? String(req.body.categoria).trim() : null;
   const rama = limpiarRama(req.body?.rama);
+  const codigo = limpiarCodigo(req.body?.codigo);
   const borrador = NOMBRES_PLACEHOLDER.includes(nombre);
 
   if (!nombre) return res.status(400).json({ error: 'El nombre del equipo es obligatorio' });
 
   try {
     const resultado = await pool.query(
-      'INSERT INTO equipos (user_id, nombre, color, logo_url, categoria, rama, borrador) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
-      [req.userId, nombre, color, logoUrl, categoria, rama, borrador]
+      'INSERT INTO equipos (user_id, nombre, color, logo_url, categoria, rama, codigo, borrador) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
+      [req.userId, nombre, color, logoUrl, categoria, rama, codigo, borrador]
     );
     res.status(201).json({ equipo: resultado.rows[0] });
   } catch (error) {
@@ -116,6 +125,7 @@ router.put('/:id', async (req, res) => {
   const logoUrl = req.body?.logo_url != null ? String(req.body.logo_url).trim() : equipo.logo_url;
   const categoria = req.body?.categoria != null ? (String(req.body.categoria).trim() || null) : equipo.categoria;
   const rama = req.body?.rama !== undefined ? limpiarRama(req.body.rama) : equipo.rama;
+  const codigo = req.body?.codigo !== undefined ? limpiarCodigo(req.body.codigo) : equipo.codigo;
   // Un borrador deja de serlo apenas se le pone un nombre de verdad —
   // nunca al revés: si ya era un equipo real, renombrarlo a "Local" (poco
   // probable, pero por las dudas) no lo vuelve a esconder.
@@ -123,8 +133,8 @@ router.put('/:id', async (req, res) => {
 
   try {
     const resultado = await pool.query(
-      'UPDATE equipos SET nombre = $1, color = $2, logo_url = $3, categoria = $4, rama = $5, borrador = $6 WHERE id = $7 RETURNING *',
-      [nombre, color, logoUrl, categoria, rama, borrador, equipo.id]
+      'UPDATE equipos SET nombre = $1, color = $2, logo_url = $3, categoria = $4, rama = $5, codigo = $6, borrador = $7 WHERE id = $8 RETURNING *',
+      [nombre, color, logoUrl, categoria, rama, codigo, borrador, equipo.id]
     );
     await avisarPartidosDelEquipo(req.app.locals.io, equipo.id, req.userId);
     res.json({ equipo: resultado.rows[0] });

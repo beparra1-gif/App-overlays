@@ -115,10 +115,10 @@ export default function PreviaCombinada({
     ? {
         ...base,
         equipoLocal: equipoLocalPreview
-          ? { ...base.equipoLocal, nombre: equipoLocalPreview.nombre, color: equipoLocalPreview.color, logo_url: equipoLocalPreview.logo_url || base.equipoLocal.logo_url }
+          ? { ...base.equipoLocal, nombre: equipoLocalPreview.nombre, color: equipoLocalPreview.color, logo_url: equipoLocalPreview.logo_url || base.equipoLocal.logo_url, codigo: equipoLocalPreview.codigo || null }
           : base.equipoLocal,
         equipoVisita: equipoVisitaPreview
-          ? { ...base.equipoVisita, nombre: equipoVisitaPreview.nombre, color: equipoVisitaPreview.color, logo_url: equipoVisitaPreview.logo_url || base.equipoVisita.logo_url }
+          ? { ...base.equipoVisita, nombre: equipoVisitaPreview.nombre, color: equipoVisitaPreview.color, logo_url: equipoVisitaPreview.logo_url || base.equipoVisita.logo_url, codigo: equipoVisitaPreview.codigo || null }
           : base.equipoVisita,
       }
     : base;
