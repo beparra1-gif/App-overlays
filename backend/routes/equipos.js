@@ -7,6 +7,13 @@ import { avisarRosterActualizado } from '../socket/rosterBroadcast.js';
 const router = Router();
 router.use(authenticate);
 
+// Mismo criterio que cargarRoster en estadoPartido.js: `tiene_foto` (columna
+// barata) se traduce a la ruta pública de la imagen, o null si no hay
+// ninguna cargada. Se aplica acá también (no solo en el partido en vivo)
+// para que "Personalizar tablero → Equipos" pueda mostrar/gestionar la foto
+// de cada jugador antes de que exista ningún partido.
+const conFotoUrl = (j) => ({ ...j, fotoUrl: j.tiene_foto ? `/jugadores/${j.id}/foto` : null });
+
 async function equipoDelUsuario(equipoId, userId) {
   // Un `id` no numérico en la URL (typo, bot probando rutas, un enlace
   // viejo, o — como pasó de verdad probando el reinicio de partido con un
@@ -193,7 +200,7 @@ router.get('/:id/jugadores', async (req, res) => {
       'SELECT * FROM jugadores WHERE equipo_id = $1 AND temporal = false ORDER BY dorsal ASC NULLS LAST, nombre ASC',
       [equipo.id]
     );
-    res.json({ jugadores: resultado.rows });
+    res.json({ jugadores: resultado.rows.map(conFotoUrl) });
   } catch (error) {
     console.error('[GET /equipos/:id/jugadores]', error);
     res.status(500).json({ error: 'No se pudieron obtener los jugadores' });
@@ -246,7 +253,7 @@ router.post('/:id/jugadores', async (req, res) => {
     // de serlo.
     if (equipo.borrador) await pool.query('UPDATE equipos SET borrador = false WHERE id = $1', [equipo.id]);
     if (!temporal) await avisarRosterActualizado(req.app.locals.io, equipo.id, req.userId);
-    res.status(201).json({ jugador: resultado.rows[0] });
+    res.status(201).json({ jugador: conFotoUrl(resultado.rows[0]) });
   } catch (error) {
     console.error('[POST /equipos/:id/jugadores]', error);
     res.status(500).json({ error: 'No se pudo agregar el jugador' });
@@ -285,7 +292,7 @@ router.post('/:id/vaciar-nomina', async (req, res) => {
       'SELECT * FROM jugadores WHERE equipo_id = $1 AND temporal = false ORDER BY dorsal ASC NULLS LAST, nombre ASC',
       [equipo.id]
     );
-    res.json({ jugadores: nominaFinal.rows });
+    res.json({ jugadores: nominaFinal.rows.map(conFotoUrl) });
   } catch (error) {
     console.error('[POST /equipos/:id/vaciar-nomina]', error);
     res.status(500).json({ error: 'No se pudo vaciar la nómina' });
@@ -343,7 +350,7 @@ router.post('/:id/copiar-nomina', async (req, res) => {
       'SELECT * FROM jugadores WHERE equipo_id = $1 AND temporal = false ORDER BY dorsal ASC NULLS LAST, nombre ASC',
       [equipo.id]
     );
-    res.status(201).json({ jugadores: nominaFinal.rows });
+    res.status(201).json({ jugadores: nominaFinal.rows.map(conFotoUrl) });
   } catch (error) {
     console.error('[POST /equipos/:id/copiar-nomina]', error);
     res.status(500).json({ error: 'No se pudo copiar la nómina' });

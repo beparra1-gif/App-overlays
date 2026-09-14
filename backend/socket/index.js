@@ -34,7 +34,7 @@ import { describirJugada } from './jugadas.js';
 const EQUIPOS_VALIDOS = ['local', 'visita'];
 const ESTADOS_VALIDOS = ['prepartido', 'en_curso', 'finalizado'];
 const TIPOS_FALTA_VALIDOS = ['personal', 'tecnica', 'tecnica_banco', 'antideportiva', 'descalificante'];
-const MODOS_NOMINA_VALIDOS = ['local', 'visita', 'ambos'];
+const MODOS_NOMINA_VALIDOS = ['local', 'visita', 'ambos', 'presentacion'];
 const TIPOS_CON_JUGADA = new Set([
   'PUNTO', 'TIRO_LIBRE', 'FALTA', 'REBOTE', 'ASISTENCIA', 'ROBO', 'PERDIDA', 'SUSTITUCION', 'TIMEOUT',
   'PERIODO_FIJAR', 'RELOJ_REINICIAR', 'PARTIDO_REINICIAR',
@@ -161,7 +161,22 @@ export function registrarSocketPartidos(io) {
 
         if (tipo === 'NOMINA_REPRODUCIR') {
           if (!MODOS_NOMINA_VALIDOS.includes(payload.modo)) throw new Error('Modo de nómina inválido');
-          io.to(roomPartido(publicToken)).emit('nomina_pulso', { modo: payload.modo, ocultarMarcador: !!payload.ocultarMarcador });
+          // 'presentacion': introducción del plantel titular uno por uno —
+          // a diferencia de 'local'/'visita'/'ambos' (una foto fija del
+          // plantel completo), acá Mesa manda la lista COMPLETA de
+          // presentados hasta ahora en cada disparo (el último id es el
+          // que se está presentando en este instante, el resto ya pasó por
+          // su momento y queda en la lista acumulada) — no hace falta
+          // ningún estado nuevo en el backend, se relee tal cual llega.
+          const jugadorIds = tipo === 'NOMINA_REPRODUCIR' && payload.modo === 'presentacion' && Array.isArray(payload.jugadorIds)
+            ? payload.jugadorIds.map(Number).filter(Number.isFinite)
+            : undefined;
+          const equipoPresentacion = EQUIPOS_VALIDOS.includes(payload.equipo) ? payload.equipo : undefined;
+          io.to(roomPartido(publicToken)).emit('nomina_pulso', {
+            modo: payload.modo,
+            ocultarMarcador: !!payload.ocultarMarcador,
+            ...(jugadorIds ? { jugadorIds, equipo: equipoPresentacion } : {}),
+          });
           return;
         }
 

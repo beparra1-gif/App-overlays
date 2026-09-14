@@ -727,6 +727,19 @@
   background: var(--mv-borde);
   margin: 0 2px;
 }
+.mv-pill.activo { background: rgba(0,122,255,.28); color: #fff; border-color: rgba(0,122,255,.5); }
+
+/* Panel de presentación del plantel titular uno por uno (ver
+   presentarJugador en Mesa.jsx) — mismo look de tarjeta que
+   .mv-disparadores, con la grilla de dorsales grande de siempre
+   (.mv-banco-grid) para elegir a quién presentar. */
+.mv-presentacion-panel {
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  background: var(--mv-tarjeta);
+  border: 1px solid var(--mv-borde);
+  border-radius: 14px;
+}
 /* Antes usaban clases globales (.texto-tenue, .btn-secundario, <select> sin
    estilo) pensadas para el tema claro del resto de la app — adentro de la
    Mesa (siempre oscura) el texto quedaba oscuro sobre oscuro, casi

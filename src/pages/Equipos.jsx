@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { api } from '../api/client';
+import { useEffect, useRef, useState } from 'react';
+import { api, urlFotoJugador } from '../api/client';
 import SelectorLogo from '../components/SelectorLogo';
 
 function PanelJugadores({ equipo, onCerrar }) {
@@ -15,6 +15,45 @@ function PanelJugadores({ equipo, onCerrar }) {
   const [dorsalEdit, setDorsalEdit] = useState('');
   const [nombreEdit, setNombreEdit] = useState('');
   const [guardandoEdicion, setGuardandoEdicion] = useState(false);
+  const [subiendoFotoId, setSubiendoFotoId] = useState(null);
+  const inputFotoRef = useRef(null);
+  const jugadorFotoRef = useRef(null);
+
+  // Foto de jugador (opcional) — la usa Nómina cuando "Mostrar foto de
+  // jugador" está prendido en Personalizar diseño, sobre todo para la
+  // presentación del plantel titular uno por uno.
+  const abrirSelectorFoto = (jugador) => {
+    jugadorFotoRef.current = jugador;
+    inputFotoRef.current?.click();
+  };
+  const subirFoto = async (e) => {
+    const archivo = e.target.files?.[0];
+    e.target.value = '';
+    const jugador = jugadorFotoRef.current;
+    if (!archivo || !jugador) return;
+    setError('');
+    setSubiendoFotoId(jugador.id);
+    try {
+      await api.subirFotoJugador(jugador.id, archivo);
+      cargar();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSubiendoFotoId(null);
+    }
+  };
+  const quitarFoto = async (jugador) => {
+    setError('');
+    setSubiendoFotoId(jugador.id);
+    try {
+      await api.eliminarFotoJugador(jugador.id);
+      cargar();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSubiendoFotoId(null);
+    }
+  };
 
   const cargar = () => api.listarJugadores(equipo.id).then((d) => setJugadores(d.jugadores));
 
@@ -105,6 +144,7 @@ function PanelJugadores({ equipo, onCerrar }) {
         <input placeholder="Nombre del jugador (opcional)" value={nombre} onChange={(e) => setNombre(e.target.value)} />
         <button className="btn-primario" type="submit">Agregar</button>
       </form>
+      <input ref={inputFotoRef} type="file" accept="image/png,image/jpeg,image/webp" style={{ display: 'none' }} onChange={subirFoto} />
       <ul className="lista-jugadores">
         {jugadores.map((j) => (
           <li key={j.id}>
@@ -117,8 +157,22 @@ function PanelJugadores({ equipo, onCerrar }) {
               </form>
             ) : (
               <>
+                <button
+                  type="button"
+                  className="foto-jugador-btn"
+                  onClick={() => abrirSelectorFoto(j)}
+                  disabled={subiendoFotoId === j.id}
+                  title={j.fotoUrl ? 'Cambiar foto' : 'Agregar foto'}
+                >
+                  {subiendoFotoId === j.id
+                    ? '…'
+                    : j.fotoUrl
+                      ? <img src={urlFotoJugador(j.fotoUrl)} alt="" />
+                      : '📷'}
+                </button>
                 <span className="dorsal-chip">{j.dorsal ?? '-'}</span>
                 {j.nombre}
+                {j.fotoUrl && <button className="btn-link" onClick={() => quitarFoto(j)} disabled={subiendoFotoId === j.id} title="Quitar foto">🖼️✕</button>}
                 <button className="btn-link" onClick={() => iniciarEdicion(j)}>Editar</button>
                 <button className="btn-link" onClick={() => eliminar(j)}>Eliminar</button>
               </>

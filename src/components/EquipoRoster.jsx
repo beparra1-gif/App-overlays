@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { api } from '../api/client';
+import { useRef, useState } from 'react';
+import { api, urlFotoJugador } from '../api/client';
 
 const MAX_QUINTETO = 5;
 const MAX_FIBA = 12;
@@ -83,6 +83,48 @@ export default function EquipoRoster({
   const [dorsalEdit, setDorsalEdit] = useState('');
   const [nombreEdit, setNombreEdit] = useState('');
   const [guardandoEdicion, setGuardandoEdicion] = useState(false);
+  const [subiendoFotoId, setSubiendoFotoId] = useState(null);
+  const inputFotoRef = useRef(null);
+  const jugadorFotoRef = useRef(null);
+
+  // Foto de jugador (opcional) — se usa en Nómina cuando "Mostrar foto de
+  // jugador" está prendido en Personalizar diseño (ver VistaNomina.jsx) y,
+  // sobre todo, en la presentación uno por uno del plantel titular. Un
+  // jugador "pendiente" (todavía sin guardar, ver EquipoFicha) no tiene id
+  // real en la base — no hay a dónde subir la foto hasta que se guarde.
+  const abrirSelectorFoto = (jugador) => {
+    if (jugador.pendiente) return;
+    jugadorFotoRef.current = jugador;
+    inputFotoRef.current?.click();
+  };
+  const subirFoto = async (e) => {
+    const archivo = e.target.files?.[0];
+    e.target.value = '';
+    const jugador = jugadorFotoRef.current;
+    if (!archivo || !jugador) return;
+    setError('');
+    setSubiendoFotoId(jugador.id);
+    try {
+      await api.subirFotoJugador(jugador.id, archivo);
+      onJugadorEditado?.({ ...jugador, fotoUrl: `/jugadores/${jugador.id}/foto` });
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSubiendoFotoId(null);
+    }
+  };
+  const quitarFoto = async (jugador) => {
+    setError('');
+    setSubiendoFotoId(jugador.id);
+    try {
+      await api.eliminarFotoJugador(jugador.id);
+      onJugadorEditado?.({ ...jugador, fotoUrl: null });
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSubiendoFotoId(null);
+    }
+  };
 
   const alternar = (jugadorId) => {
     if (!seleccionable) return;
@@ -225,6 +267,9 @@ export default function EquipoRoster({
         </div>
       ) : (
         <ul className="lista-seleccion">
+          {permitirEditar && (
+            <input ref={inputFotoRef} type="file" accept="image/png,image/jpeg,image/webp" style={{ display: 'none' }} onChange={subirFoto} />
+          )}
           {roster.map((j) => (
             <li key={j.id} style={{ justifyContent: 'space-between' }}>
               {editandoId === j.id ? (
@@ -235,14 +280,34 @@ export default function EquipoRoster({
                   <button className="btn-link" type="button" onClick={cancelarEdicion}>Cancelar</button>
                 </form>
               ) : (
-                <span>
-                  <span className="dorsal-chip">{j.dorsal ?? '-'}</span> {j.nombre}
-                  {j.pendiente && <span className="texto-tenue" style={{ fontSize: 11 }}> (sin guardar)</span>}
-                  {j.temporal && <span className="texto-tenue" style={{ fontSize: 11 }}> (solo este partido)</span>}
+                <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  {permitirEditar && !j.pendiente && (
+                    <button
+                      type="button"
+                      className="foto-jugador-btn"
+                      onClick={() => abrirSelectorFoto(j)}
+                      disabled={subiendoFotoId === j.id}
+                      title={j.fotoUrl ? 'Cambiar foto' : 'Agregar foto'}
+                    >
+                      {subiendoFotoId === j.id
+                        ? '…'
+                        : j.fotoUrl
+                          ? <img src={urlFotoJugador(j.fotoUrl)} alt="" />
+                          : '📷'}
+                    </button>
+                  )}
+                  <span>
+                    <span className="dorsal-chip">{j.dorsal ?? '-'}</span> {j.nombre}
+                    {j.pendiente && <span className="texto-tenue" style={{ fontSize: 11 }}> (sin guardar)</span>}
+                    {j.temporal && <span className="texto-tenue" style={{ fontSize: 11 }}> (solo este partido)</span>}
+                  </span>
                 </span>
               )}
               {editandoId !== j.id && (permitirEditar || permitirEliminar) && (
                 <span style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+                  {permitirEditar && j.fotoUrl && (
+                    <button type="button" className="btn-link" onClick={() => quitarFoto(j)} disabled={subiendoFotoId === j.id} title="Quitar foto">🖼️✕</button>
+                  )}
                   {permitirEditar && (
                     <button type="button" className="btn-link" onClick={() => iniciarEdicion(j)} title="Editar nombre/número">✏️</button>
                   )}

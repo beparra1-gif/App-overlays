@@ -1,4 +1,5 @@
 import { estiloTema, estiloTemaCapa, familiaEfectiva, fuenteEfectiva } from '../utils';
+import { urlFotoJugador } from '../../api/client';
 import LogoEquipo from '../LogoEquipo';
 import '../nomina.css';
 
@@ -12,7 +13,7 @@ function conTitularesPrimero(roster, quintetoIds) {
   return [...titulares, ...banca];
 }
 
-export default function VistaNomina({ partido, modo = 'ambos', claveAnimacion = 0, config, plantillaId, saliendo = false }) {
+export default function VistaNomina({ partido, modo = 'ambos', claveAnimacion = 0, config, plantillaId, saliendo = false, jugadorIds, equipoPresentacion }) {
   // Nómina COMPLETA (antes solo se mostraba el quinteto en cancha) — quien
   // está arrancando en cancha se distingue con una insignia en su fila, no
   // ocultando al resto del plantel.
@@ -49,6 +50,7 @@ export default function VistaNomina({ partido, modo = 'ambos', claveAnimacion = 
   // encarga de que nunca se salga de pantalla ni invada al otro equipo.
   const altoLogoFondo = (Number.isFinite(config?.nominaLogoFondoTamano) ? config.nominaLogoFondoTamano : 130) * 0.55;
   const familia = familiaEfectiva(config, 'nomina', plantillaId);
+  const mostrarFoto = config?.nominaMostrarFoto === true;
   // Techo de ancho para el logo de fondo — antes, con un logo bien ancho (o
   // el tamaño llevado al máximo) podía crecer tanto que se metía en la zona
   // del OTRO equipo y los dos escudos quedaban superpuestos. El problema real
@@ -121,7 +123,12 @@ export default function VistaNomina({ partido, modo = 'ambos', claveAnimacion = 
   const filaJugador = (quintetoIds) => (j, idx) => {
     const enCancha = quintetoIds.includes(j.id);
     return (
-      <div className={`nomina-jugador ${conEstadisticas ? 'con-stats' : ''} ${enCancha ? 'en-cancha' : ''}`} key={j.id} style={{ animationDelay: `${retrasoBaseFilas + Math.min(idx, 12) * 0.07}s` }}>
+      <div className={`nomina-jugador ${conEstadisticas ? 'con-stats' : ''} ${enCancha ? 'en-cancha' : ''} ${mostrarFoto ? 'con-foto' : ''}`} key={j.id} style={{ animationDelay: `${retrasoBaseFilas + Math.min(idx, 12) * 0.07}s` }}>
+        {mostrarFoto && (
+          j.fotoUrl
+            ? <img className="nomina-foto-chica" src={urlFotoJugador(j.fotoUrl)} alt="" />
+            : <span className="nomina-foto-chica nomina-foto-vacia">{j.dorsal ?? '-'}</span>
+        )}
         <span className="nomina-dorsal">{j.dorsal ?? '-'}</span>
         <span className="nomina-nombre">{j.nombre}</span>
         {enCancha && <span className="nomina-insignia" title="En cancha">★</span>}
@@ -129,6 +136,53 @@ export default function VistaNomina({ partido, modo = 'ambos', claveAnimacion = 
       </div>
     );
   };
+
+  // "Presentación" uno por uno: Mesa manda, en cada disparo, la lista
+  // COMPLETA de ids ya presentados (ver el comentario en socket/index.js,
+  // case NOMINA_REPRODUCIR) — el ÚLTIMO id de esa lista es quien se está
+  // presentando ahora (la ficha grande, con foto/nombre entrando), el
+  // resto ya tuvo su momento y queda en la fila acumulada de abajo. Al
+  // llegar el siguiente jugador, el actual pasa a esa fila SIN volver a
+  // animarse desde cero (React lo desmonta de la ficha grande y lo monta
+  // de nuevo como chip nuevo en la lista — esa es justo la "entra con una
+  // animación chica y después queda en la lista" que se pidió, gratis por
+  // el propio cambio de posición en el árbol).
+  if (modo === 'presentacion') {
+    const equipoDatos = equipoPresentacion === 'visita' ? partido.equipoVisita : partido.equipoLocal;
+    const ids = Array.isArray(jugadorIds) ? jugadorIds : [];
+    const presentados = ids.map((id) => equipoDatos.roster.find((j) => j.id === id)).filter(Boolean);
+    const actual = presentados[presentados.length - 1];
+    const anteriores = presentados.slice(0, -1);
+    if (!actual) return null;
+    return (
+      <div className={`nomina-overlay fam-${familia} nomina-presentacion ${saliendo ? 'nomina-saliendo' : ''}`} style={estilo}>
+        <div className="np-tarjeta" key={actual.id} style={{ '--color-equipo': equipoDatos.color }}>
+          {mostrarLogoCostado && <LogoEquipo equipo={equipoDatos} config={config} className="np-logo-equipo" contexto="nomina" />}
+          <span className="np-titulo-equipo">{equipoDatos.nombre}</span>
+          {mostrarFoto && actual.fotoUrl
+            ? <img className="np-foto" src={urlFotoJugador(actual.fotoUrl)} alt="" />
+            : <span className="np-foto np-foto-vacia">{actual.dorsal ?? '-'}</span>}
+          <span className="np-dorsal">#{actual.dorsal ?? '-'}</span>
+          <span className="np-nombre">{actual.nombre}</span>
+        </div>
+        {anteriores.length > 0 && (
+          <div className="np-lista" style={{ '--color-equipo': equipoDatos.color }}>
+            {anteriores.map((j) => (
+              <div className="np-chip" key={j.id}>
+                {mostrarFoto && (
+                  j.fotoUrl
+                    ? <img className="np-chip-foto" src={urlFotoJugador(j.fotoUrl)} alt="" />
+                    : <span className="np-chip-foto np-foto-vacia">{j.dorsal ?? '-'}</span>
+                )}
+                <span className="np-chip-dorsal">{j.dorsal ?? '-'}</span>
+                <span className="np-chip-nombre">{j.nombre}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
 
   // `estiloUbicacion` (alignItems/justifyContent en `estilo`) decide DÓNDE
   // va todo el bloque de nómina en la pantalla (arriba/abajo/centro) — ese

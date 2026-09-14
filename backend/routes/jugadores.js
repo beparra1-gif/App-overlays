@@ -1,10 +1,51 @@
 import { Router } from 'express';
+import multer from 'multer';
 import pool from '../db.js';
 import { authenticate } from '../middleware/auth.js';
 import { avisarRosterActualizado } from '../socket/rosterBroadcast.js';
 
 const router = Router();
+
+// Sirve la foto — SIN authenticate: se usa como `src` de una <img> directo
+// desde la escena pública (Nómina, disparada en pantalla completa en OBS),
+// que no manda ningún token. Mismo criterio que GET /logos/file/:filename.
+router.get('/:id/foto', async (req, res) => {
+  if (!/^\d+$/.test(String(req.params.id))) return res.status(404).end();
+  try {
+    const resultado = await pool.query('SELECT mime_type, file_data FROM jugador_fotos WHERE jugador_id = $1', [req.params.id]);
+    const foto = resultado.rows[0];
+    if (!foto) return res.status(404).end();
+    res.setHeader('Content-Type', foto.mime_type);
+    // A diferencia de los logos (filename al azar, nunca se pisa — cache
+    // "immutable" de un año tiene sentido ahí), la foto de un jugador vive
+    // SIEMPRE en la misma URL y se puede reemplazar — un cache largo dejaría
+    // la foto vieja pegada en el navegador/OBS. Una hora es un balance
+    // razonable: no hay que revalidar en cada jugada, pero un cambio de
+    // foto se nota pronto sin tener que versionar la URL.
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+    res.send(foto.file_data);
+  } catch (error) {
+    console.error('[GET /jugadores/:id/foto]', error);
+    res.status(500).end();
+  }
+});
+
 router.use(authenticate);
+
+// Mismo criterio que en routes/equipos.js: `tiene_foto` (columna barata) se
+// traduce a la ruta pública de la imagen, o null si no hay ninguna cargada.
+const conFotoUrl = (j) => ({ ...j, fotoUrl: j.tiene_foto ? `/jugadores/${j.id}/foto` : null });
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 3 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (!/^image\/(png|jpe?g|webp)$/.test(file.mimetype)) {
+      return cb(new Error('Formato no soportado (usa PNG, JPG o WEBP)'));
+    }
+    cb(null, true);
+  },
+});
 
 async function jugadorDelUsuario(jugadorId, userId) {
   // Ver el mismo guard en routes/equipos.js (equipoDelUsuario) — un id no
@@ -38,10 +79,50 @@ router.put('/:id', async (req, res) => {
       [nombre, dorsal, jugador.id]
     );
     if (!jugador.temporal) await avisarRosterActualizado(req.app.locals.io, jugador.equipo_id, req.userId);
-    res.json({ jugador: resultado.rows[0] });
+    res.json({ jugador: conFotoUrl(resultado.rows[0]) });
   } catch (error) {
     console.error('[PUT /jugadores/:id]', error);
     res.status(500).json({ error: 'No se pudo actualizar el jugador' });
+  }
+});
+
+router.post('/:id/foto', (req, res) => {
+  upload.single('archivo')(req, res, async (err) => {
+    if (err) return res.status(400).json({ error: err.message });
+    if (!req.file) return res.status(400).json({ error: 'Falta el archivo' });
+
+    const jugador = await jugadorDelUsuario(req.params.id, req.userId);
+    if (!jugador) return res.status(404).json({ error: 'Jugador no encontrado' });
+
+    try {
+      await pool.query(
+        `INSERT INTO jugador_fotos (jugador_id, mime_type, file_data, actualizado_en)
+         VALUES ($1, $2, $3, now())
+         ON CONFLICT (jugador_id) DO UPDATE SET mime_type = $2, file_data = $3, actualizado_en = now()`,
+        [jugador.id, req.file.mimetype, req.file.buffer]
+      );
+      await pool.query('UPDATE jugadores SET tiene_foto = true WHERE id = $1', [jugador.id]);
+      if (!jugador.temporal) await avisarRosterActualizado(req.app.locals.io, jugador.equipo_id, req.userId);
+      res.status(201).json({ tieneFoto: true });
+    } catch (error) {
+      console.error('[POST /jugadores/:id/foto]', error);
+      res.status(500).json({ error: 'No se pudo guardar la foto' });
+    }
+  });
+});
+
+router.delete('/:id/foto', async (req, res) => {
+  const jugador = await jugadorDelUsuario(req.params.id, req.userId);
+  if (!jugador) return res.status(404).json({ error: 'Jugador no encontrado' });
+
+  try {
+    await pool.query('DELETE FROM jugador_fotos WHERE jugador_id = $1', [jugador.id]);
+    await pool.query('UPDATE jugadores SET tiene_foto = false WHERE id = $1', [jugador.id]);
+    if (!jugador.temporal) await avisarRosterActualizado(req.app.locals.io, jugador.equipo_id, req.userId);
+    res.status(204).end();
+  } catch (error) {
+    console.error('[DELETE /jugadores/:id/foto]', error);
+    res.status(500).json({ error: 'No se pudo borrar la foto' });
   }
 });
 

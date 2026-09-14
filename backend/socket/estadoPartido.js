@@ -34,7 +34,7 @@ function totalesEquipo(roster) {
 // (todo el plantel juega), el comportamiento de siempre.
 async function cargarRoster(equipoId, partidoId, minutosPorJugador = new Map(), convocadosIds = []) {
   const resultado = await pool.query(
-    `SELECT j.id, j.dorsal, j.nombre, j.faltas_ajuste,
+    `SELECT j.id, j.dorsal, j.nombre, j.faltas_ajuste, j.tiene_foto,
        COALESCE(SUM(CASE WHEN e.tipo = 'PUNTO' THEN e.puntos ELSE 0 END), 0)::int AS pts,
        COALESCE(SUM(CASE WHEN e.tipo = 'REBOTE' THEN 1 ELSE 0 END), 0)::int AS reb,
        COALESCE(SUM(CASE WHEN e.tipo = 'ASISTENCIA' THEN 1 ELSE 0 END), 0)::int AS ast,
@@ -68,6 +68,7 @@ async function cargarRoster(equipoId, partidoId, minutosPorJugador = new Map(), 
       id: j.id,
       dorsal: j.dorsal,
       nombre: j.nombre,
+      fotoUrl: j.tiene_foto ? `/jugadores/${j.id}/foto` : null,
       pts: j.pts,
       reb: j.reb,
       ast: j.ast,

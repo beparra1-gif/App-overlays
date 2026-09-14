@@ -88,7 +88,7 @@ export default function EscenaPublica() {
     // animaciones, lo que sea) llega acá al instante, sin recargar — el
     // usuario puede seguir ajustando el diseño con el partido ya en curso.
     socket.on('diseno_actualizado', (disenoNuevo) => activo && setDatos((prev) => (prev ? { ...prev, diseno: disenoNuevo } : prev)));
-    socket.on('nomina_pulso', ({ modo, ocultarMarcador }) => activo && setNomina({ modo, ocultarMarcador, ts: Date.now() }));
+    socket.on('nomina_pulso', ({ modo, ocultarMarcador, jugadorIds, equipo }) => activo && setNomina({ modo, ocultarMarcador, jugadorIds, equipo, ts: Date.now() }));
     socket.on('marcador_visibilidad', ({ oculto }) => activo && setMarcadorOculto(!!oculto));
     socket.on('marcador_alerta', ({ texto, equipo, autoOcultar }) => activo && setAlertaMarcador(texto ? { texto, equipo, autoOcultar: !!autoOcultar, ts: Date.now() } : null));
     socket.on('jugada', (jugada) => activo && setJugadas((prev) => [jugada, ...prev].slice(0, 5)));
@@ -210,7 +210,7 @@ export default function EscenaPublica() {
           )}
           {cfg.mostrarNomina && nomina && (
             <ErrorBoundary>
-              <VistaNomina key={nomina.ts} partido={datos.partido} modo={nomina.modo} claveAnimacion={nomina.ts} config={cfg} plantillaId={plantillaId} saliendo={nomina.saliendo} />
+              <VistaNomina key={nomina.ts} partido={datos.partido} modo={nomina.modo} claveAnimacion={nomina.ts} config={cfg} plantillaId={plantillaId} saliendo={nomina.saliendo} jugadorIds={nomina.jugadorIds} equipoPresentacion={nomina.equipo} />
             </ErrorBoundary>
           )}
           {cfg.mostrarEstadisticas && stats && (

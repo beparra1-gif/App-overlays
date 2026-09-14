@@ -740,6 +740,17 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
   // Al disparar Nómina/Estadísticas: si se tapa el marcador base mientras
   // esa capa está en pantalla, o se lo deja visible debajo (por defecto).
   const [ocultarMarcador, setOcultarMarcador] = useState(false);
+  // Presentación uno por uno del plantel titular (ver presentarJugador más
+  // abajo) — `equipo` es cuál lado se está presentando ahora, `ids` la
+  // lista acumulada de ya presentados para ESE equipo (se reinicia sola al
+  // cambiar de equipo, o a mano con "Reiniciar presentación").
+  const [presentacion, setPresentacion] = useState({ equipo: null, ids: [] });
+  const [mostrarPresentacion, setMostrarPresentacion] = useState(false);
+  // Qué plantel se está MIRANDO en el panel — independiente de
+  // `presentacion.equipo` (lo que ya se mandó a la transmisión), para
+  // poder pasar a mirar el otro plantel sin perder/reiniciar la
+  // presentación en curso hasta que de verdad se toque a alguien de ahí.
+  const [equipoPresentVista, setEquipoPresentVista] = useState('local');
   // null = todavía no se sabe; 0+ = cuántas fuentes (OBS u otro navegador)
   // están mirando el enlace del marcador ahora mismo.
   const [viewersMarcador, setViewersMarcador] = useState(null);
@@ -1213,6 +1224,21 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
 
   const reproducirNomina = (modo) => emitirAccion('NOMINA_REPRODUCIR', { modo, ocultarMarcador });
   const dispararEstadisticas = (payload) => emitirAccion('ESTADISTICAS_MOSTRAR', { ...payload, ocultarMarcador });
+  // Presentación del plantel titular, uno por uno: cada toque en un jugador
+  // manda la lista COMPLETA de presentados hasta ahora (el backend no
+  // guarda ningún estado propio, solo reenvía — ver el comentario en
+  // socket/index.js). Cambiar de equipo arranca una lista nueva; volver a
+  // tocar un jugador ya presentado lo manda de nuevo al frente (repite su
+  // momento grande), coherente con lo que se ve en pantalla.
+  const presentarJugador = (jugadorId) => {
+    const equipo = equipoPresentVista;
+    const ids = presentacion.equipo === equipo
+      ? [...presentacion.ids.filter((id) => id !== jugadorId), jugadorId]
+      : [jugadorId];
+    setPresentacion({ equipo, ids });
+    emitirAccion('NOMINA_REPRODUCIR', { modo: 'presentacion', equipo, jugadorIds: ids, ocultarMarcador });
+  };
+  const reiniciarPresentacion = () => setPresentacion({ equipo: null, ids: [] });
   const jugadoresDeAmbos = [
     ...partido.equipoLocal.roster.map((j) => ({ ...j, equipoNombre: partido.equipoLocal.nombre })),
     ...partido.equipoVisita.roster.map((j) => ({ ...j, equipoNombre: partido.equipoVisita.nombre })),
@@ -1291,6 +1317,13 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
               <button className="mv-pill mv-pill-chico" title="Mostrar nómina — Local" onClick={() => reproducirNomina('local')}>Local</button>
               <button className="mv-pill mv-pill-chico" title="Mostrar nómina — Visita" onClick={() => reproducirNomina('visita')}>Visita</button>
               <button className="mv-pill mv-pill-chico" title="Mostrar nómina — Ambos" onClick={() => reproducirNomina('ambos')}>Ambos</button>
+              <button
+                className={`mv-pill mv-pill-chico ${mostrarPresentacion ? 'activo' : ''}`}
+                title="Presentar el plantel titular uno por uno, con foto y nombre"
+                onClick={() => setMostrarPresentacion((v) => !v)}
+              >
+                🎬 Presentar
+              </button>
               <span className="mv-disparadores-sep" />
               <span className="mv-disparadores-etiqueta" title="Estadísticas">📊</span>
               <button className="mv-pill mv-pill-chico" title="Estadísticas — Equipo Local" onClick={() => dispararEstadisticas({ modo: 'equipo', equipo: 'local', detalle: detalleJugadores })}>Local</button>
@@ -1318,6 +1351,41 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
               </label>
             </div>
           </div>
+
+          {mostrarPresentacion && (
+            <div className="mv-presentacion-panel">
+              <div className="mv-acciones-segmentado" style={{ marginBottom: 8 }}>
+                <button className={`mv-acciones-segmento ${equipoPresentVista === 'local' ? 'activo' : ''}`} onClick={() => setEquipoPresentVista('local')}>
+                  {partido.equipoLocal.nombre}
+                </button>
+                <button className={`mv-acciones-segmento ${equipoPresentVista === 'visita' ? 'activo' : ''}`} onClick={() => setEquipoPresentVista('visita')}>
+                  {partido.equipoVisita.nombre}
+                </button>
+              </div>
+              <p className="mv-texto-tenue" style={{ margin: '0 0 8px' }}>
+                Tocá cada jugador/a en el orden en que se va a presentar — entra con foto y nombre en pantalla grande y
+                después queda en la lista acumulada. Volver a tocar a alguien repite su momento.
+              </p>
+              <div className="mv-banco-grid">
+                {(equipoPresentVista === 'local' ? partido.equipoLocal.roster : partido.equipoVisita.roster).map((j) => (
+                  <BotonDorsal
+                    key={j.id}
+                    jugador={j}
+                    color={equipoPresentVista === 'local' ? partido.equipoLocal.color : partido.equipoVisita.color}
+                    variante="banco"
+                    interactivo
+                    seleccionado={presentacion.equipo === equipoPresentVista && presentacion.ids.includes(j.id)}
+                    onClick={() => presentarJugador(j.id)}
+                  />
+                ))}
+              </div>
+              {presentacion.ids.length > 0 && (
+                <button type="button" className="mv-pill" style={{ marginTop: 8 }} onClick={reiniciarPresentacion}>
+                  🔄 Reiniciar presentación
+                </button>
+              )}
+            </div>
+          )}
 
           {jugadoresDescalificadosEnCancha.length > 0 && (
             <div className="mensaje-error" style={{ marginBottom: 12 }}>

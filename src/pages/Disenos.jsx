@@ -147,9 +147,9 @@ const OPCIONES_UBICACION_NOMINA = [
   { id: 'derecha', etiqueta: 'Derecha' },
 ];
 
-function Toggle({ etiqueta, checked, onChange }) {
+function Toggle({ etiqueta, checked, onChange, title }) {
   return (
-    <label className="toggle-switch">
+    <label className="toggle-switch" title={title}>
       <span>{etiqueta}</span>
       <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
     </label>
@@ -1309,6 +1309,19 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
               )}
               <Toggle etiqueta="Centrar nombre del equipo" checked={config.nominaTituloCentrado} onChange={(v) => cambiarConfig('nominaTituloCentrado', v)} />
               <Toggle etiqueta="Estadísticas por jugador" checked={config.nominaConEstadisticas} onChange={(v) => cambiarConfig('nominaConEstadisticas', v)} />
+              <Toggle
+                etiqueta="Mostrar foto de jugador"
+                checked={config.nominaMostrarFoto}
+                onChange={(v) => cambiarConfig('nominaMostrarFoto', v)}
+                title="La foto se carga por jugador en Equipos → Nómina. Sin foto cargada, se ve un círculo con el dorsal en su lugar."
+              />
+              {config.nominaMostrarFoto && (
+                <p className="texto-tenue" style={{ margin: '-8px 0 0', fontSize: 12 }}>
+                  Cargá la foto de cada jugador en "Equipos → Nómina" (📷 junto al nombre). También habilita la
+                  "Presentación uno por uno" en la Mesa de control, para mostrar a cada titular con una ficha grande
+                  al entrar.
+                </p>
+              )}
               <SelectorDuracion etiqueta="Segundos visible al dispararla" valor={config.nominaDuracionSeg} porDefecto={6} onChange={(v) => cambiarConfig('nominaDuracionSeg', v)} />
               <SeccionEstiloCapa prefijo="nomina" config={config} cambiarConfig={cambiarConfig} etiquetaTitulo="Título" />
               <p className="texto-tenue" style={{ margin: '-4px 0 0', fontSize: 12 }}>

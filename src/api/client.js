@@ -47,6 +47,10 @@ async function solicitud(path, { method = 'GET', body, autenticado = true } = {}
 }
 
 export const urlLogo = (filename) => `${API_BASE_URL}/logos/file/${filename}`;
+// `jugador.fotoUrl` (si tiene foto) ya viene como ruta relativa a la API
+// (`/jugadores/:id/foto`, ver cargarRoster en el backend) — se arma la URL
+// completa acá, mismo criterio que urlLogo.
+export const urlFotoJugador = (fotoUrl) => (fotoUrl ? `${API_BASE_URL}${fotoUrl}` : null);
 
 async function subirArchivo(path, formData) {
   const headers = {};
@@ -79,6 +83,12 @@ export const api = {
   vaciarNomina: (equipoId) => solicitud(`/equipos/${equipoId}/vaciar-nomina`, { method: 'POST' }),
   actualizarJugador: (id, payload) => solicitud(`/jugadores/${id}`, { method: 'PUT', body: payload }),
   eliminarJugador: (id, opciones) => solicitud(`/jugadores/${id}${opciones?.forzar ? '?forzar=true' : ''}`, { method: 'DELETE' }),
+  subirFotoJugador: (id, archivo) => {
+    const formData = new FormData();
+    formData.append('archivo', archivo);
+    return subirArchivo(`/jugadores/${id}/foto`, formData);
+  },
+  eliminarFotoJugador: (id) => solicitud(`/jugadores/${id}/foto`, { method: 'DELETE' }),
 
   listarPartidos: () => solicitud('/partidos'),
   crearPartido: (payload) => solicitud('/partidos', { method: 'POST', body: payload }),

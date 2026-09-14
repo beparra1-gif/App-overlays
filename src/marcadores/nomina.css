@@ -214,6 +214,74 @@ html:has(.nomina-overlay) {
    plantilla de marcador enlazada al diseño. La tipografía NO se define acá:
    la fija `--pm-fuente` (misma que usa el marcador) para que todo el diseño
    comparta un solo tipo de letra. */
+/* Foto de jugador (config.nominaMostrarFoto), chica en la lista normal —
+   circular, mismo tamaño que ocuparía el dorsal, así no rompe la grilla de
+   columnas fijas (ver .nomina-jugador). Sin foto cargada, un círculo con el
+   dorsal adentro hace de placeholder — nunca queda un hueco vacío. */
+.nomina-jugador.con-foto { grid-template-columns: 34px 40px 1fr auto auto; }
+.nomina-foto-chica {
+  width: 34px; height: 34px; border-radius: 50%; object-fit: cover;
+  border: 2px solid var(--pm-banner, rgba(255,255,255,.35));
+}
+.nomina-foto-vacia {
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,.08); font-size: 13px; font-weight: 700; color: var(--nomina-texto, #cfd3dc);
+}
+
+/* Presentación uno por uno: ficha grande centrada para quien se está
+   presentando AHORA (foto grande + dorsal + nombre, con una entrada tipo
+   "rebote" — mismo espíritu que nomina-logo-entrada), y debajo una fila de
+   chips chicos con quienes ya pasaron. Cada chip nuevo entra con su propia
+   animación corta (ver nomina-entrada, ya definida) — el jugador que
+   estaba en la ficha grande, al pasar a chip, se anima de nuevo porque es
+   un elemento de verdad NUEVO en esa lista (React lo desmonta de un lado y
+   lo monta del otro) — es justo el efecto de "entra y después queda en la
+   lista" que se busca, sin lógica extra. */
+.nomina-presentacion { flex-direction: column; gap: 28px; }
+.np-tarjeta {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  background: var(--nomina-fondo, var(--pm-tablero, rgba(10, 12, 20, 0.92)));
+  border: 3px solid var(--color-equipo, var(--pm-banner, #ffd60a));
+  border-radius: 22px;
+  padding: 26px 46px 22px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, .55), 0 0 0 6px color-mix(in srgb, var(--color-equipo, #ffd60a) 18%, transparent);
+  opacity: 0;
+  animation: np-tarjeta-entrada .55s cubic-bezier(.34, 1.56, .64, 1) forwards;
+}
+@keyframes np-tarjeta-entrada {
+  from { opacity: 0; transform: scale(.75) translateY(24px); }
+  60% { opacity: 1; transform: scale(1.04) translateY(0); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+.np-titulo-equipo { font-size: calc(15px * var(--nomina-escala-titulo, 1)); text-transform: uppercase; letter-spacing: 2px; color: var(--color-equipo, inherit); font-weight: 700; }
+.np-logo-equipo { object-fit: contain; margin-bottom: -4px; opacity: var(--pm-logo-opacidad, 1); }
+.np-foto {
+  width: 170px; height: 170px; border-radius: 50%; object-fit: cover;
+  border: 4px solid var(--color-equipo, #ffd60a);
+  margin: 6px 0;
+}
+.np-foto-vacia {
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,.08); font-size: 56px; font-weight: 900; color: var(--nomina-texto, #fff);
+}
+.np-dorsal { font-size: calc(20px * var(--nomina-escala-texto, 1)); color: var(--color-equipo, #ffd60a); font-weight: 800; }
+.np-nombre { font-size: calc(34px * var(--nomina-escala-texto, 1)); font-weight: 800; text-transform: uppercase; letter-spacing: .5px; }
+
+.np-lista { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; max-width: 900px; }
+.np-chip {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--nomina-fondo, var(--pm-tablero, rgba(10, 12, 20, 0.85)));
+  border: 1px solid var(--color-equipo, rgba(255,255,255,.3));
+  border-radius: 999px;
+  padding: 6px 16px 6px 6px;
+  opacity: 0; transform: translateY(10px);
+  animation: nomina-entrada-chip .35s ease forwards;
+}
+@keyframes nomina-entrada-chip { to { opacity: 1; transform: translateY(0); } }
+.np-chip-foto { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
+.np-chip-dorsal { font-weight: 800; color: var(--color-equipo, #ffd60a); }
+.np-chip-nombre { font-size: 14px; font-weight: 600; white-space: nowrap; }
+
 .fam-clasico .nomina-jugador { border: 1px solid var(--pm-banner, #d4af37); animation-duration: .7s; }
 .fam-broadcast .nomina-jugador { border-left: 6px solid var(--pm-banner, #ff8200); text-transform: uppercase; letter-spacing: .5px; animation-duration: .3s; animation-timing-function: ease-out; }
 .fam-neon .nomina-jugador { border: 1px solid var(--pm-banner, #0ff); animation: nomina-entrada .5s ease forwards, nm-neon-pulso 1.8s ease-in-out .7s infinite; }
