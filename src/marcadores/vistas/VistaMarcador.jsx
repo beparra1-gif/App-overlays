@@ -5,6 +5,7 @@ import LogoFlotante from '../LogoFlotante';
 import PopSumaPuntos from '../PopSumaPuntos';
 import TituloMarcador from '../TituloMarcador';
 import LogosLibres from '../LogosLibres';
+import ElementosLibres from '../ElementosLibres';
 import { useCajaMarcador } from '../utils';
 
 // Referencia ESTABLE para "sin config" — `diseno?.config || {}` con un
@@ -56,6 +57,7 @@ export default function VistaMarcador({ partido, diseno, oculto = false, suprimi
       <PopSumaPuntos partido={partido} config={config} caja={caja} />
       <TituloMarcador config={config} plantillaId={plantillaId} caja={caja} suprimir={suprimirTitulo} />
       <LogosLibres config={config} />
+      <ElementosLibres partido={partido} config={config} />
     </div>
   );
 }

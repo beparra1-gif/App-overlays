@@ -7,6 +7,7 @@ import LogoMarcaAgua from './LogoMarcaAgua';
 import LogoFlotante from './LogoFlotante';
 import TituloMarcador from './TituloMarcador';
 import LogosLibres from './LogosLibres';
+import ElementosLibres from './ElementosLibres';
 import PopSumaPuntos from './PopSumaPuntos';
 import { PARTIDO_DEMO, JUGADAS_DEMO } from './datosDemo';
 import { useCajaMarcador, useEscalaLienzo } from './utils';
@@ -76,6 +77,7 @@ const OPACIDAD_CONTEXTO = 0.14;
 export default function PreviaCombinada({
   plantillaId, config, equipoLocalPreview, equipoVisitaPreview, partidoReal, modo = 'general',
   logosLibresEditable = false, onArrastrarLogoLibre,
+  elementosLibresEditable = false, onArrastrarElementoLibre, elementoSeleccionadoId, onSeleccionarElemento,
   animacionPuntosEditable = false, onArrastrarAnimacionPuntos,
   anunciosEditable = false, onArrastrarAnuncios,
   // Modo "pantalla completa": el recuadro 16:9 de siempre (mismo mecanismo,
@@ -212,6 +214,15 @@ export default function PreviaCombinada({
           </div>
         )}
         <LogosLibres config={config} editable={logosLibresEditable} onArrastrar={onArrastrarLogoLibre} contenedorRef={lienzoRef} />
+        <ElementosLibres
+          partido={partido}
+          config={config}
+          editable={elementosLibresEditable}
+          onArrastrar={onArrastrarElementoLibre}
+          onSeleccionar={onSeleccionarElemento}
+          seleccionadoId={elementoSeleccionadoId}
+          contenedorRef={lienzoRef}
+        />
         </div>
       </div>
     </>

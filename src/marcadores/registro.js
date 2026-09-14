@@ -30,6 +30,7 @@ import DiarioDeportivo from './plantillas/DiarioDeportivo';
 import AnilloCampeones from './plantillas/AnilloCampeones';
 import TableroMadera from './plantillas/TableroMadera';
 import HudTactico from './plantillas/HudTactico';
+import CreadorLibre from './plantillas/CreadorLibre';
 
 // Para agregar una plantilla nueva: crear el componente en ./plantillas
 // (recibe `{ partido, config }`, aplica estiloPersonalizado(config) en su
@@ -69,6 +70,7 @@ export const PLANTILLAS_MARCADOR = [
   { id: 'anillo-campeones', nombre: 'Anillo de Campeones', Componente: AnilloCampeones },
   { id: 'tablero-madera', nombre: 'Tablero de Madera', Componente: TableroMadera },
   { id: 'hud-tactico', nombre: 'HUD Táctico', Componente: HudTactico },
+  { id: 'creador-libre', nombre: '🎨 Creador Libre (armá el tuyo desde cero)', Componente: CreadorLibre },
 ];
 
 export const obtenerPlantilla = (id) => PLANTILLAS_MARCADOR.find((p) => p.id === id) || PLANTILLAS_MARCADOR[0];

@@ -206,6 +206,24 @@ const PESTANAS_PERSONALIZACION = [
   { id: 'estadisticas', etiqueta: 'Estadísticas', icono: '📊' },
   { id: 'anuncios', etiqueta: 'Anuncios', icono: '📣' },
   { id: 'logos', etiqueta: 'Logos libres', icono: '🖼️' },
+  { id: 'creador', etiqueta: 'Creador', icono: '🎨' },
+];
+
+// Elementos "de dato" que puede agregar el Creador de marcador — cada uno
+// lee su valor en vivo del partido (ver ElementosLibres.jsx), a diferencia
+// de "Texto libre" (texto fijo, tipeado a mano) y "Forma / fondo" (sin
+// texto, solo un bloque de color).
+const TIPOS_ELEMENTO_DATO = [
+  { tipo: 'nombreLocal', etiqueta: 'Nombre Local' },
+  { tipo: 'nombreVisita', etiqueta: 'Nombre Visita' },
+  { tipo: 'ptsLocal', etiqueta: 'Puntos Local' },
+  { tipo: 'ptsVisita', etiqueta: 'Puntos Visita' },
+  { tipo: 'reloj', etiqueta: 'Reloj' },
+  { tipo: 'periodo', etiqueta: 'Período' },
+  { tipo: 'faltasLocal', etiqueta: 'Faltas Local' },
+  { tipo: 'faltasVisita', etiqueta: 'Faltas Visita' },
+  { tipo: 'logoLocal', etiqueta: 'Logo Local' },
+  { tipo: 'logoVisita', etiqueta: 'Logo Visita' },
 ];
 
 // La ficha de "Equipos" no tiene capa propia en pantalla — lo que se
@@ -215,7 +233,7 @@ const PESTANAS_PERSONALIZACION = [
 // tablero), así que su vista previa es siempre el lienzo completo ('general'),
 // para poder ver y arrastrar sin que el zoom automático del marcador tape el
 // resto del encuadre.
-const PREVIA_MODO_POR_SECCION = { equipos: 'marcador', marcador: 'marcador', nomina: 'nomina', estadisticas: 'estadisticas', anuncios: 'anuncios', logos: 'general' };
+const PREVIA_MODO_POR_SECCION = { equipos: 'marcador', marcador: 'marcador', nomina: 'nomina', estadisticas: 'estadisticas', anuncios: 'anuncios', logos: 'general', creador: 'marcador' };
 const PREVIA_ETIQUETA = { general: 'Vista general', marcador: 'Marcador', nomina: 'Nómina', estadisticas: 'Estadísticas', anuncios: 'Anuncios' };
 
 // Selector de color "que se entienda": swatch grande (clickeable, abre el
@@ -370,6 +388,9 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
   // los datos reales en vez de un selector de "equipo de muestra" aparte.
   const [equipoLocalVivo, setEquipoLocalVivo] = useState(null);
   const [equipoVisitaVivo, setEquipoVisitaVivo] = useState(null);
+  // Elemento libre elegido para editar en el panel "Creador" — solo
+  // estado de UI (qué inspector mostrar), no se guarda en el diseño.
+  const [elementoSeleccionadoId, setElementoSeleccionadoId] = useState(null);
   // Estado EN VIVO del partido embebido en "Juego en vivo" (Mesa lo reporta
   // por su propio callback, sin abrir una segunda conexión de socket) — si
   // ya hay un partido preparado, la vista previa de "Personalizar tablero"
@@ -464,6 +485,40 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
     cambiarConfig('logosLibres', logosLibres.map((l) => (l.id === id ? { ...l, ...cambios } : l)));
   };
   const eliminarLogoLibre = (id) => cambiarConfig('logosLibres', logosLibres.filter((l) => l.id !== id));
+
+  // Elementos libres (Creador de marcador, ver ElementosLibres.jsx): mismo
+  // patrón que logos libres (todo el array vive en config.creadorElementos,
+  // agregar/editar/borrar son variaciones de "reemplazar el array"), con un
+  // valor por defecto propio según el tipo (los datos del partido van
+  // grandes y centrados por defecto; un texto libre nace chico, para no
+  // taparlo todo apenas se agrega).
+  const creadorElementos = Array.isArray(config.creadorElementos) ? config.creadorElementos : [];
+  const agregarElemento = (tipo) => {
+    const esDato = tipo !== 'texto' && tipo !== 'forma' && tipo !== 'logoLocal' && tipo !== 'logoVisita';
+    const nuevo = {
+      id: `el-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      tipo,
+      xPercent: 50,
+      yPercent: 50,
+      tamano: tipo === 'forma' ? undefined : (tipo === 'logoLocal' || tipo === 'logoVisita' ? 90 : (esDato ? 44 : 28)),
+      ancho: tipo === 'forma' ? 220 : undefined,
+      alto: tipo === 'forma' ? 90 : undefined,
+      color: tipo === 'forma' ? 'rgba(10,12,20,.85)' : '#ffffff',
+      colorAuto: esDato,
+      negrita: true,
+      mayusculas: esDato,
+      texto: tipo === 'texto' ? 'Texto libre' : undefined,
+    };
+    cambiarConfig('creadorElementos', [...creadorElementos, nuevo]);
+    setElementoSeleccionadoId(nuevo.id);
+  };
+  const actualizarElemento = (id, cambios) => {
+    cambiarConfig('creadorElementos', creadorElementos.map((el) => (el.id === id ? { ...el, ...cambios } : el)));
+  };
+  const eliminarElemento = (id) => {
+    cambiarConfig('creadorElementos', creadorElementos.filter((el) => el.id !== id));
+    setElementoSeleccionadoId((actual) => (actual === id ? null : actual));
+  };
 
   const posX = Number.isFinite(config.posX) ? config.posX : 50;
   const posY = Number.isFinite(config.posY) ? config.posY : 88;
@@ -776,6 +831,10 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
               onCerrarPantallaCompleta={() => setPreviaPantallaCompleta(false)}
               logosLibresEditable={seccionAbierta === 'logos'}
               onArrastrarLogoLibre={(id, x, y) => actualizarLogoLibre(id, { xPercent: x, yPercent: y })}
+              elementosLibresEditable={seccionAbierta === 'creador'}
+              onArrastrarElementoLibre={(id, x, y) => actualizarElemento(id, { xPercent: x, yPercent: y })}
+              elementoSeleccionadoId={elementoSeleccionadoId}
+              onSeleccionarElemento={setElementoSeleccionadoId}
               animacionPuntosEditable={seccionAbierta === 'marcador'}
               onArrastrarAnimacionPuntos={arrastrarAnimacionPuntos}
               anunciosEditable={seccionAbierta === 'anuncios'}
@@ -1469,6 +1528,126 @@ function FormularioDiseno({ inicial, onGuardar, onEliminar, onCancelar }) {
                   />
                 </div>
               ))}
+            </div>
+          )}
+        </div>
+
+        {/* ───────── CREADOR (Canva libre del marcador) ───────── */}
+        <div className="grupo-personalizacion" hidden={seccionAbierta !== 'creador'}>
+          <div className="grupo-titulo">🎨 Creador de marcador</div>
+          <p className="texto-tenue" style={{ margin: '0 0 10px' }}>
+            Armá el marcador elemento por elemento: agregá lo que necesites de la lista, arrastralo en la vista previa
+            de arriba a donde quieras, y ajustá tipografía/color/tamaño acá abajo. Funciona sobre CUALQUIER plantilla —
+            para un lienzo completamente en blanco, elegí la plantilla "🎨 Creador Libre" en el catálogo.
+          </p>
+          <div className="grupo-titulo" style={{ fontSize: 12, marginTop: 4 }}>Datos del partido</div>
+          <div className="modal-opciones-grid" style={{ marginBottom: 10 }}>
+            {TIPOS_ELEMENTO_DATO.map((t) => (
+              <button key={t.tipo} type="button" className="btn-secundario btn-chico" onClick={() => agregarElemento(t.tipo)}>
+                + {t.etiqueta}
+              </button>
+            ))}
+          </div>
+          <div className="fila-form" style={{ margin: '0 0 14px' }}>
+            <button type="button" className="btn-secundario" onClick={() => agregarElemento('texto')}>+ Texto libre</button>
+            <button type="button" className="btn-secundario" onClick={() => agregarElemento('forma')}>+ Forma / fondo</button>
+          </div>
+
+          {creadorElementos.length === 0 ? (
+            <p className="texto-tenue">Todavía no agregaste ningún elemento.</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {creadorElementos.map((el) => {
+                const info = TIPOS_ELEMENTO_DATO.find((t) => t.tipo === el.tipo);
+                const etiquetaTipo = info?.etiqueta || (el.tipo === 'texto' ? 'Texto libre' : el.tipo === 'forma' ? 'Forma / fondo' : el.tipo);
+                const esTexto = el.tipo === 'texto';
+                const esForma = el.tipo === 'forma';
+                const esLogo = el.tipo === 'logoLocal' || el.tipo === 'logoVisita';
+                const tieneColorEquipo = el.tipo.endsWith('Local') || el.tipo.endsWith('Visita');
+                return (
+                  <div
+                    key={el.id}
+                    className="tarjeta"
+                    style={{ display: 'flex', flexDirection: 'column', gap: 8, borderColor: elementoSeleccionadoId === el.id ? 'var(--primario)' : undefined }}
+                    onClick={() => setElementoSeleccionadoId(el.id)}
+                  >
+                    <div className="fila-form" style={{ margin: 0, justifyContent: 'space-between' }}>
+                      <strong style={{ fontSize: 13 }}>{etiquetaTipo}</strong>
+                      <button type="button" className="btn-link" onClick={(e) => { e.stopPropagation(); eliminarElemento(el.id); }}>🗑️ Quitar</button>
+                    </div>
+
+                    {esTexto && (
+                      <input
+                        value={el.texto || ''}
+                        onChange={(e) => actualizarElemento(el.id, { texto: e.target.value })}
+                        placeholder="Escribí el texto…"
+                      />
+                    )}
+
+                    {esForma ? (
+                      <>
+                        <div className="fila-form" style={{ margin: 0 }}>
+                          <input type="color" value={/^#/.test(el.color) ? el.color : '#0a0c14'} onChange={(e) => actualizarElemento(el.id, { color: e.target.value })} />
+                          <label className="mv-check-detalle" style={{ color: 'inherit' }}>
+                            <input type="checkbox" checked={!!el.formaRedonda} onChange={(e) => actualizarElemento(el.id, { formaRedonda: e.target.checked })} />
+                            Redonda (círculo/píldora)
+                          </label>
+                        </div>
+                        <CampoRango etiqueta="Ancho" valor={el.ancho ?? 220} min={20} max={800} onChange={(v) => actualizarElemento(el.id, { ancho: v })} />
+                        <CampoRango etiqueta="Alto" valor={el.alto ?? 90} min={20} max={800} onChange={(v) => actualizarElemento(el.id, { alto: v })} />
+                        <CampoRango etiqueta="Transparencia" valor={el.opacidad ?? 100} min={5} max={100} onChange={(v) => actualizarElemento(el.id, { opacidad: v })} />
+                      </>
+                    ) : esLogo ? (
+                      <>
+                        <CampoRango etiqueta="Tamaño" valor={el.tamano ?? 90} min={20} max={400} onChange={(v) => actualizarElemento(el.id, { tamano: v })} />
+                        <CampoRango etiqueta="Transparencia" valor={el.opacidad ?? 100} min={10} max={100} onChange={(v) => actualizarElemento(el.id, { opacidad: v })} />
+                      </>
+                    ) : (
+                      <>
+                        <select value={el.fuente || ''} onChange={(e) => actualizarElemento(el.id, { fuente: e.target.value })}>
+                          {FUENTES_DISPONIBLES.map((f) => <option key={f.id} value={f.id}>{f.etiqueta}</option>)}
+                        </select>
+                        <CampoRango etiqueta="Tamaño" valor={el.tamano ?? 32} min={10} max={160} onChange={(v) => actualizarElemento(el.id, { tamano: v })} />
+                        <div className="fila-form" style={{ margin: 0 }}>
+                          <label className="mv-check-detalle" style={{ color: 'inherit' }}>
+                            <input type="checkbox" checked={el.negrita !== false} onChange={(e) => actualizarElemento(el.id, { negrita: e.target.checked })} />
+                            Negrita
+                          </label>
+                          <label className="mv-check-detalle" style={{ color: 'inherit' }}>
+                            <input type="checkbox" checked={!!el.mayusculas} onChange={(e) => actualizarElemento(el.id, { mayusculas: e.target.checked })} />
+                            MAYÚSCULAS
+                          </label>
+                        </div>
+                        {tieneColorEquipo && (
+                          <label className="mv-check-detalle" style={{ color: 'inherit' }}>
+                            <input type="checkbox" checked={el.colorAuto !== false} onChange={(e) => actualizarElemento(el.id, { colorAuto: e.target.checked })} />
+                            Usar el color del equipo
+                          </label>
+                        )}
+                        {(!tieneColorEquipo || el.colorAuto === false) && (
+                          <div className="fila-form" style={{ margin: 0 }}>
+                            <span className="texto-tenue" style={{ fontSize: 12 }}>Color del texto</span>
+                            <input type="color" value={/^#/.test(el.color) ? el.color : '#ffffff'} onChange={(e) => actualizarElemento(el.id, { color: e.target.value })} />
+                          </div>
+                        )}
+                        <div className="fila-form" style={{ margin: 0 }}>
+                          <label className="mv-check-detalle" style={{ color: 'inherit' }}>
+                            <input type="checkbox" checked={!!el.fondoColor} onChange={(e) => actualizarElemento(el.id, { fondoColor: e.target.checked ? 'rgba(10,12,20,.75)' : null })} />
+                            Fondo detrás del texto
+                          </label>
+                          {el.fondoColor && (
+                            <input
+                              type="color"
+                              value={/^#/.test(el.fondoColor) ? el.fondoColor : '#0a0c14'}
+                              onChange={(e) => actualizarElemento(el.id, { fondoColor: e.target.value })}
+                            />
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

@@ -199,6 +199,7 @@ const FAMILIA_POR_PLANTILLA = {
   'diario-deportivo': 'editorial',
   'tablero-madera': 'madera',
   'hud-tactico': 'tactico',
+  'creador-libre': 'clasico',
 };
 
 export const familiaDePlantilla = (plantillaId) => FAMILIA_POR_PLANTILLA[plantillaId] || 'clasico';
@@ -242,6 +243,7 @@ const FUENTE_POR_PLANTILLA = {
   'anillo-campeones': "'Cinzel', serif",
   'tablero-madera': "'Oswald', sans-serif",
   'hud-tactico': "'Rajdhani', sans-serif",
+  'creador-libre': "'Oswald', sans-serif",
 };
 
 export const fuenteDePlantilla = (plantillaId) => FUENTE_POR_PLANTILLA[plantillaId] || "'Oswald', sans-serif";
