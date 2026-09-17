@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { formatearReloj, etiquetaPeriodo, indicadorFaltas } from './utils';
+import { IconoSvg } from './iconosLibres';
 import './elementosLibres.css';
 
 // "Elementos libres" es el corazón del Creador de marcador (una especie de
@@ -394,9 +395,19 @@ export default function ElementosLibres({
         if (el.tipo === 'forma' || el.tipo === 'imagen') {
           wManija = el.ancho || (el.tipo === 'imagen' ? 220 : 200);
           hManija = el.alto || (el.tipo === 'imagen' ? 220 : 80);
+        } else if (el.tipo === 'icono') {
+          wManija = el.tamano || 80;
+          hManija = el.tamano || 80;
         } else if (esLogo) {
           wManija = el.tamano || 80;
           hManija = el.alto || el.tamano || 80;
+        } else if (el.tipo === 'texto' && el.multilinea) {
+          const tam = el.tamano || 32;
+          const ancho = el.anchoTexto || 400;
+          const caracteresPorLinea = Math.max(4, ancho / (tam * 0.55));
+          const lineas = Math.max(1, Math.ceil((el.texto || '').length / caracteresPorLinea));
+          wManija = ancho;
+          hManija = tam * 1.3 * lineas;
         } else {
           const textoManija = el.tipo === 'texto' ? (el.texto || 'Texto libre') : TEXTO_POR_TIPO(partido, config, el.tipo);
           const tam = el.tamano || 32;
@@ -516,6 +527,31 @@ export default function ElementosLibres({
           );
         }
 
+        if (el.tipo === 'icono') {
+          return (
+            <div key={el.id} style={{ display: 'contents' }}>
+              <div
+                className={claseAnimacion}
+                style={{
+                  ...posicion,
+                  width: `${el.tamano || 80}px`,
+                  height: `${el.tamano || 80}px`,
+                  border: el.bordeAncho ? `${el.bordeAncho}px solid ${el.bordeColor || '#ffffff'}` : undefined,
+                  borderRadius: el.radio ? `${el.radio}px` : 0,
+                  padding: el.bordeAncho ? '6px' : 0,
+                  boxSizing: 'border-box',
+                  filter: el.sombra ? `drop-shadow(${el.sombraX ?? 0}px ${el.sombraY ?? 8}px ${el.sombraBlur ?? 14}px ${el.sombraColor || 'rgba(0,0,0,.6)'})` : undefined,
+                  opacity: opacidadBase,
+                }}
+                {...handlers}
+              >
+                <IconoSvg id={el.iconoId || 'estrella'} color={el.color || '#ffd60a'} />
+              </div>
+              {manijas}
+            </div>
+          );
+        }
+
         if (esLogo) {
           if (!equipo?.logo_url) return null;
           const alto = el.alto;
@@ -555,13 +591,23 @@ export default function ElementosLibres({
         }) : undefined;
         const fondoTextoColor = (el.fondoColor && !el.gradiente) ? el.fondoColor : undefined;
         const sombraTexto = el.sombra === false ? 'none' : (el.fondoColor ? 'none' : `${el.sombraX ?? 0}px ${el.sombraY ?? 2}px ${el.sombraBlur ?? 6}px ${el.sombraColor || 'rgba(0,0,0,.55)'}`);
+        // "Multilínea" (solo texto libre, no los datos del partido — un
+        // nombre de equipo no necesita partirse en varias líneas): en vez
+        // de una sola línea que nunca se corta, se le da un ancho fijo y
+        // se deja que el texto haga salto de línea natural — el mismo
+        // `translate(-50%,-50%)` de siempre sigue centrando el bloque
+        // entero en su punto, aunque ahora tenga alto de más de una línea.
+        const multilinea = el.tipo === 'texto' && el.multilinea;
         return (
           <div key={el.id} style={{ display: 'contents' }}>
             <span
               className={claseAnimacion}
               style={{
                 ...posicion,
-                whiteSpace: 'nowrap',
+                whiteSpace: multilinea ? 'pre-wrap' : 'nowrap',
+                width: multilinea ? `${el.anchoTexto || 400}px` : undefined,
+                textAlign: multilinea ? (el.alineacion || 'center') : undefined,
+                lineHeight: multilinea ? 1.25 : undefined,
                 fontFamily: el.fuente || "'Oswald', sans-serif",
                 fontSize: `${el.tamano || 32}px`,
                 fontWeight: el.negrita === false ? 500 : 800,

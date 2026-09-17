@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { PLANTILLAS_MARCADOR } from '../marcadores/registro';
 import { PRESETS_POSICION, mostrar, FUENTES_DISPONIBLES } from '../marcadores/utils';
 import MiniPreviewMarcador from '../marcadores/MiniPreviewMarcador';
+import { CATALOGO_ICONOS, IconoSvg } from '../marcadores/iconosLibres';
 import PreviaCombinada from '../marcadores/PreviaCombinada';
 import EquipoFicha from '../components/EquipoFicha';
 import SelectorLogo from '../components/SelectorLogo';
@@ -771,18 +772,19 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
   // taparlo todo apenas se agrega).
   const creadorElementos = Array.isArray(config.creadorElementos) ? config.creadorElementos : [];
   const crearElemento = (tipo, extra = {}) => {
-    const esDato = tipo !== 'texto' && tipo !== 'forma' && tipo !== 'imagen' && tipo !== 'logoLocal' && tipo !== 'logoVisita';
+    const esDato = tipo !== 'texto' && tipo !== 'forma' && tipo !== 'imagen' && tipo !== 'icono' && tipo !== 'logoLocal' && tipo !== 'logoVisita';
     return {
       id: `el-${Date.now()}-${Math.random().toString(36).slice(2)}`,
       tipo,
       xPercent: 50,
       yPercent: 50,
       rotacion: 0,
-      tamano: tipo === 'forma' || tipo === 'imagen' ? undefined : (tipo === 'logoLocal' || tipo === 'logoVisita' ? 90 : (esDato ? 44 : 28)),
+      tamano: tipo === 'forma' || tipo === 'imagen' ? undefined : (tipo === 'icono' ? 80 : (tipo === 'logoLocal' || tipo === 'logoVisita' ? 90 : (esDato ? 44 : 28))),
       ancho: tipo === 'forma' ? 220 : (tipo === 'imagen' ? 200 : undefined),
       alto: tipo === 'forma' ? 90 : (tipo === 'imagen' ? 200 : undefined),
       radio: tipo === 'forma' ? 12 : (tipo === 'imagen' ? 0 : undefined),
-      color: tipo === 'forma' ? 'rgba(10,12,20,.85)' : '#ffffff',
+      color: tipo === 'forma' ? 'rgba(10,12,20,.85)' : (tipo === 'icono' ? '#ffd60a' : '#ffffff'),
+      iconoId: tipo === 'icono' ? 'estrella' : undefined,
       colorAuto: esDato,
       negrita: true,
       mayusculas: esDato,
@@ -2123,6 +2125,7 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
               <button type="button" className="btn-secundario" onClick={() => agregarElemento('texto')}>+ Texto libre</button>
               <button type="button" className="btn-secundario" onClick={() => agregarElemento('forma')}>+ Forma / fondo</button>
               <button type="button" className="btn-secundario" onClick={() => agregarElemento('imagen')} title="Un logo/imagen suelto en cualquier parte del tablero — ideal para el logo de un campeonato, torneo o auspiciante">+ Logo de campeonato / auspiciante</button>
+              <button type="button" className="btn-secundario" onClick={() => agregarElemento('icono')} title="Pelota, trofeo, estrella, rayo... un ícono deportivo ya hecho, sin subir ninguna imagen">+ Ícono</button>
             </div>
           </div>
 
@@ -2139,7 +2142,7 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
                 <div className="creador-capas-lista">
                   {creadorElementos.map((el, indice) => {
                     const info = TIPOS_ELEMENTO_DATO.find((t) => t.tipo === el.tipo);
-                    const etiquetaTipo = info?.etiqueta || (el.tipo === 'texto' ? 'Texto libre' : el.tipo === 'forma' ? 'Forma / fondo' : el.tipo === 'imagen' ? 'Logo / imagen libre' : el.tipo);
+                    const etiquetaTipo = info?.etiqueta || (el.tipo === 'texto' ? 'Texto libre' : el.tipo === 'forma' ? 'Forma / fondo' : el.tipo === 'imagen' ? 'Logo / imagen libre' : el.tipo === 'icono' ? 'Ícono' : el.tipo);
                     const seleccionado = elementosSeleccionadosIds.includes(el.id);
                     return (
                       <div
@@ -2208,10 +2211,11 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {creadorElementos.map((el) => {
                   const info = TIPOS_ELEMENTO_DATO.find((t) => t.tipo === el.tipo);
-                  const etiquetaTipo = info?.etiqueta || (el.tipo === 'texto' ? 'Texto libre' : el.tipo === 'forma' ? 'Forma / fondo' : el.tipo === 'imagen' ? 'Logo / imagen libre' : el.tipo);
+                  const etiquetaTipo = info?.etiqueta || (el.tipo === 'texto' ? 'Texto libre' : el.tipo === 'forma' ? 'Forma / fondo' : el.tipo === 'imagen' ? 'Logo / imagen libre' : el.tipo === 'icono' ? 'Ícono' : el.tipo);
                   const esTexto = el.tipo === 'texto';
                   const esForma = el.tipo === 'forma';
                   const esImagen = el.tipo === 'imagen';
+                  const esIcono = el.tipo === 'icono';
                   const esLogo = el.tipo === 'logoLocal' || el.tipo === 'logoVisita';
                   const tieneColorEquipo = el.tipo.endsWith('Local') || el.tipo.endsWith('Visita');
                   return (
@@ -2235,11 +2239,40 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
                       </div>
 
                       {esTexto && (
-                        <input
-                          value={el.texto || ''}
-                          onChange={(e) => actualizarElemento(el.id, { texto: e.target.value })}
-                          placeholder="Escribí el texto…"
-                        />
+                        <>
+                          {el.multilinea ? (
+                            <textarea
+                              value={el.texto || ''}
+                              onChange={(e) => actualizarElemento(el.id, { texto: e.target.value })}
+                              placeholder="Escribí el texto… (Enter para pasar de línea)"
+                              rows={3}
+                              style={{ resize: 'vertical', width: '100%' }}
+                            />
+                          ) : (
+                            <input
+                              value={el.texto || ''}
+                              onChange={(e) => actualizarElemento(el.id, { texto: e.target.value })}
+                              placeholder="Escribí el texto…"
+                            />
+                          )}
+                          <label className="mv-check-detalle" style={{ color: 'inherit' }}>
+                            <input type="checkbox" checked={!!el.multilinea} onChange={(e) => actualizarElemento(el.id, { multilinea: e.target.checked })} />
+                            Varias líneas (para un texto largo — banner, lema, auspiciante)
+                          </label>
+                          {el.multilinea && (
+                            <>
+                              <CampoRango etiqueta="Ancho del bloque de texto" valor={el.anchoTexto ?? 400} unidad="px" min={100} max={1600} onChange={(v) => actualizarElemento(el.id, { anchoTexto: v })} />
+                              <label>
+                                Alineación del párrafo
+                                <select value={el.alineacion || 'center'} onChange={(e) => actualizarElemento(el.id, { alineacion: e.target.value })}>
+                                  <option value="left">Izquierda</option>
+                                  <option value="center">Centro</option>
+                                  <option value="right">Derecha</option>
+                                </select>
+                              </label>
+                            </>
+                          )}
+                        </>
                       )}
 
                       <div className="fila-form" style={{ margin: 0 }}>
@@ -2387,6 +2420,29 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
                             />
                           )}
                           <CampoRango etiqueta="Transparencia" valor={el.opacidad ?? 100} min={5} max={100} onChange={(v) => actualizarElemento(el.id, { opacidad: v })} />
+                          <ControlEstiloComun el={el} actualizar={(c) => actualizarElemento(el.id, c)} />
+                        </>
+                      ) : esIcono ? (
+                        <>
+                          <div className="creador-icono-grilla">
+                            {CATALOGO_ICONOS.map((ic) => (
+                              <button
+                                key={ic.id}
+                                type="button"
+                                title={ic.etiqueta}
+                                className={`creador-icono-btn ${el.iconoId === ic.id ? 'elegido' : ''}`}
+                                onClick={() => actualizarElemento(el.id, { iconoId: ic.id })}
+                              >
+                                <IconoSvg id={ic.id} color={el.color || '#ffd60a'} />
+                              </button>
+                            ))}
+                          </div>
+                          <div className="fila-form" style={{ margin: 0 }}>
+                            <span className="texto-tenue" style={{ fontSize: 12 }}>Color</span>
+                            <input type="color" value={/^#/.test(el.color) ? el.color : '#ffd60a'} onChange={(e) => actualizarElemento(el.id, { color: e.target.value })} />
+                          </div>
+                          <CampoRango etiqueta="Tamaño" valor={el.tamano ?? 80} unidad="px" min={20} max={400} onChange={(v) => actualizarElemento(el.id, { tamano: v })} />
+                          <CampoRango etiqueta="Transparencia" valor={el.opacidad ?? 100} min={10} max={100} onChange={(v) => actualizarElemento(el.id, { opacidad: v })} />
                           <ControlEstiloComun el={el} actualizar={(c) => actualizarElemento(el.id, c)} />
                         </>
                       ) : esLogo ? (
@@ -2597,6 +2653,33 @@ export default function Disenos() {
     });
   };
 
+  const renombrarPlantillaPersonalizada = async (plantilla) => {
+    const nuevoNombre = window.prompt('Nuevo nombre para la plantilla:', plantilla.nombre);
+    if (!nuevoNombre || !nuevoNombre.trim() || nuevoNombre.trim() === plantilla.nombre) return;
+    try {
+      const { plantilla: actualizada } = await api.renombrarPlantillaPersonalizada(plantilla.id, nuevoNombre.trim());
+      setPlantillasPersonalizadas((p) => p.map((x) => (x.id === plantilla.id ? actualizada : x)));
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  // Duplicar: copia el config GUARDADO de la plantilla (no el de un diseño
+  // que ya la esté usando, que puede haber divergido) — para variar un
+  // diseño sin arriesgar el original.
+  const duplicarPlantillaPersonalizada = async (plantilla) => {
+    try {
+      const { plantilla: nueva } = await api.crearPlantillaPersonalizada({
+        nombre: `${plantilla.nombre} (copia)`,
+        plantilla_base: 'creador-libre',
+        config: plantilla.config,
+      });
+      setPlantillasPersonalizadas((p) => [nueva, ...p]);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   const eliminarPlantillaPersonalizada = async (plantilla) => {
     if (!window.confirm(`¿Eliminar la plantilla "${plantilla.nombre}" para siempre? Esto NO borra ningún diseño que ya hayas armado con ella (esos siguen con su propio enlace de OBS) — solo deja de aparecer como punto de partida nuevo.`)) return;
     try {
@@ -2651,6 +2734,8 @@ export default function Disenos() {
                     <strong>{plantilla.nombre}</strong>
                     <div className="tarjeta-acciones">
                       <button className="btn-primario" onClick={() => usarPlantillaPersonalizada(plantilla)}>Usar este diseño</button>
+                      <button type="button" className="btn-link" title="Cambiarle el nombre" onClick={() => renombrarPlantillaPersonalizada(plantilla)}>✎ Renombrar</button>
+                      <button type="button" className="btn-link" title="Crea una copia independiente, para variarla sin tocar esta" onClick={() => duplicarPlantillaPersonalizada(plantilla)}>⧉ Duplicar</button>
                       <button
                         type="button"
                         className="btn-link"

@@ -763,6 +763,28 @@ select {
   border-radius: 10px;
 }
 
+/* Selector de ícono (elemento "icono" del Creador) — grilla de botones
+   grandes (tap-target cómodo en tablet) con el propio ícono adentro, ya
+   pintado con el color elegido, para elegir a simple vista en vez de un
+   desplegable con nombres. */
+.creador-icono-grilla {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(52px, 1fr));
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.creador-icono-btn {
+  width: 52px;
+  height: 52px;
+  padding: 10px;
+  border-radius: 10px;
+  border: 2px solid var(--borde);
+  background: var(--tarjeta);
+  cursor: pointer;
+}
+.creador-icono-btn:hover { border-color: var(--primario); }
+.creador-icono-btn.elegido { border-color: var(--primario); background: color-mix(in srgb, var(--primario) 16%, var(--tarjeta)); }
+
 /* Selector de tipografía con vista previa real (ver SelectorFuente en
    Disenos.jsx) — la muestra de abajo siempre se ve, sin depender de abrir
    el desplegable (los <option> también llevan su propia fuente, pero un
