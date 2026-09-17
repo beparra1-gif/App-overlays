@@ -144,9 +144,20 @@ function ManijasElemento({ elemento, w, h, escalaLienzo, contenedorRef, onCambia
     const dy = (e.clientY - accion.clientY0) / escala;
     const localDx = dx * cos + dy * sin;
     const localDy = -dx * sin + dy * cos;
-    if (esCajaLibre) {
+    if (esCajaLibre && !elemento.proporcionFija) {
       const nuevoAncho = Math.max(20, Math.round(accion.ancho0 + 2 * accion.sx * localDx));
       const nuevoAlto = Math.max(20, Math.round(accion.alto0 + 2 * accion.sy * localDy));
+      setMedicion(`${nuevoAncho}×${nuevoAlto}px`);
+      onCambiar({ ancho: nuevoAncho, alto: nuevoAlto });
+    } else if (esCajaLibre && elemento.proporcionFija) {
+      // "Mantener proporción": los dos ejes escalan juntos por el mismo
+      // factor (mismo cálculo que logo/texto más abajo), en vez de
+      // estirar cada eje por separado.
+      const diagonal0 = Math.hypot(accion.w0, accion.h0) || 1;
+      const proyeccion = accion.sx * localDx + accion.sy * localDy;
+      const factor = Math.max(0.15, 1 + (2 * proyeccion) / diagonal0);
+      const nuevoAncho = Math.max(20, Math.round(accion.ancho0 * factor));
+      const nuevoAlto = Math.max(20, Math.round(accion.alto0 * factor));
       setMedicion(`${nuevoAncho}×${nuevoAlto}px`);
       onCambiar({ ancho: nuevoAncho, alto: nuevoAlto });
     } else {

@@ -872,6 +872,29 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
     cambiarConfig('creadorElementos', [...creadorElementos, ...copias]);
     setElementosSeleccionadosIds(copias.map((c) => c.id));
   };
+  // "Copiar estilo" / "Pegar estilo" (formato tipo Photoshop/Canva): solo
+  // el subconjunto de campos que TODOS los tipos de elemento entienden por
+  // igual (borde, sombra, mezcla, animación, transparencia) — a propósito
+  // no copia color/degradado/tipografía, que tienen sentido/campos
+  // distintos según el tipo (color de forma vs. color de texto, por
+  // ejemplo) y podrían pisar algo sin que tenga sentido. Vive en memoria
+  // nada más (no se guarda en el diseño) — se pierde al recargar, como
+  // cualquier portapapeles.
+  const CAMPOS_ESTILO_COPIABLE = ['bordeAncho', 'bordeColor', 'sombra', 'sombraColor', 'sombraBlur', 'sombraX', 'sombraY', 'mezcla', 'animacion', 'opacidad'];
+  const [estiloCopiado, setEstiloCopiado] = useState(null);
+  const copiarEstilo = (id) => {
+    const el = creadorElementos.find((e) => e.id === id);
+    if (!el) return;
+    const copia = {};
+    CAMPOS_ESTILO_COPIABLE.forEach((campo) => { if (el[campo] !== undefined) copia[campo] = el[campo]; });
+    setEstiloCopiado(copia);
+  };
+  const pegarEstilo = () => {
+    if (!estiloCopiado || elementosSeleccionadosIds.length === 0) return;
+    cambiarConfig('creadorElementos', creadorElementos.map((el) => (
+      elementosSeleccionadosIds.includes(el.id) ? { ...el, ...estiloCopiado } : el
+    )));
+  };
   // Bloquear/ocultar/renombrar: banderas simples por elemento, sin lógica
   // extra — bloqueado apaga el arrastre/manijas en el lienzo (pero se
   // puede seguir editando desde el panel), oculto no se dibuja en absoluto.
@@ -925,6 +948,41 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
       if (borde === 'centroV') cambios.yPercent = 50;
       if (borde === 'abajo') cambios.yPercent = 100 - (h / 2 / 1080) * 100;
       return { ...el, ...cambios };
+    }));
+  };
+
+  // Distribuir parejo (3+ seleccionados): reparte el HUECO entre bordes en
+  // partes iguales — no solo el centro a centro — para que quede realmente
+  // parejo aunque los elementos tengan tamaños distintos. Los dos de las
+  // puntas (el más a la izquierda/arriba y el más a la derecha/abajo de la
+  // selección) quedan fijos, de referencia; solo se mueven los del medio.
+  const distribuirSeleccion = (eje) => {
+    if (elementosSeleccionadosIds.length < 3) return;
+    const conMedida = creadorElementos
+      .filter((el) => elementosSeleccionadosIds.includes(el.id))
+      .map((el) => {
+        const { w, h } = medidaNativaAprox(el);
+        const centro = eje === 'x' ? (Number.isFinite(el.xPercent) ? el.xPercent : 50) : (Number.isFinite(el.yPercent) ? el.yPercent : 50);
+        const medioPercent = eje === 'x' ? ((w / 2) / 1920) * 100 : ((h / 2) / 1080) * 100;
+        return { el, centro, medioPercent };
+      })
+      .sort((a, b) => a.centro - b.centro);
+    const primero = conMedida[0];
+    const ultimo = conMedida[conMedida.length - 1];
+    const espacioTotal = (ultimo.centro - ultimo.medioPercent) - (primero.centro + primero.medioPercent);
+    const mediosDelMedio = conMedida.slice(1, -1).reduce((acc, c) => acc + c.medioPercent * 2, 0);
+    const hueco = (espacioTotal - mediosDelMedio) / (conMedida.length - 1);
+    const nuevaPosicion = new Map();
+    let cursor = primero.centro + primero.medioPercent;
+    for (let i = 1; i < conMedida.length - 1; i += 1) {
+      cursor += hueco + conMedida[i].medioPercent;
+      nuevaPosicion.set(conMedida[i].el.id, cursor);
+      cursor += conMedida[i].medioPercent;
+    }
+    cambiarConfig('creadorElementos', creadorElementos.map((el) => {
+      if (!nuevaPosicion.has(el.id)) return el;
+      const valor = Math.min(100, Math.max(0, nuevaPosicion.get(el.id)));
+      return eje === 'x' ? { ...el, xPercent: valor } : { ...el, yPercent: valor };
     }));
   };
 
@@ -2126,6 +2184,20 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
                     <button type="button" className="btn-secundario btn-chico" title="Alinear arriba" onClick={() => alinearSeleccion('arriba')}>⇡</button>
                     <button type="button" className="btn-secundario btn-chico" title="Centrar vertical" onClick={() => alinearSeleccion('centroV')}>⇕</button>
                     <button type="button" className="btn-secundario btn-chico" title="Alinear abajo" onClick={() => alinearSeleccion('abajo')}>⇣</button>
+                    {elementosSeleccionadosIds.length >= 3 && (
+                      <>
+                        <span className="creador-herramientas-separador" />
+                        <button type="button" className="btn-secundario btn-chico" title="Distribuir parejo, horizontal" onClick={() => distribuirSeleccion('x')}>⟷ Distribuir</button>
+                        <button type="button" className="btn-secundario btn-chico" title="Distribuir parejo, vertical" onClick={() => distribuirSeleccion('y')}>↕ Distribuir</button>
+                      </>
+                    )}
+                    <span className="creador-herramientas-separador" />
+                    {elementosSeleccionadosIds.length === 1 && (
+                      <button type="button" className="btn-secundario btn-chico" title="Copiar el borde/sombra/mezcla/animación/transparencia de este elemento, para pegarlo en otros" onClick={() => copiarEstilo(elementosSeleccionadosIds[0])}>📋 Copiar estilo</button>
+                    )}
+                    {estiloCopiado && (
+                      <button type="button" className="btn-secundario btn-chico" title="Aplica el estilo copiado a toda la selección actual" onClick={pegarEstilo}>🖌️ Pegar estilo</button>
+                    )}
                     <span className="creador-herramientas-separador" />
                     <button type="button" className="btn-secundario btn-chico" title="Duplicar (Ctrl/Cmd+D)" onClick={duplicarSeleccion}>⧉ Duplicar</button>
                     <button type="button" className="btn-secundario btn-chico" title="Eliminar (Supr)" onClick={eliminarSeleccion}>🗑️ Eliminar</button>
@@ -2209,6 +2281,10 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
                           )}
                           <CampoRango etiqueta="Ancho" valor={el.ancho ?? 220} unidad="px" min={20} max={800} onChange={(v) => actualizarElemento(el.id, { ancho: v })} />
                           <CampoRango etiqueta="Alto" valor={el.alto ?? 90} unidad="px" min={20} max={800} onChange={(v) => actualizarElemento(el.id, { alto: v })} />
+                          <label className="mv-check-detalle" style={{ color: 'inherit' }}>
+                            <input type="checkbox" checked={!!el.proporcionFija} onChange={(e) => actualizarElemento(el.id, { proporcionFija: e.target.checked })} />
+                            Mantener proporción al redimensionar con las manijas del lienzo
+                          </label>
 
                           <p className="texto-tenue" style={{ margin: '4px 0 0', fontSize: 12 }}>Esquinas (ángulo de cada vértice — no es el ángulo de giro de arriba)</p>
                           <div className="fila-form" style={{ margin: 0 }}>
@@ -2262,6 +2338,10 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
                           />
                           <CampoRango etiqueta="Ancho" valor={el.ancho ?? 200} unidad="px" min={20} max={800} onChange={(v) => actualizarElemento(el.id, { ancho: v })} />
                           <CampoRango etiqueta="Alto" valor={el.alto ?? 200} unidad="px" min={20} max={800} onChange={(v) => actualizarElemento(el.id, { alto: v })} />
+                          <label className="mv-check-detalle" style={{ color: 'inherit' }}>
+                            <input type="checkbox" checked={!!el.proporcionFija} onChange={(e) => actualizarElemento(el.id, { proporcionFija: e.target.checked })} />
+                            Mantener proporción al redimensionar con las manijas del lienzo
+                          </label>
                           <label>
                             Ajuste de la imagen adentro
                             <select value={el.ajuste || 'contain'} onChange={(e) => actualizarElemento(el.id, { ajuste: e.target.value })}>
