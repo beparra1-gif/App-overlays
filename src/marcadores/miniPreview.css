@@ -91,6 +91,65 @@
 }
 .mini-preview-cerrar:hover { background: rgba(40, 40, 46, .95); }
 
+/* Botón flotante "Editar elementos" (Creador en pantalla completa) — mismo
+   estilo de chip oscuro que el botón de cerrar, pero en la esquina opuesta
+   para no pisarlo. */
+.creador-flotante-toggle {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  z-index: 4001;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, .2);
+  background: rgba(20, 20, 24, .85);
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+}
+.creador-flotante-toggle:hover { background: rgba(40, 40, 46, .95); }
+
+/* El panel de "Personalizar diseño → Creador" convertido en hoja flotante
+   inferior (mismo espíritu iOS que el panel de acciones de la Mesa): se
+   desliza desde abajo, con vidrio esmerilado, ocupando como máximo un poco
+   más de la mitad de la pantalla para que el lienzo grande siga visible
+   arriba mientras se edita — pensado para poder mirar el resultado en vivo
+   en pantallas angostas/táctiles (tablet) sin tener que cerrar el panel a
+   cada rato. */
+@keyframes creador-flotante-entrada {
+  from { transform: translateY(16px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.creador-flotante {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 4002;
+  max-height: min(62vh, 640px);
+  overflow-y: auto;
+  margin: 0;
+  padding: 18px 18px calc(18px + env(safe-area-inset-bottom, 0px));
+  background: rgba(16, 17, 22, .92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 20px 20px 0 0;
+  border-top: 1px solid rgba(255, 255, 255, .14);
+  box-shadow: 0 -12px 40px rgba(0, 0, 0, .5);
+  animation: creador-flotante-entrada .22s ease;
+}
+.creador-flotante::before {
+  content: '';
+  display: block;
+  width: 44px;
+  height: 5px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, .25);
+  margin: 0 auto 14px;
+}
+
 /* Encabezado de la vista previa: qué se está mostrando (sigue a la pestaña
    abierta) + el interruptor manual para pasar a las 4 capas juntas. */
 .previa-cabecera {

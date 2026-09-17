@@ -248,11 +248,12 @@ const FUENTE_POR_PLANTILLA = {
 
 export const fuenteDePlantilla = (plantillaId) => FUENTE_POR_PLANTILLA[plantillaId] || "'Oswald', sans-serif";
 
-// Catálogo de tipografías elegibles a mano (config.fuenteMarcador) — son
-// las mismas 13 familias de Google Fonts que ya carga plantillas.css para
-// las 25 plantillas (más 'Courier New' y 'system-ui', del sistema), así
-// que elegir cualquiera de acá no suma ni un solo pedido de red nuevo: ya
-// están cargadas siempre, se usen o no en la plantilla activa.
+// Catálogo de tipografías elegibles a mano (config.fuenteMarcador) — todas
+// las familias de Google Fonts que carga plantillas.css (las 13 de las 34
+// plantillas de fábrica, más otras 15 sumadas solo para tener variedad acá
+// en el selector), más 'Courier New' y 'system-ui', del sistema. Elegir
+// cualquiera de acá no depende de qué plantilla esté activa: todas están
+// cargadas siempre.
 export const FUENTES_DISPONIBLES = [
   { id: '', etiqueta: 'Automática (la de la plantilla)' },
   { id: "'Orbitron', sans-serif", etiqueta: 'Orbitron — digital, angulosa' },
@@ -260,14 +261,29 @@ export const FUENTES_DISPONIBLES = [
   { id: "'Bebas Neue', sans-serif", etiqueta: 'Bebas Neue — grande, impactante' },
   { id: "'Anton', sans-serif", etiqueta: 'Anton — extra gruesa' },
   { id: "'Bungee', sans-serif", etiqueta: 'Bungee — street, con relieve' },
+  { id: "'Bungee Shade', sans-serif", etiqueta: 'Bungee Shade — street, sombra 3D' },
   { id: "'Barlow Condensed', sans-serif", etiqueta: 'Barlow Condensed — angosta, moderna' },
   { id: "'Rajdhani', sans-serif", etiqueta: 'Rajdhani — técnica, futurista' },
   { id: "'Russo One', sans-serif", etiqueta: 'Russo One — sólida, arcade' },
   { id: "'Teko', sans-serif", etiqueta: 'Teko — muy angosta, alta' },
   { id: "'Poppins', sans-serif", etiqueta: 'Poppins — redondeada, amable' },
   { id: "'Cinzel', serif", etiqueta: 'Cinzel — clásica, con serifa' },
+  { id: "'Cinzel Decorative', serif", etiqueta: 'Cinzel Decorative — ornamentada, de trofeo' },
+  { id: "'Playfair Display', serif", etiqueta: 'Playfair Display — elegante, premium' },
   { id: "'Titillium Web', sans-serif", etiqueta: 'Titillium Web — limpia, corporativa' },
   { id: "'Exo 2', sans-serif", etiqueta: 'Exo 2 — geométrica, sci-fi' },
+  { id: "'Archivo Black', sans-serif", etiqueta: 'Archivo Black — gruesa, directa' },
+  { id: "'Staatliches', sans-serif", etiqueta: 'Staatliches — cartel, alta' },
+  { id: "'Black Ops One', sans-serif", etiqueta: 'Black Ops One — militar, stencil' },
+  { id: "'Audiowide', sans-serif", etiqueta: 'Audiowide — futurista, ancha' },
+  { id: "'Racing Sans One', sans-serif", etiqueta: 'Racing Sans One — motorsport, inclinada' },
+  { id: "'Squada One', sans-serif", etiqueta: 'Squada One — redondeada, arcade' },
+  { id: "'Alfa Slab One', serif", etiqueta: 'Alfa Slab One — slab, muy pesada' },
+  { id: "'Passion One', sans-serif", etiqueta: 'Passion One — condensada, bold' },
+  { id: "'Fjalla One', sans-serif", etiqueta: 'Fjalla One — titular condensado' },
+  { id: "'Big Shoulders Display', sans-serif", etiqueta: 'Big Shoulders Display — condensada editorial' },
+  { id: "'Monoton', sans-serif", etiqueta: 'Monoton — neón retro, solo mayúsculas' },
+  { id: "'Press Start 2P', monospace", etiqueta: 'Press Start 2P — pixel arcade' },
   { id: "'Courier New', monospace", etiqueta: 'Courier New — máquina de escribir' },
   { id: 'system-ui, sans-serif', etiqueta: 'Del sistema — minimalista' },
 ];

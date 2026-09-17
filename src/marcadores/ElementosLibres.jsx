@@ -63,7 +63,184 @@ function clipPathVertices(tl, tr, br, bl) {
 // mouse lo llevó.
 const UMBRAL_GUIA = 1.4;
 
-export default function ElementosLibres({ partido, config, editable = false, onArrastrar, onSeleccionar, seleccionadoId, contenedorRef }) {
+// El lienzo SIEMPRE es 1920×1080 nativos (ver miniPreview.css) — todas las
+// posiciones/tamaños de los elementos libres (xPercent/yPercent, ancho,
+// alto, tamano) viven en esa misma escala nativa, sin importar a qué
+// tamaño en pantalla termine dibujado el recuadro 16:9. Las manijas de
+// selección necesitan ese mismo sistema de referencia para calcular dónde
+// dibujarse (ver ManijasElemento).
+const LIENZO_ANCHO = 1920;
+const LIENZO_ALTO = 1080;
+
+function puntoLocalRotado(lx, ly, cos, sin) {
+  return { x: lx * cos - ly * sin, y: lx * sin + ly * cos };
+}
+
+// Manijas de selección tipo Canva/Figma: 4 esquinas para redimensionar +
+// una manija arriba para rotar libremente, todas ROTADAS junto con el
+// elemento (mismo ángulo `rotacion`) para que queden pegadas a las
+// esquinas de verdad se vea como se vea el elemento. Se calculan a mano en
+// coordenadas nativas del lienzo (no relativas al DOM ya rotado) porque
+// así no hace falta tocar el render de cada tipo de elemento (forma/logo/
+// texto), que sigue exactamente igual que antes — esto es pura capa
+// visual + de arrastre superpuesta.
+//
+// `w`/`h` son el tamaño (en px nativos) que se usa para UBICAR las
+// manijas: el tamaño real (ancho/alto) para forma/imagen, o una
+// aproximación para logo/texto (donde el tamaño "real" no es un
+// rectángulo fijo de dos ejes independientes) — en esos casos, arrastrar
+// CUALQUIER esquina escala de forma proporcional (mismo efecto que mover
+// el slider de tamaño), en vez de estirar un eje solo.
+function ManijasElemento({ elemento, w, h, escalaLienzo, contenedorRef, onCambiar }) {
+  const accionRef = useRef(null);
+  const rotacion = Number(elemento.rotacion) || 0;
+  const theta = (rotacion * Math.PI) / 180;
+  const cos = Math.cos(theta);
+  const sin = Math.sin(theta);
+  const cx = ((elemento.xPercent ?? 50) / 100) * LIENZO_ANCHO;
+  const cy = ((elemento.yPercent ?? 50) / 100) * LIENZO_ALTO;
+  const esCajaLibre = elemento.tipo === 'forma' || elemento.tipo === 'imagen';
+
+  const puntoLocal = (lx, ly) => {
+    const { x, y } = puntoLocalRotado(lx, ly, cos, sin);
+    return { left: `${((cx + x) / LIENZO_ANCHO) * 100}%`, top: `${((cy + y) / LIENZO_ALTO) * 100}%` };
+  };
+
+  const empezarResize = (sx, sy) => (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    accionRef.current = {
+      tipo: 'resize', sx, sy,
+      clientX0: e.clientX, clientY0: e.clientY,
+      w0: w, h0: h,
+      ancho0: Number(elemento.ancho) || w,
+      alto0: Number(elemento.alto) || h,
+      tamano0: Number(elemento.tamano) || w,
+    };
+  };
+  const empezarRotar = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    accionRef.current = { tipo: 'rotar' };
+  };
+  const alMover = (e) => {
+    const accion = accionRef.current;
+    if (!accion || !contenedorRef?.current) return;
+    if (accion.tipo === 'rotar') {
+      const rect = contenedorRef.current.getBoundingClientRect();
+      const centroX = rect.left + ((elemento.xPercent ?? 50) / 100) * rect.width;
+      const centroY = rect.top + ((elemento.yPercent ?? 50) / 100) * rect.height;
+      let angulo = (Math.atan2(e.clientY - centroY, e.clientX - centroX) * 180) / Math.PI + 90;
+      angulo = ((Math.round(angulo) % 360) + 360) % 360;
+      // Imán suave a los múltiplos de 45° — se siente más prolijo que un
+      // ángulo libre exacto, sin impedir un ángulo fino si se lo aleja.
+      const cercano45 = Math.round(angulo / 45) * 45;
+      if (Math.abs(angulo - cercano45) <= 4) angulo = cercano45 % 360;
+      onCambiar({ rotacion: angulo > 180 ? angulo - 360 : angulo });
+      return;
+    }
+    const escala = escalaLienzo || 1;
+    const dx = (e.clientX - accion.clientX0) / escala;
+    const dy = (e.clientY - accion.clientY0) / escala;
+    // Delta del arrastre proyectado sobre los ejes PROPIOS del elemento
+    // (rotación inversa) — así arrastrar "hacia afuera" agranda sea cual
+    // sea el ángulo al que esté girado el elemento.
+    const localDx = dx * cos + dy * sin;
+    const localDy = -dx * sin + dy * cos;
+    if (esCajaLibre) {
+      const nuevoAncho = Math.max(20, Math.round(accion.ancho0 + 2 * accion.sx * localDx));
+      const nuevoAlto = Math.max(20, Math.round(accion.alto0 + 2 * accion.sy * localDy));
+      onCambiar({ ancho: nuevoAncho, alto: nuevoAlto });
+    } else {
+      const diagonal0 = Math.hypot(accion.w0, accion.h0) || 1;
+      const proyeccion = accion.sx * localDx + accion.sy * localDy;
+      const factor = Math.max(0.15, 1 + (2 * proyeccion) / diagonal0);
+      if (elemento.tipo === 'logoLocal' || elemento.tipo === 'logoVisita') {
+        const cambios = { tamano: Math.max(20, Math.round(accion.tamano0 * factor)) };
+        if (accion.alto0 && Number(elemento.alto)) cambios.alto = Math.max(20, Math.round(accion.alto0 * factor));
+        onCambiar(cambios);
+      } else {
+        onCambiar({ tamano: Math.max(8, Math.round(accion.tamano0 * factor)) });
+      }
+    }
+  };
+  const alSoltar = () => { accionRef.current = null; };
+
+  // Las manijas viven DENTRO del lienzo escalado (mismo `transform:scale`
+  // que todo lo demás, ver miniPreview.css) — sin este contra-escalado
+  // `scale(1/escala)`, a un zoom chico (una previa angosta) terminarían
+  // dibujándose diminutas, imposibles de tocar con el dedo en una tablet.
+  // Con esto, el tamaño EN PANTALLA queda siempre igual (24px), sea cual
+  // sea el tamaño real del recuadro 16:9 en ese momento.
+  const escalaInversa = 1 / (escalaLienzo || 1);
+  const estiloManija = (cursor) => ({
+    position: 'absolute',
+    width: 24,
+    height: 24,
+    transform: `translate(-50%, -50%) scale(${escalaInversa})`,
+    background: '#0a84ff',
+    border: '3px solid #fff',
+    borderRadius: 6,
+    boxShadow: '0 1px 5px rgba(0,0,0,.55)',
+    cursor,
+    pointerEvents: 'auto',
+    touchAction: 'none',
+    zIndex: 5,
+  });
+
+  const esquinas = [
+    { sx: -1, sy: -1, cursor: 'nwse-resize' },
+    { sx: 1, sy: -1, cursor: 'nesw-resize' },
+    { sx: 1, sy: 1, cursor: 'nwse-resize' },
+    { sx: -1, sy: 1, cursor: 'nesw-resize' },
+  ];
+  // Manija de rotar: a una distancia fija (en pantalla) por encima del
+  // borde superior — se convierte esa distancia a px nativos dividiendo
+  // por la escala, así se ve siempre igual de lejos sea cual sea el zoom
+  // de la vista previa.
+  const distanciaRotar = 42 / (escalaLienzo || 1);
+  const puntoRotar = puntoLocal(0, -h / 2 - distanciaRotar);
+  const puntoBorde = puntoLocal(0, -h / 2);
+
+  return (
+    <>
+      {esquinas.map(({ sx, sy, cursor }) => (
+        <div
+          key={`${sx}-${sy}`}
+          style={{ ...estiloManija(cursor), ...puntoLocal(sx * w / 2, sy * h / 2) }}
+          onPointerDown={empezarResize(sx, sy)}
+          onPointerMove={alMover}
+          onPointerUp={alSoltar}
+          onPointerCancel={alSoltar}
+        />
+      ))}
+      <div
+        style={{
+          position: 'absolute',
+          width: 2 * escalaInversa,
+          background: 'rgba(10,132,255,.85)',
+          transformOrigin: 'top center',
+          ...puntoBorde,
+          height: `${distanciaRotar}px`,
+          transform: `translate(-50%, 0) rotate(${rotacion}deg)`,
+          pointerEvents: 'none',
+        }}
+      />
+      <div
+        title="Arrastrar para rotar"
+        style={{ ...estiloManija('grab'), ...puntoRotar, borderRadius: '50%', background: '#0a84ff' }}
+        onPointerDown={empezarRotar}
+        onPointerMove={alMover}
+        onPointerUp={alSoltar}
+        onPointerCancel={alSoltar}
+      />
+    </>
+  );
+}
+
+export default function ElementosLibres({ partido, config, editable = false, onArrastrar, onCambiarElemento, onSeleccionar, seleccionadoId, contenedorRef, escalaLienzo = 1 }) {
   const lista = Array.isArray(config?.creadorElementos) ? config.creadorElementos : [];
   const arrastrandoId = useRef(null);
   const [guias, setGuias] = useState({ x: null, y: null });
@@ -117,6 +294,27 @@ export default function ElementosLibres({ partido, config, editable = false, onA
         const colorAuto = equipo && el.colorAuto !== false;
         const rotacion = Number(el.rotacion) || 0;
         const opacidadBase = (el.opacidad ?? 100) / 100;
+        const estaSeleccionado = editable && seleccionadoId === el.id;
+        // Tamaño (px nativos) usado SOLO para ubicar las manijas de
+        // selección — el real para forma/imagen (dos ejes independientes),
+        // una estimación para logo (con o sin alto propio) y para texto
+        // (no tiene un ancho fijo: se aproxima a partir del largo del
+        // texto y el tamaño de fuente, nada más para saber dónde dibujar
+        // la manija — no afecta el render real del texto).
+        let wManija = 200;
+        let hManija = 80;
+        if (el.tipo === 'forma' || el.tipo === 'imagen') {
+          wManija = el.ancho || (el.tipo === 'imagen' ? 220 : 200);
+          hManija = el.alto || (el.tipo === 'imagen' ? 220 : 80);
+        } else if (esLogo) {
+          wManija = el.tamano || 80;
+          hManija = el.alto || el.tamano || 80;
+        } else {
+          const textoManija = el.tipo === 'texto' ? (el.texto || 'Texto libre') : TEXTO_POR_TIPO(partido, config, el.tipo);
+          const tam = el.tamano || 32;
+          wManija = Math.max(30, textoManija.length * tam * 0.62);
+          hManija = tam * 1.4;
+        }
         // `--tf-base` (ver elementosLibres.css): el translate+rotate de
         // siempre, disponible como variable para que las animaciones que
         // SÍ tocan `transform` (pulso/flotar/girar) lo combinen con su
@@ -145,6 +343,17 @@ export default function ElementosLibres({ partido, config, editable = false, onA
           },
         } : {};
 
+        const manijas = estaSeleccionado ? (
+          <ManijasElemento
+            elemento={el}
+            w={wManija}
+            h={hManija}
+            escalaLienzo={escalaLienzo}
+            contenedorRef={contenedorRef}
+            onCambiar={(cambios) => onCambiarElemento?.(el.id, cambios)}
+          />
+        ) : null;
+
         if (el.tipo === 'forma') {
           const usaImagen = Boolean(el.usarImagen && el.imagenUrl);
           const fondo = usaImagen
@@ -154,23 +363,51 @@ export default function ElementosLibres({ partido, config, editable = false, onA
               : (el.color || 'rgba(10,12,20,.85)'));
           const esquinaCortada = el.esquinaModo === 'cortada';
           return (
-            <div
-              key={el.id}
-              className={claseAnimacion}
-              style={{
-                ...posicion,
-                width: `${el.ancho || 200}px`,
-                height: `${el.alto || 80}px`,
-                background: fondo,
-                backgroundImage: usaImagen ? `url(${el.imagenUrl})` : undefined,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                borderRadius: esquinaCortada ? 0 : `${el.radio ?? 12}px`,
-                clipPath: esquinaCortada ? clipPathVertices(el.corteTL || 0, el.corteTR || 0, el.corteBR || 0, el.corteBL || 0) : 'none',
-                opacity: opacidadBase,
-              }}
-              {...handlers}
-            />
+            <div key={el.id} style={{ display: 'contents' }}>
+              <div
+                className={claseAnimacion}
+                style={{
+                  ...posicion,
+                  width: `${el.ancho || 200}px`,
+                  height: `${el.alto || 80}px`,
+                  background: fondo,
+                  backgroundImage: usaImagen ? `url(${el.imagenUrl})` : undefined,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  borderRadius: esquinaCortada ? 0 : `${el.radio ?? 12}px`,
+                  clipPath: esquinaCortada ? clipPathVertices(el.corteTL || 0, el.corteTR || 0, el.corteBR || 0, el.corteBL || 0) : 'none',
+                  opacity: opacidadBase,
+                }}
+                {...handlers}
+              />
+              {manijas}
+            </div>
+          );
+        }
+
+        if (el.tipo === 'imagen') {
+          if (!el.imagenUrl) return null;
+          const ajuste = el.ajuste || 'contain';
+          const esquinaCortada = el.esquinaModo === 'cortada';
+          return (
+            <div key={el.id} style={{ display: 'contents' }}>
+              <div
+                className={claseAnimacion}
+                style={{
+                  ...posicion,
+                  width: `${el.ancho || 220}px`,
+                  height: `${el.alto || 220}px`,
+                  borderRadius: esquinaCortada ? 0 : `${el.radio ?? 0}px`,
+                  clipPath: esquinaCortada ? clipPathVertices(el.corteTL || 0, el.corteTR || 0, el.corteBR || 0, el.corteBL || 0) : 'none',
+                  opacity: opacidadBase,
+                  overflow: 'hidden',
+                }}
+                {...handlers}
+              >
+                <img src={el.imagenUrl} alt="" draggable={false} style={{ width: '100%', height: '100%', objectFit: ajuste, pointerEvents: 'none', display: 'block' }} />
+              </div>
+              {manijas}
+            </div>
           );
         }
 
@@ -179,22 +416,24 @@ export default function ElementosLibres({ partido, config, editable = false, onA
           const alto = el.alto;
           const ajuste = el.ajuste || 'contain';
           return (
-            <img
-              key={el.id}
-              className={claseAnimacion}
-              src={equipo.logo_url}
-              alt=""
-              draggable={false}
-              style={{
-                ...posicion,
-                width: `${el.tamano || 80}px`,
-                height: alto ? `${alto}px` : 'auto',
-                objectFit: alto ? ajuste : 'contain',
-                borderRadius: el.radio ? `${el.radio}px` : 0,
-                opacity: opacidadBase,
-              }}
-              {...handlers}
-            />
+            <div key={el.id} style={{ display: 'contents' }}>
+              <img
+                className={claseAnimacion}
+                src={equipo.logo_url}
+                alt=""
+                draggable={false}
+                style={{
+                  ...posicion,
+                  width: `${el.tamano || 80}px`,
+                  height: alto ? `${alto}px` : 'auto',
+                  objectFit: alto ? ajuste : 'contain',
+                  borderRadius: el.radio ? `${el.radio}px` : 0,
+                  opacity: opacidadBase,
+                }}
+                {...handlers}
+              />
+              {manijas}
+            </div>
           );
         }
 
@@ -204,28 +443,30 @@ export default function ElementosLibres({ partido, config, editable = false, onA
           ? `linear-gradient(${Number(el.gradienteAngulo) || 90}deg, ${el.fondoColor || '#0a0c14'}, ${el.fondoColor2 || '#4a4a4a'})`
           : (el.fondoColor || 'transparent');
         return (
-          <span
-            key={el.id}
-            className={claseAnimacion}
-            style={{
-              ...posicion,
-              whiteSpace: 'nowrap',
-              fontFamily: el.fuente || "'Oswald', sans-serif",
-              fontSize: `${el.tamano || 32}px`,
-              fontWeight: el.negrita === false ? 500 : 800,
-              color: colorTextoFinal,
-              background: fondoTexto,
-              padding: (el.fondoColor || el.gradiente) ? '4px 14px' : 0,
-              borderRadius: (el.fondoColor || el.gradiente) ? '10px' : 0,
-              textTransform: el.mayusculas ? 'uppercase' : 'none',
-              letterSpacing: el.mayusculas ? '1px' : 'normal',
-              textShadow: el.fondoColor ? 'none' : '0 2px 6px rgba(0,0,0,.55)',
-              opacity: opacidadBase,
-            }}
-            {...handlers}
-          >
-            {texto}
-          </span>
+          <div key={el.id} style={{ display: 'contents' }}>
+            <span
+              className={claseAnimacion}
+              style={{
+                ...posicion,
+                whiteSpace: 'nowrap',
+                fontFamily: el.fuente || "'Oswald', sans-serif",
+                fontSize: `${el.tamano || 32}px`,
+                fontWeight: el.negrita === false ? 500 : 800,
+                color: colorTextoFinal,
+                background: fondoTexto,
+                padding: (el.fondoColor || el.gradiente) ? '4px 14px' : 0,
+                borderRadius: (el.fondoColor || el.gradiente) ? '10px' : 0,
+                textTransform: el.mayusculas ? 'uppercase' : 'none',
+                letterSpacing: el.mayusculas ? '1px' : 'normal',
+                textShadow: el.fondoColor ? 'none' : '0 2px 6px rgba(0,0,0,.55)',
+                opacity: opacidadBase,
+              }}
+              {...handlers}
+            >
+              {texto}
+            </span>
+            {manijas}
+          </div>
         );
       })}
     </div>

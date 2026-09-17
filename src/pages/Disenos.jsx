@@ -456,6 +456,13 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
   // de comparar la previa contra la transmisión real: incluso agrandada
   // (900px → 1600px) seguía bastante por debajo de cómo se ve de verdad.
   const [previaPantallaCompleta, setPreviaPantallaCompleta] = useState(false);
+  // En pantalla completa + pestaña Creador, el panel de edición (Pasos 1-4)
+  // se muestra como una hoja flotante que se puede ocultar del todo — así
+  // el lienzo queda libre para trabajar "a mano" (arrastrar, redimensionar
+  // con las manijas, rotar) sin el panel tapando nada, tipo Canva/Photoshop
+  // en modo tableta. Arranca cerrada; tocar un elemento del lienzo la abre
+  // sola para mostrar su inspector.
+  const [panelCreadorAbierto, setPanelCreadorAbierto] = useState(false);
   const [pestanaExterna, setPestanaExterna] = useState(inicial?._irADirecto || 'personalizar');
   // El partido de "Juego en vivo" se prepara solo (nunca hace falta pedirlo
   // a mano) y se queda guardado en este estado mientras la pantalla siga
@@ -607,17 +614,17 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
   // taparlo todo apenas se agrega).
   const creadorElementos = Array.isArray(config.creadorElementos) ? config.creadorElementos : [];
   const crearElemento = (tipo, extra = {}) => {
-    const esDato = tipo !== 'texto' && tipo !== 'forma' && tipo !== 'logoLocal' && tipo !== 'logoVisita';
+    const esDato = tipo !== 'texto' && tipo !== 'forma' && tipo !== 'imagen' && tipo !== 'logoLocal' && tipo !== 'logoVisita';
     return {
       id: `el-${Date.now()}-${Math.random().toString(36).slice(2)}`,
       tipo,
       xPercent: 50,
       yPercent: 50,
       rotacion: 0,
-      tamano: tipo === 'forma' ? undefined : (tipo === 'logoLocal' || tipo === 'logoVisita' ? 90 : (esDato ? 44 : 28)),
-      ancho: tipo === 'forma' ? 220 : undefined,
-      alto: tipo === 'forma' ? 90 : undefined,
-      radio: tipo === 'forma' ? 12 : undefined,
+      tamano: tipo === 'forma' || tipo === 'imagen' ? undefined : (tipo === 'logoLocal' || tipo === 'logoVisita' ? 90 : (esDato ? 44 : 28)),
+      ancho: tipo === 'forma' ? 220 : (tipo === 'imagen' ? 200 : undefined),
+      alto: tipo === 'forma' ? 90 : (tipo === 'imagen' ? 200 : undefined),
+      radio: tipo === 'forma' ? 12 : (tipo === 'imagen' ? 0 : undefined),
       color: tipo === 'forma' ? 'rgba(10,12,20,.85)' : '#ffffff',
       colorAuto: esDato,
       negrita: true,
@@ -978,13 +985,24 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
               onArrastrarLogoLibre={(id, x, y) => actualizarLogoLibre(id, { xPercent: x, yPercent: y })}
               elementosLibresEditable={seccionAbierta === 'creador'}
               onArrastrarElementoLibre={(id, x, y) => actualizarElemento(id, { xPercent: x, yPercent: y })}
+              onCambiarElementoLibre={actualizarElemento}
               elementoSeleccionadoId={elementoSeleccionadoId}
-              onSeleccionarElemento={setElementoSeleccionadoId}
+              onSeleccionarElemento={(id) => { setElementoSeleccionadoId(id); if (previaPantallaCompleta && id) setPanelCreadorAbierto(true); }}
               animacionPuntosEditable={seccionAbierta === 'marcador'}
               onArrastrarAnimacionPuntos={arrastrarAnimacionPuntos}
               anunciosEditable={seccionAbierta === 'anuncios'}
               onArrastrarAnuncios={arrastrarAnuncios}
             />
+          )}
+          {mostrarPrevia && previaPantallaCompleta && seccionAbierta === 'creador' && (
+            <button
+              type="button"
+              className="creador-flotante-toggle"
+              onClick={() => setPanelCreadorAbierto((v) => !v)}
+              title="Mostrar/ocultar el panel de edición"
+            >
+              {panelCreadorAbierto ? '✕ Cerrar panel' : '🛠️ Editar elementos'}
+            </button>
           )}
         </div>
 
@@ -1676,7 +1694,15 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
         </div>
 
         {/* ───────── CREADOR (Canva libre del marcador) ───────── */}
-        <div className="grupo-personalizacion" hidden={seccionAbierta !== 'creador'}>
+        {/* En pantalla completa, este mismo panel (sin duplicar nada) pasa a
+            ser una hoja flotante inferior tipo iOS — así se puede seguir
+            agregando/ajustando elementos sin salir del modo "lienzo grande",
+            y se puede ocultar del todo para trabajar solo con las manijas
+            en el lienzo (ver el botón "🛠️ Editar elementos" de arriba). */}
+        <div
+          className={`grupo-personalizacion${previaPantallaCompleta && seccionAbierta === 'creador' ? ' creador-flotante' : ''}`}
+          hidden={seccionAbierta !== 'creador' || (previaPantallaCompleta && !panelCreadorAbierto)}
+        >
           <div className="grupo-titulo">🎨 Creador de marcador</div>
           <p className="texto-tenue" style={{ margin: '0 0 14px' }}>
             Armá el marcador paso a paso: elegí un punto de partida, agregá elementos, ajustalos uno por uno arrastrando
@@ -1722,6 +1748,7 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
             <div className="fila-form" style={{ margin: 0 }}>
               <button type="button" className="btn-secundario" onClick={() => agregarElemento('texto')}>+ Texto libre</button>
               <button type="button" className="btn-secundario" onClick={() => agregarElemento('forma')}>+ Forma / fondo</button>
+              <button type="button" className="btn-secundario" onClick={() => agregarElemento('imagen')} title="Un logo/imagen suelto en cualquier parte del tablero — ideal para el logo de un campeonato, torneo o auspiciante">+ Logo de campeonato / auspiciante</button>
             </div>
           </div>
 
@@ -1733,9 +1760,10 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {creadorElementos.map((el, indice) => {
                   const info = TIPOS_ELEMENTO_DATO.find((t) => t.tipo === el.tipo);
-                  const etiquetaTipo = info?.etiqueta || (el.tipo === 'texto' ? 'Texto libre' : el.tipo === 'forma' ? 'Forma / fondo' : el.tipo);
+                  const etiquetaTipo = info?.etiqueta || (el.tipo === 'texto' ? 'Texto libre' : el.tipo === 'forma' ? 'Forma / fondo' : el.tipo === 'imagen' ? 'Logo / imagen libre' : el.tipo);
                   const esTexto = el.tipo === 'texto';
                   const esForma = el.tipo === 'forma';
+                  const esImagen = el.tipo === 'imagen';
                   const esLogo = el.tipo === 'logoLocal' || el.tipo === 'logoVisita';
                   const tieneColorEquipo = el.tipo.endsWith('Local') || el.tipo.endsWith('Visita');
                   return (
@@ -1768,8 +1796,9 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
                       <div className="fila-form" style={{ margin: 0 }}>
                         <CampoRango
                           etiqueta="Ángulo (girar todo el elemento)"
-                          valor={el.rotacion ?? 0} min={-180} max={180}
+                          valor={el.rotacion ?? 0} unidad="°" min={-180} max={180}
                           onChange={(v) => actualizarElemento(el.id, { rotacion: v })}
+                          ayuda="También podés rotarlo arrastrando la manija redonda de arriba, directo en el lienzo."
                         />
                         <label style={{ flex: 1, minWidth: 160 }}>
                           Animación
@@ -1803,14 +1832,14 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
                                 {el.gradiente && (
                                   <>
                                     <input type="color" value={/^#/.test(el.color2) ? el.color2 : '#4a4a4a'} onChange={(e) => actualizarElemento(el.id, { color2: e.target.value })} />
-                                    <CampoRango etiqueta="Ángulo del degradado" valor={el.gradienteAngulo ?? 90} min={0} max={360} onChange={(v) => actualizarElemento(el.id, { gradienteAngulo: v })} />
+                                    <CampoRango etiqueta="Ángulo del degradado" valor={el.gradienteAngulo ?? 90} unidad="°" min={0} max={360} onChange={(v) => actualizarElemento(el.id, { gradienteAngulo: v })} />
                                   </>
                                 )}
                               </div>
                             </>
                           )}
-                          <CampoRango etiqueta="Ancho" valor={el.ancho ?? 220} min={20} max={800} onChange={(v) => actualizarElemento(el.id, { ancho: v })} />
-                          <CampoRango etiqueta="Alto" valor={el.alto ?? 90} min={20} max={800} onChange={(v) => actualizarElemento(el.id, { alto: v })} />
+                          <CampoRango etiqueta="Ancho" valor={el.ancho ?? 220} unidad="px" min={20} max={800} onChange={(v) => actualizarElemento(el.id, { ancho: v })} />
+                          <CampoRango etiqueta="Alto" valor={el.alto ?? 90} unidad="px" min={20} max={800} onChange={(v) => actualizarElemento(el.id, { alto: v })} />
 
                           <p className="texto-tenue" style={{ margin: '4px 0 0', fontSize: 12 }}>Esquinas (ángulo de cada vértice — no es el ángulo de giro de arriba)</p>
                           <div className="fila-form" style={{ margin: 0 }}>
@@ -1833,15 +1862,75 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
                           </div>
                           {el.esquinaModo === 'cortada' ? (
                             <div className="fila-form" style={{ margin: 0 }}>
-                              <CampoRango etiqueta="Vértice arriba-izq." valor={el.corteTL ?? 0} min={0} max={300} onChange={(v) => actualizarElemento(el.id, { corteTL: v })} />
-                              <CampoRango etiqueta="Vértice arriba-der." valor={el.corteTR ?? 0} min={0} max={300} onChange={(v) => actualizarElemento(el.id, { corteTR: v })} />
-                              <CampoRango etiqueta="Vértice abajo-der." valor={el.corteBR ?? 0} min={0} max={300} onChange={(v) => actualizarElemento(el.id, { corteBR: v })} />
-                              <CampoRango etiqueta="Vértice abajo-izq." valor={el.corteBL ?? 0} min={0} max={300} onChange={(v) => actualizarElemento(el.id, { corteBL: v })} />
+                              <CampoRango etiqueta="Vértice arriba-izq." valor={el.corteTL ?? 0} unidad="px" min={0} max={300} onChange={(v) => actualizarElemento(el.id, { corteTL: v })} />
+                              <CampoRango etiqueta="Vértice arriba-der." valor={el.corteTR ?? 0} unidad="px" min={0} max={300} onChange={(v) => actualizarElemento(el.id, { corteTR: v })} />
+                              <CampoRango etiqueta="Vértice abajo-der." valor={el.corteBR ?? 0} unidad="px" min={0} max={300} onChange={(v) => actualizarElemento(el.id, { corteBR: v })} />
+                              <CampoRango etiqueta="Vértice abajo-izq." valor={el.corteBL ?? 0} unidad="px" min={0} max={300} onChange={(v) => actualizarElemento(el.id, { corteBL: v })} />
                             </div>
                           ) : (
                             <CampoRango
                               etiqueta="Redondeo de esquinas"
                               valor={el.radio ?? 12}
+                              unidad="px"
+                              min={0} max={400}
+                              onChange={(v) => actualizarElemento(el.id, { radio: v })}
+                              ayuda="Llevalo al máximo para un círculo o una píldora perfecta."
+                            />
+                          )}
+                          <CampoRango etiqueta="Transparencia" valor={el.opacidad ?? 100} min={5} max={100} onChange={(v) => actualizarElemento(el.id, { opacidad: v })} />
+                        </>
+                      ) : esImagen ? (
+                        <>
+                          <p className="texto-tenue" style={{ margin: '0 0 2px', fontSize: 12 }}>
+                            Logo de un campeonato/torneo, auspiciante, o cualquier imagen suelta — se puede ubicar en cualquier parte del tablero, tamaño y ángulo libres.
+                          </p>
+                          <SelectorLogo
+                            logos={logos}
+                            value={el.imagenUrl || ''}
+                            onChange={(url) => actualizarElemento(el.id, { imagenUrl: url })}
+                            onLogoSubido={(l) => { setLogos((prev) => [l, ...prev]); actualizarElemento(el.id, { imagenUrl: urlLogo(l.filename) }); }}
+                          />
+                          <CampoRango etiqueta="Ancho" valor={el.ancho ?? 200} unidad="px" min={20} max={800} onChange={(v) => actualizarElemento(el.id, { ancho: v })} />
+                          <CampoRango etiqueta="Alto" valor={el.alto ?? 200} unidad="px" min={20} max={800} onChange={(v) => actualizarElemento(el.id, { alto: v })} />
+                          <label>
+                            Ajuste de la imagen adentro
+                            <select value={el.ajuste || 'contain'} onChange={(e) => actualizarElemento(el.id, { ajuste: e.target.value })}>
+                              <option value="contain">Contener (se ve completo, puede dejar huecos)</option>
+                              <option value="cover">Cubrir (llena todo, puede recortar bordes)</option>
+                              <option value="fill">Estirar (llena todo, puede deformar)</option>
+                            </select>
+                          </label>
+                          <p className="texto-tenue" style={{ margin: '4px 0 0', fontSize: 12 }}>Esquinas (ángulo de cada vértice — no es el ángulo de giro de arriba)</p>
+                          <div className="fila-form" style={{ margin: 0 }}>
+                            <label className="mv-check-detalle" style={{ color: 'inherit' }}>
+                              <input
+                                type="radio" name={`esquina-${el.id}`}
+                                checked={el.esquinaModo !== 'cortada'}
+                                onChange={() => actualizarElemento(el.id, { esquinaModo: 'redondeada' })}
+                              />
+                              Redondeada
+                            </label>
+                            <label className="mv-check-detalle" style={{ color: 'inherit' }}>
+                              <input
+                                type="radio" name={`esquina-${el.id}`}
+                                checked={el.esquinaModo === 'cortada'}
+                                onChange={() => actualizarElemento(el.id, { esquinaModo: 'cortada' })}
+                              />
+                              Cortada (recta, en ángulo)
+                            </label>
+                          </div>
+                          {el.esquinaModo === 'cortada' ? (
+                            <div className="fila-form" style={{ margin: 0 }}>
+                              <CampoRango etiqueta="Vértice arriba-izq." valor={el.corteTL ?? 0} unidad="px" min={0} max={300} onChange={(v) => actualizarElemento(el.id, { corteTL: v })} />
+                              <CampoRango etiqueta="Vértice arriba-der." valor={el.corteTR ?? 0} unidad="px" min={0} max={300} onChange={(v) => actualizarElemento(el.id, { corteTR: v })} />
+                              <CampoRango etiqueta="Vértice abajo-der." valor={el.corteBR ?? 0} unidad="px" min={0} max={300} onChange={(v) => actualizarElemento(el.id, { corteBR: v })} />
+                              <CampoRango etiqueta="Vértice abajo-izq." valor={el.corteBL ?? 0} unidad="px" min={0} max={300} onChange={(v) => actualizarElemento(el.id, { corteBL: v })} />
+                            </div>
+                          ) : (
+                            <CampoRango
+                              etiqueta="Redondeo de esquinas"
+                              valor={el.radio ?? 0}
+                              unidad="px"
                               min={0} max={400}
                               onChange={(v) => actualizarElemento(el.id, { radio: v })}
                               ayuda="Llevalo al máximo para un círculo o una píldora perfecta."
@@ -1851,7 +1940,7 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
                         </>
                       ) : esLogo ? (
                         <>
-                          <CampoRango etiqueta="Ancho" valor={el.tamano ?? 90} min={20} max={400} onChange={(v) => actualizarElemento(el.id, { tamano: v })} />
+                          <CampoRango etiqueta="Ancho" valor={el.tamano ?? 90} unidad="px" min={20} max={400} onChange={(v) => actualizarElemento(el.id, { tamano: v })} />
                           <div className="fila-form" style={{ margin: 0 }}>
                             <label className="mv-check-detalle" style={{ color: 'inherit' }}>
                               <input type="checkbox" checked={Boolean(el.alto)} onChange={(e) => actualizarElemento(el.id, { alto: e.target.checked ? (el.tamano ?? 90) : null })} />
@@ -1860,7 +1949,7 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
                           </div>
                           {Boolean(el.alto) && (
                             <>
-                              <CampoRango etiqueta="Alto" valor={el.alto ?? 90} min={20} max={400} onChange={(v) => actualizarElemento(el.id, { alto: v })} />
+                              <CampoRango etiqueta="Alto" valor={el.alto ?? 90} unidad="px" min={20} max={400} onChange={(v) => actualizarElemento(el.id, { alto: v })} />
                               <label>
                                 Ajuste de la imagen adentro
                                 <select value={el.ajuste || 'contain'} onChange={(e) => actualizarElemento(el.id, { ajuste: e.target.value })}>
@@ -1873,7 +1962,7 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
                           )}
                           <CampoRango
                             etiqueta="Redondeo (marco circular/píldora)"
-                            valor={el.radio ?? 0} min={0} max={200}
+                            valor={el.radio ?? 0} unidad="px" min={0} max={200}
                             onChange={(v) => actualizarElemento(el.id, { radio: v })}
                           />
                           <CampoRango etiqueta="Transparencia" valor={el.opacidad ?? 100} min={10} max={100} onChange={(v) => actualizarElemento(el.id, { opacidad: v })} />
@@ -1881,7 +1970,7 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
                       ) : (
                         <>
                           <SelectorFuente value={el.fuente} onChange={(v) => actualizarElemento(el.id, { fuente: v })} />
-                          <CampoRango etiqueta="Tamaño" valor={el.tamano ?? 32} min={10} max={160} onChange={(v) => actualizarElemento(el.id, { tamano: v })} />
+                          <CampoRango etiqueta="Tamaño" valor={el.tamano ?? 32} unidad="px" min={10} max={160} onChange={(v) => actualizarElemento(el.id, { tamano: v })} />
                           <div className="fila-form" style={{ margin: 0 }}>
                             <label className="mv-check-detalle" style={{ color: 'inherit' }}>
                               <input type="checkbox" checked={el.negrita !== false} onChange={(e) => actualizarElemento(el.id, { negrita: e.target.checked })} />

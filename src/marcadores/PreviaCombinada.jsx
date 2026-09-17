@@ -77,7 +77,7 @@ const OPACIDAD_CONTEXTO = 0.14;
 export default function PreviaCombinada({
   plantillaId, config, equipoLocalPreview, equipoVisitaPreview, partidoReal, modo = 'general',
   logosLibresEditable = false, onArrastrarLogoLibre,
-  elementosLibresEditable = false, onArrastrarElementoLibre, elementoSeleccionadoId, onSeleccionarElemento,
+  elementosLibresEditable = false, onArrastrarElementoLibre, onCambiarElementoLibre, elementoSeleccionadoId, onSeleccionarElemento,
   animacionPuntosEditable = false, onArrastrarAnimacionPuntos,
   anunciosEditable = false, onArrastrarAnuncios,
   // Modo "pantalla completa": el recuadro 16:9 de siempre (mismo mecanismo,
@@ -219,9 +219,11 @@ export default function PreviaCombinada({
           config={config}
           editable={elementosLibresEditable}
           onArrastrar={onArrastrarElementoLibre}
+          onCambiarElemento={onCambiarElementoLibre}
           onSeleccionar={onSeleccionarElemento}
           seleccionadoId={elementoSeleccionadoId}
           contenedorRef={lienzoRef}
+          escalaLienzo={escalaLienzo}
         />
         </div>
       </div>
