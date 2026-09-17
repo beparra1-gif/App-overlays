@@ -711,6 +711,58 @@ select {
   color: var(--primario);
 }
 
+/* Lista de capas (Paso 3, panel de Creador) — resumen compacto tipo
+   Photoshop: check para multi-selección, nombre editable, ojo/candado,
+   reordenar, eliminar. Cada fila es táctil (min-height ~40px) a propósito,
+   pensado para usarse con el dedo en una tablet, no solo con mouse. */
+.creador-capas-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 10px;
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.creador-capa-fila {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  min-height: 40px;
+  background: var(--tarjeta);
+  cursor: pointer;
+}
+.creador-capa-fila:not(:last-child) { border-bottom: 1px solid var(--borde); }
+.creador-capa-fila.seleccionada { background: color-mix(in srgb, var(--primario) 16%, var(--tarjeta)); }
+.creador-capa-fila input[type="checkbox"] { flex: 0 0 auto; }
+.creador-capa-nombre {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  color: var(--texto);
+  font-size: 13px;
+  padding: 4px 2px;
+}
+.creador-capa-nombre:hover,
+.creador-capa-nombre:focus { background: rgba(255, 255, 255, .06); border-radius: 4px; outline: none; }
+.creador-capa-fila .btn-link { font-size: 15px; padding: 2px 4px; }
+
+/* Barra de acciones sobre la selección actual (align/duplicar/eliminar) —
+   solo aparece cuando hay al menos un elemento elegido. */
+.creador-seleccion-barra {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 10px;
+  margin-bottom: 12px;
+  background: var(--tarjeta);
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+}
+
 /* Selector de tipografía con vista previa real (ver SelectorFuente en
    Disenos.jsx) — la muestra de abajo siempre se ve, sin depender de abrir
    el desplegable (los <option> también llevan su propia fuente, pero un
@@ -833,6 +885,33 @@ select {
   font-size: 12px;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+/* Precisión: el valor de un slider también se puede tocar/tipear directo
+   (en vez de solo arrastrar) para llegar a un número exacto — mismo look
+   que el texto de siempre, pero editable. */
+.campo-rango-valor-editable {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--texto-tenue);
+  font-size: 12px;
+}
+.campo-rango-valor-input {
+  width: 52px;
+  padding: 1px 4px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--texto-tenue);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.campo-rango-valor-input:hover,
+.campo-rango-valor-input:focus {
+  border-color: rgba(255, 255, 255, .25);
+  background: rgba(255, 255, 255, .06);
+  outline: none;
 }
 .campo-rango-ayuda {
   color: var(--texto-tenue);

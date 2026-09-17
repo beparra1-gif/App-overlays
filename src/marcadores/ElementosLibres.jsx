@@ -5,27 +5,21 @@ import './elementosLibres.css';
 // "Elementos libres" es el corazón del Creador de marcador (una especie de
 // Canva acotado a la caja del marcador, ver CreadorLibre.jsx): cada
 // elemento es un dato del partido (nombre, puntos, reloj, período, faltas,
-// logo) o un texto/forma libre, con su PROPIA posición (x/y % del lienzo,
-// mismo mecanismo que LogosLibres), tipografía, color, ángulo, tamaño y
-// animación — sin ningún layout fijo de por medio. El orden en el array ES
-// el orden de apilado (el último se dibuja arriba de todos) — "traer al
-// frente"/"enviar atrás" en el panel de Disenos.jsx simplemente reordena
-// el array, nada de z-index explícito hace falta. No es exclusivo de la
-// plantilla "Creador Libre": se dibuja arriba de CUALQUIER plantilla (ver
-// VistaMarcador.jsx, junto a LogosLibres) para quien quiera sumarle un
-// texto suelto a un diseño ya armado, sin tener que empezar de cero.
+// logo) o un texto/forma/imagen libre, con su PROPIA posición (x/y % del
+// lienzo, mismo mecanismo que LogosLibres), tipografía, color, ángulo,
+// tamaño y animación — sin ningún layout fijo de por medio. El orden en el
+// array ES el orden de apilado (el último se dibuja arriba de todos).
 //
-// `editable` (solo en el panel de "Creador" de Personalizar diseño):
-// arrastrar cualquier elemento lo reposiciona en vivo, igual que un logo
-// libre — vía Pointer Events, así que funciona igual con mouse, touch (un
-// iPad/tablet) o lápiz —, con líneas guía que aparecen y "pegan" el
-// arrastre al cruzar el centro del lienzo o la posición de otro elemento —
-// mismo espíritu que las guías de alineación de Canva/Figma. Tocar un
-// elemento lo selecciona (`onSeleccionar`) para editar su tipografía/
-// color/tamaño/ángulo/animación en el panel de al lado. Si tiene `parId`
-// (par reflejado Local/Visita, armado desde el panel), Disenos.jsx
-// sincroniza al par en espejo — acá no hace falta saberlo, solo reportar
-// la posición de ESTE elemento.
+// `editable` (solo en el panel de "Creador"): arrastrar cualquier elemento
+// lo reposiciona en vivo — vía Pointer Events, así que funciona igual con
+// mouse, touch (un iPad/tablet) o lápiz —, con líneas guía (+ grilla
+// opcional) que "pegan" el arrastre. Tocar un elemento lo selecciona
+// (`onSeleccionar(id, { extender })` — `extender` true en shift+click,
+// suma/saca de la selección en vez de reemplazarla) para editar sus
+// propiedades en el panel de al lado. Con más de un elemento seleccionado,
+// arrastrar cualquiera de ellos mueve a TODOS juntos (ver `onArrastrar` en
+// Disenos.jsx) — redimensionar/rotar con manijas sigue siendo de a uno
+// (no hay "redimensionar un grupo" en esta versión).
 const TEXTO_POR_TIPO = (partido, config, tipo) => {
   switch (tipo) {
     case 'nombreLocal': return partido.equipoLocal.nombre;
@@ -49,12 +43,20 @@ const EQUIPO_DEL_TIPO = (partido, tipo) => {
 // Recorte de esquinas independiente por vértice (top-left/top-right/
 // bottom-right/bottom-left, en px) — a diferencia de un border-radius
 // (curva pareja), esto arma un octágono con un corte RECTO en cada
-// esquina, del largo que se le pida a cada una — con un solo vértice
-// cortado bien grande ya sale una cinta/paralelogramo tipo "FIBA
-// Broadcast"; con las 4 iguales, un octágono parejo. En 0 los 4, es un
-// rectángulo común.
+// esquina, del largo que se le pida a cada una.
 function clipPathVertices(tl, tr, br, bl) {
   return `polygon(${tl}px 0, calc(100% - ${tr}px) 0, 100% ${tr}px, 100% calc(100% - ${br}px), calc(100% - ${br}px) 100%, ${bl}px 100%, 0 calc(100% - ${bl}px), 0 ${tl}px)`;
+}
+
+// Relleno de color/degradado compartido por "forma" (color/color2/color3)
+// y el fondo de "texto" (fondoColor/fondoColor2/fondoColor3) — lineal (con
+// ángulo) o radial, de 2 o 3 colores. Sin degradado, es directamente el
+// primer color.
+function construirFondo({ gradiente, tipo, angulo, c1, c2, c3 }) {
+  if (!gradiente) return c1;
+  const colores = c3 ? `${c1}, ${c2}, ${c3}` : `${c1}, ${c2}`;
+  if (tipo === 'radial') return `radial-gradient(circle, ${colores})`;
+  return `linear-gradient(${Number(angulo) || 90}deg, ${colores})`;
 }
 
 // Qué tan cerca (en % del lienzo) hace falta estar de una guía para que el
@@ -63,12 +65,17 @@ function clipPathVertices(tl, tr, br, bl) {
 // mouse lo llevó.
 const UMBRAL_GUIA = 1.4;
 
+// Puntos de grilla (10%, 20%... 90%) usados como candidatos de guía extra
+// cuando la grilla visual está prendida — mismo umbral de "pegado" que el
+// resto de las guías.
+const PUNTOS_GRILLA = [10, 20, 30, 40, 50, 60, 70, 80, 90];
+
 // El lienzo SIEMPRE es 1920×1080 nativos (ver miniPreview.css) — todas las
-// posiciones/tamaños de los elementos libres (xPercent/yPercent, ancho,
-// alto, tamano) viven en esa misma escala nativa, sin importar a qué
-// tamaño en pantalla termine dibujado el recuadro 16:9. Las manijas de
-// selección necesitan ese mismo sistema de referencia para calcular dónde
-// dibujarse (ver ManijasElemento).
+// posiciones/tamaños de los elementos libres viven en esa misma escala
+// nativa, sin importar a qué tamaño en pantalla termine dibujado el
+// recuadro 16:9 (ni si además hay zoom de edición encima — `escalaLienzo`
+// ya viene MULTIPLICADA por el zoom desde PreviaCombinada, así que toda la
+// matemática de acá abajo es ciega a si hay zoom o no).
 const LIENZO_ANCHO = 1920;
 const LIENZO_ALTO = 1080;
 
@@ -78,21 +85,12 @@ function puntoLocalRotado(lx, ly, cos, sin) {
 
 // Manijas de selección tipo Canva/Figma: 4 esquinas para redimensionar +
 // una manija arriba para rotar libremente, todas ROTADAS junto con el
-// elemento (mismo ángulo `rotacion`) para que queden pegadas a las
-// esquinas de verdad se vea como se vea el elemento. Se calculan a mano en
-// coordenadas nativas del lienzo (no relativas al DOM ya rotado) porque
-// así no hace falta tocar el render de cada tipo de elemento (forma/logo/
-// texto), que sigue exactamente igual que antes — esto es pura capa
-// visual + de arrastre superpuesta.
-//
-// `w`/`h` son el tamaño (en px nativos) que se usa para UBICAR las
-// manijas: el tamaño real (ancho/alto) para forma/imagen, o una
-// aproximación para logo/texto (donde el tamaño "real" no es un
-// rectángulo fijo de dos ejes independientes) — en esos casos, arrastrar
-// CUALQUIER esquina escala de forma proporcional (mismo efecto que mover
-// el slider de tamaño), en vez de estirar un eje solo.
+// elemento. Mientras se arrastra una, se muestra un cartelito con la
+// medida en vivo (WxH o el ángulo) — igual que Figma — así no hace falta
+// soltar para saber a qué valor exacto se llegó.
 function ManijasElemento({ elemento, w, h, escalaLienzo, contenedorRef, onCambiar }) {
   const accionRef = useRef(null);
+  const [medicion, setMedicion] = useState(null);
   const rotacion = Number(elemento.rotacion) || 0;
   const theta = (rotacion * Math.PI) / 180;
   const cos = Math.cos(theta);
@@ -134,46 +132,49 @@ function ManijasElemento({ elemento, w, h, escalaLienzo, contenedorRef, onCambia
       const centroY = rect.top + ((elemento.yPercent ?? 50) / 100) * rect.height;
       let angulo = (Math.atan2(e.clientY - centroY, e.clientX - centroX) * 180) / Math.PI + 90;
       angulo = ((Math.round(angulo) % 360) + 360) % 360;
-      // Imán suave a los múltiplos de 45° — se siente más prolijo que un
-      // ángulo libre exacto, sin impedir un ángulo fino si se lo aleja.
       const cercano45 = Math.round(angulo / 45) * 45;
       if (Math.abs(angulo - cercano45) <= 4) angulo = cercano45 % 360;
-      onCambiar({ rotacion: angulo > 180 ? angulo - 360 : angulo });
+      const final = angulo > 180 ? angulo - 360 : angulo;
+      setMedicion(`${final}°`);
+      onCambiar({ rotacion: final });
       return;
     }
     const escala = escalaLienzo || 1;
     const dx = (e.clientX - accion.clientX0) / escala;
     const dy = (e.clientY - accion.clientY0) / escala;
-    // Delta del arrastre proyectado sobre los ejes PROPIOS del elemento
-    // (rotación inversa) — así arrastrar "hacia afuera" agranda sea cual
-    // sea el ángulo al que esté girado el elemento.
     const localDx = dx * cos + dy * sin;
     const localDy = -dx * sin + dy * cos;
     if (esCajaLibre) {
       const nuevoAncho = Math.max(20, Math.round(accion.ancho0 + 2 * accion.sx * localDx));
       const nuevoAlto = Math.max(20, Math.round(accion.alto0 + 2 * accion.sy * localDy));
+      setMedicion(`${nuevoAncho}×${nuevoAlto}px`);
       onCambiar({ ancho: nuevoAncho, alto: nuevoAlto });
     } else {
       const diagonal0 = Math.hypot(accion.w0, accion.h0) || 1;
       const proyeccion = accion.sx * localDx + accion.sy * localDy;
       const factor = Math.max(0.15, 1 + (2 * proyeccion) / diagonal0);
       if (elemento.tipo === 'logoLocal' || elemento.tipo === 'logoVisita') {
-        const cambios = { tamano: Math.max(20, Math.round(accion.tamano0 * factor)) };
+        const nuevoTamano = Math.max(20, Math.round(accion.tamano0 * factor));
+        const cambios = { tamano: nuevoTamano };
         if (accion.alto0 && Number(elemento.alto)) cambios.alto = Math.max(20, Math.round(accion.alto0 * factor));
+        setMedicion(`${nuevoTamano}px`);
         onCambiar(cambios);
       } else {
-        onCambiar({ tamano: Math.max(8, Math.round(accion.tamano0 * factor)) });
+        const nuevoTamano = Math.max(8, Math.round(accion.tamano0 * factor));
+        setMedicion(`${nuevoTamano}px`);
+        onCambiar({ tamano: nuevoTamano });
       }
     }
   };
-  const alSoltar = () => { accionRef.current = null; };
+  const alSoltar = () => { accionRef.current = null; setMedicion(null); };
 
   // Las manijas viven DENTRO del lienzo escalado (mismo `transform:scale`
   // que todo lo demás, ver miniPreview.css) — sin este contra-escalado
   // `scale(1/escala)`, a un zoom chico (una previa angosta) terminarían
   // dibujándose diminutas, imposibles de tocar con el dedo en una tablet.
   // Con esto, el tamaño EN PANTALLA queda siempre igual (24px), sea cual
-  // sea el tamaño real del recuadro 16:9 en ese momento.
+  // sea el tamaño real del recuadro 16:9 en ese momento (zoom de edición
+  // incluido, ya que `escalaLienzo` acá viene multiplicado por el zoom).
   const escalaInversa = 1 / (escalaLienzo || 1);
   const estiloManija = (cursor) => ({
     position: 'absolute',
@@ -196,13 +197,10 @@ function ManijasElemento({ elemento, w, h, escalaLienzo, contenedorRef, onCambia
     { sx: 1, sy: 1, cursor: 'nwse-resize' },
     { sx: -1, sy: 1, cursor: 'nesw-resize' },
   ];
-  // Manija de rotar: a una distancia fija (en pantalla) por encima del
-  // borde superior — se convierte esa distancia a px nativos dividiendo
-  // por la escala, así se ve siempre igual de lejos sea cual sea el zoom
-  // de la vista previa.
   const distanciaRotar = 42 / (escalaLienzo || 1);
   const puntoRotar = puntoLocal(0, -h / 2 - distanciaRotar);
   const puntoBorde = puntoLocal(0, -h / 2);
+  const puntoMedicion = puntoLocal(0, -h / 2 - distanciaRotar - 30 / (escalaLienzo || 1));
 
   return (
     <>
@@ -236,29 +234,64 @@ function ManijasElemento({ elemento, w, h, escalaLienzo, contenedorRef, onCambia
         onPointerUp={alSoltar}
         onPointerCancel={alSoltar}
       />
+      {medicion && (
+        <div
+          style={{
+            position: 'absolute',
+            ...puntoMedicion,
+            transform: `translate(-50%, -50%) scale(${escalaInversa})`,
+            background: 'rgba(10,10,14,.92)',
+            color: '#fff',
+            fontSize: 12,
+            fontWeight: 700,
+            padding: '3px 8px',
+            borderRadius: 6,
+            whiteSpace: 'nowrap',
+            pointerEvents: 'none',
+            zIndex: 6,
+          }}
+        >
+          {medicion}
+        </div>
+      )}
     </>
   );
 }
 
-export default function ElementosLibres({ partido, config, editable = false, onArrastrar, onCambiarElemento, onSeleccionar, seleccionadoId, contenedorRef, escalaLienzo = 1 }) {
+export default function ElementosLibres({
+  partido, config, editable = false,
+  onArrastrar, onCambiarElemento, onSeleccionar,
+  seleccionadosIds = [], contenedorRef, escalaLienzo = 1,
+  modoPan = false, onPanear,
+  mostrarGrilla = false, mostrarMargenSeguro = false,
+}) {
   const lista = Array.isArray(config?.creadorElementos) ? config.creadorElementos : [];
   const arrastrandoId = useRef(null);
+  const panRef = useRef(null);
   const [guias, setGuias] = useState({ x: null, y: null });
+  const [medicionMovimiento, setMedicionMovimiento] = useState(null);
 
-  if (lista.length === 0) return null;
+  if (lista.length === 0 && !mostrarGrilla && !mostrarMargenSeguro) return null;
 
   const mover = (e) => {
+    if (panRef.current) {
+      const dx = e.clientX - panRef.current.x0;
+      const dy = e.clientY - panRef.current.y0;
+      panRef.current = { x0: e.clientX, y0: e.clientY };
+      onPanear?.(dx, dy);
+      return;
+    }
     if (arrastrandoId.current == null || !contenedorRef?.current) return;
     const rect = contenedorRef.current.getBoundingClientRect();
     if (rect.width === 0 || rect.height === 0) return;
     let xPercent = Math.min(100, Math.max(0, ((e.clientX - rect.left) / rect.width) * 100));
     let yPercent = Math.min(100, Math.max(0, ((e.clientY - rect.top) / rect.height) * 100));
 
-    // Candidatos de guía: el centro del lienzo + la posición de cada OTRO
-    // elemento (no el que se está arrastrando) — el primero que quede
-    // adentro del umbral gana y "pega" esa coordenada exacta.
-    const candidatosX = [50, ...lista.filter((o) => o.id !== arrastrandoId.current).map((o) => o.xPercent ?? 50)];
-    const candidatosY = [50, ...lista.filter((o) => o.id !== arrastrandoId.current).map((o) => o.yPercent ?? 50)];
+    // Candidatos de guía: el centro del lienzo + la grilla (si está
+    // prendida) + la posición de cada OTRO elemento — el primero que
+    // quede adentro del umbral gana y "pega" esa coordenada exacta.
+    const candidatosX = [50, ...(mostrarGrilla ? PUNTOS_GRILLA : []), ...lista.filter((o) => o.id !== arrastrandoId.current).map((o) => o.xPercent ?? 50)];
+    const candidatosY = [50, ...(mostrarGrilla ? PUNTOS_GRILLA : []), ...lista.filter((o) => o.id !== arrastrandoId.current).map((o) => o.yPercent ?? 50)];
     let guiaX = null;
     let guiaY = null;
     for (const cx of candidatosX) {
@@ -268,39 +301,83 @@ export default function ElementosLibres({ partido, config, editable = false, onA
       if (Math.abs(yPercent - cy) < UMBRAL_GUIA) { yPercent = cy; guiaY = cy; break; }
     }
     setGuias({ x: guiaX, y: guiaY });
+    setMedicionMovimiento(`${Math.round(xPercent)}%, ${Math.round(yPercent)}%`);
     onArrastrar?.(arrastrandoId.current, xPercent, yPercent);
   };
   const soltar = () => {
+    panRef.current = null;
     arrastrandoId.current = null;
     setGuias({ x: null, y: null });
+    setMedicionMovimiento(null);
   };
 
   return (
     <div
       style={{ position: 'fixed', inset: 0, pointerEvents: editable ? 'auto' : 'none' }}
+      onPointerDown={editable && modoPan ? (e) => {
+        e.currentTarget.setPointerCapture(e.pointerId);
+        panRef.current = { x0: e.clientX, y0: e.clientY };
+      } : undefined}
       onPointerMove={editable ? mover : undefined}
       onPointerUp={editable ? soltar : undefined}
       onPointerLeave={editable ? soltar : undefined}
     >
+      {editable && mostrarMargenSeguro && (
+        <div style={{ position: 'absolute', left: '5%', top: '5%', right: '5%', bottom: '5%', border: '1.5px dashed rgba(255,214,10,.65)', pointerEvents: 'none' }} />
+      )}
+      {editable && mostrarGrilla && PUNTOS_GRILLA.map((p) => (
+        <div key={`gx-${p}`} style={{ position: 'absolute', left: `${p}%`, top: 0, bottom: 0, width: 1, background: 'rgba(255,255,255,.14)', pointerEvents: 'none' }} />
+      ))}
+      {editable && mostrarGrilla && PUNTOS_GRILLA.map((p) => (
+        <div key={`gy-${p}`} style={{ position: 'absolute', top: `${p}%`, left: 0, right: 0, height: 1, background: 'rgba(255,255,255,.14)', pointerEvents: 'none' }} />
+      ))}
       {editable && guias.x != null && (
         <div style={{ position: 'absolute', left: `${guias.x}%`, top: 0, bottom: 0, width: 1, background: 'rgba(255,45,150,.9)', boxShadow: '0 0 4px rgba(255,45,150,.7)', pointerEvents: 'none' }} />
       )}
       {editable && guias.y != null && (
         <div style={{ position: 'absolute', top: `${guias.y}%`, left: 0, right: 0, height: 1, background: 'rgba(255,45,150,.9)', boxShadow: '0 0 4px rgba(255,45,150,.7)', pointerEvents: 'none' }} />
       )}
+      {editable && medicionMovimiento && arrastrandoId.current != null && (() => {
+        const el = lista.find((o) => o.id === arrastrandoId.current);
+        if (!el) return null;
+        return (
+          <div
+            style={{
+              position: 'absolute',
+              left: `${el.xPercent ?? 50}%`,
+              top: `${el.yPercent ?? 50}%`,
+              transform: `translate(12px, 12px) scale(${1 / (escalaLienzo || 1)})`,
+              transformOrigin: 'top left',
+              background: 'rgba(10,10,14,.92)',
+              color: '#fff',
+              fontSize: 12,
+              fontWeight: 700,
+              padding: '3px 8px',
+              borderRadius: 6,
+              whiteSpace: 'nowrap',
+              pointerEvents: 'none',
+              zIndex: 6,
+            }}
+          >
+            {medicionMovimiento}
+          </div>
+        );
+      })()}
       {lista.map((el) => {
+        if (el.oculto) return null;
         const esLogo = el.tipo === 'logoLocal' || el.tipo === 'logoVisita';
         const equipo = EQUIPO_DEL_TIPO(partido, el.tipo);
         const colorAuto = equipo && el.colorAuto !== false;
         const rotacion = Number(el.rotacion) || 0;
         const opacidadBase = (el.opacidad ?? 100) / 100;
-        const estaSeleccionado = editable && seleccionadoId === el.id;
+        const seleccionado = editable && seleccionadosIds.includes(el.id);
+        const seleccionUnica = seleccionado && seleccionadosIds.length === 1;
+        const interactivo = editable && !modoPan && !el.bloqueado;
+        const mezcla = el.mezcla && el.mezcla !== 'normal' ? el.mezcla : undefined;
         // Tamaño (px nativos) usado SOLO para ubicar las manijas de
         // selección — el real para forma/imagen (dos ejes independientes),
-        // una estimación para logo (con o sin alto propio) y para texto
-        // (no tiene un ancho fijo: se aproxima a partir del largo del
-        // texto y el tamaño de fuente, nada más para saber dónde dibujar
-        // la manija — no afecta el render real del texto).
+        // una estimación para logo/texto (nada más para saber dónde
+        // dibujar la manija — no afecta el render real).
         let wManija = 200;
         let hManija = 80;
         if (el.tipo === 'forma' || el.tipo === 'imagen') {
@@ -327,23 +404,29 @@ export default function ElementosLibres({ partido, config, editable = false, onA
           transform: tfBase,
           '--tf-base': tfBase,
           '--op-base': opacidadBase,
-          pointerEvents: editable ? 'auto' : 'none',
-          cursor: editable ? 'grab' : 'default',
-          touchAction: editable ? 'none' : 'auto',
-          outline: editable && seleccionadoId === el.id ? '2px dashed rgba(10,132,255,.9)' : 'none',
+          pointerEvents: interactivo ? 'auto' : 'none',
+          cursor: interactivo ? 'grab' : 'default',
+          touchAction: interactivo ? 'none' : 'auto',
+          outline: seleccionado ? (el.bloqueado ? '2px dashed rgba(255,159,10,.9)' : '2px dashed rgba(10,132,255,.9)') : 'none',
           outlineOffset: 4,
           userSelect: 'none',
+          mixBlendMode: mezcla,
         };
         const claseAnimacion = el.animacion && el.animacion !== 'ninguna' ? `elemento-anim-${el.animacion}` : '';
-        const handlers = editable ? {
+        const handlers = interactivo ? {
           onPointerDown: (e) => {
             e.currentTarget.setPointerCapture(e.pointerId);
             arrastrandoId.current = el.id;
-            onSeleccionar?.(el.id);
+            // Si este elemento YA es parte de una selección múltiple, no la
+            // tocamos acá — así arrastrar cualquiera de los seleccionados
+            // mueve a todo el grupo junto. Si no, se comporta como
+            // siempre: reemplaza la selección (o suma/saca con shift).
+            const yaEnGrupo = seleccionadosIds.length > 1 && seleccionadosIds.includes(el.id);
+            if (!yaEnGrupo) onSeleccionar?.(el.id, { extender: e.shiftKey });
           },
         } : {};
 
-        const manijas = estaSeleccionado ? (
+        const manijas = seleccionUnica && !el.bloqueado ? (
           <ManijasElemento
             elemento={el}
             w={wManija}
@@ -356,11 +439,18 @@ export default function ElementosLibres({ partido, config, editable = false, onA
 
         if (el.tipo === 'forma') {
           const usaImagen = Boolean(el.usarImagen && el.imagenUrl);
-          const fondo = usaImagen
-            ? undefined
-            : (el.gradiente
-              ? `linear-gradient(${Number(el.gradienteAngulo) || 90}deg, ${el.color || '#0a0c14'}, ${el.color2 || '#4a4a4a'})`
-              : (el.color || 'rgba(10,12,20,.85)'));
+          // `backgroundColor`/`backgroundImage` en vez del shorthand
+          // `background` a propósito: React avisa (y con razón — puede
+          // dejar un valor viejo pegado) si un re-render mezcla el
+          // shorthand con sus propias propiedades largas (backgroundSize/
+          // backgroundPosition, acá abajo) para el mismo elemento.
+          const fondoImagen = usaImagen
+            ? `url(${el.imagenUrl})`
+            : (el.gradiente ? construirFondo({
+                gradiente: true, tipo: el.gradienteTipo, angulo: el.gradienteAngulo,
+                c1: el.color || 'rgba(10,12,20,.85)', c2: el.color2 || '#4a4a4a', c3: el.color3,
+              }) : undefined);
+          const fondoColorSolido = (!usaImagen && !el.gradiente) ? (el.color || 'rgba(10,12,20,.85)') : undefined;
           const esquinaCortada = el.esquinaModo === 'cortada';
           return (
             <div key={el.id} style={{ display: 'contents' }}>
@@ -370,12 +460,14 @@ export default function ElementosLibres({ partido, config, editable = false, onA
                   ...posicion,
                   width: `${el.ancho || 200}px`,
                   height: `${el.alto || 80}px`,
-                  background: fondo,
-                  backgroundImage: usaImagen ? `url(${el.imagenUrl})` : undefined,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
+                  backgroundColor: fondoColorSolido,
+                  backgroundImage: fondoImagen,
+                  backgroundSize: usaImagen ? 'cover' : undefined,
+                  backgroundPosition: usaImagen ? 'center' : undefined,
                   borderRadius: esquinaCortada ? 0 : `${el.radio ?? 12}px`,
                   clipPath: esquinaCortada ? clipPathVertices(el.corteTL || 0, el.corteTR || 0, el.corteBR || 0, el.corteBL || 0) : 'none',
+                  border: el.bordeAncho ? `${el.bordeAncho}px solid ${el.bordeColor || '#ffffff'}` : undefined,
+                  boxShadow: el.sombra ? `${el.sombraX ?? 0}px ${el.sombraY ?? 8}px ${el.sombraBlur ?? 20}px 0 ${el.sombraColor || 'rgba(0,0,0,.6)'}` : undefined,
                   opacity: opacidadBase,
                 }}
                 {...handlers}
@@ -399,6 +491,8 @@ export default function ElementosLibres({ partido, config, editable = false, onA
                   height: `${el.alto || 220}px`,
                   borderRadius: esquinaCortada ? 0 : `${el.radio ?? 0}px`,
                   clipPath: esquinaCortada ? clipPathVertices(el.corteTL || 0, el.corteTR || 0, el.corteBR || 0, el.corteBL || 0) : 'none',
+                  border: el.bordeAncho ? `${el.bordeAncho}px solid ${el.bordeColor || '#ffffff'}` : undefined,
+                  filter: el.sombra ? `drop-shadow(${el.sombraX ?? 0}px ${el.sombraY ?? 8}px ${el.sombraBlur ?? 14}px ${el.sombraColor || 'rgba(0,0,0,.6)'})` : undefined,
                   opacity: opacidadBase,
                   overflow: 'hidden',
                 }}
@@ -428,6 +522,8 @@ export default function ElementosLibres({ partido, config, editable = false, onA
                   height: alto ? `${alto}px` : 'auto',
                   objectFit: alto ? ajuste : 'contain',
                   borderRadius: el.radio ? `${el.radio}px` : 0,
+                  border: el.bordeAncho ? `${el.bordeAncho}px solid ${el.bordeColor || '#ffffff'}` : undefined,
+                  filter: el.sombra ? `drop-shadow(${el.sombraX ?? 0}px ${el.sombraY ?? 8}px ${el.sombraBlur ?? 14}px ${el.sombraColor || 'rgba(0,0,0,.6)'})` : undefined,
                   opacity: opacidadBase,
                 }}
                 {...handlers}
@@ -439,9 +535,15 @@ export default function ElementosLibres({ partido, config, editable = false, onA
 
         const texto = el.tipo === 'texto' ? (el.texto || 'Texto libre') : TEXTO_POR_TIPO(partido, config, el.tipo);
         const colorTextoFinal = colorAuto ? equipo.color : (el.color || '#ffffff');
-        const fondoTexto = el.gradiente
-          ? `linear-gradient(${Number(el.gradienteAngulo) || 90}deg, ${el.fondoColor || '#0a0c14'}, ${el.fondoColor2 || '#4a4a4a'})`
-          : (el.fondoColor || 'transparent');
+        // `backgroundColor`/`backgroundImage` separados (no el shorthand
+        // `background`) por el mismo motivo que en "forma" — ver comentario
+        // de más arriba.
+        const fondoTextoImagen = (el.fondoColor && el.gradiente) ? construirFondo({
+          gradiente: true, tipo: el.gradienteTipo, angulo: el.gradienteAngulo,
+          c1: el.fondoColor, c2: el.fondoColor2 || '#4a4a4a', c3: el.fondoColor3,
+        }) : undefined;
+        const fondoTextoColor = (el.fondoColor && !el.gradiente) ? el.fondoColor : undefined;
+        const sombraTexto = el.sombra === false ? 'none' : (el.fondoColor ? 'none' : `${el.sombraX ?? 0}px ${el.sombraY ?? 2}px ${el.sombraBlur ?? 6}px ${el.sombraColor || 'rgba(0,0,0,.55)'}`);
         return (
           <div key={el.id} style={{ display: 'contents' }}>
             <span
@@ -453,12 +555,14 @@ export default function ElementosLibres({ partido, config, editable = false, onA
                 fontSize: `${el.tamano || 32}px`,
                 fontWeight: el.negrita === false ? 500 : 800,
                 color: colorTextoFinal,
-                background: fondoTexto,
-                padding: (el.fondoColor || el.gradiente) ? '4px 14px' : 0,
-                borderRadius: (el.fondoColor || el.gradiente) ? '10px' : 0,
+                backgroundColor: fondoTextoColor,
+                backgroundImage: fondoTextoImagen,
+                padding: (el.fondoColor) ? '4px 14px' : 0,
+                borderRadius: (el.fondoColor) ? '10px' : 0,
                 textTransform: el.mayusculas ? 'uppercase' : 'none',
                 letterSpacing: el.mayusculas ? '1px' : 'normal',
-                textShadow: el.fondoColor ? 'none' : '0 2px 6px rgba(0,0,0,.55)',
+                textShadow: sombraTexto,
+                WebkitTextStroke: el.bordeAncho ? `${el.bordeAncho}px ${el.bordeColor || '#000000'}` : undefined,
                 opacity: opacidadBase,
               }}
               {...handlers}

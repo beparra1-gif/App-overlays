@@ -28,7 +28,10 @@
   left: 0;
   width: 1920px;
   height: 1080px;
-  transform: scale(var(--escala-lienzo, 0.25));
+  /* `--pan-x`/`--pan-y` (Creador, zoom de edición): 0px por defecto, así
+     que sin zoom esto es exactamente el `scale()` de siempre — el pan
+     solo mueve algo cuando el usuario lo arrastra estando con zoom > 100%. */
+  transform: translate(var(--pan-x, 0px), var(--pan-y, 0px)) scale(var(--escala-lienzo, 0.25));
   transform-origin: top left;
 }
 
@@ -140,6 +143,57 @@
   box-shadow: 0 -12px 40px rgba(0, 0, 0, .5);
   animation: creador-flotante-entrada .22s ease;
 }
+/* Barra de herramientas del lienzo (grilla/margen seguro/zoom/mover vista)
+   — flota sobre el recuadro en pantalla completa (mismo nivel que el botón
+   "Editar elementos"), o va como una fila normal debajo de la previa en el
+   panel de siempre. */
+.creador-herramientas {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 8px auto 0;
+  max-width: 1600px;
+}
+.creador-herramientas-flotante {
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 4001;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: min(92vw, 720px);
+  padding: 8px 10px;
+  background: rgba(16, 17, 22, .85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, .14);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, .45);
+}
+.creador-herramientas-separador {
+  width: 1px;
+  height: 20px;
+  background: rgba(255, 255, 255, .18);
+}
+.creador-herramientas-zoom {
+  min-width: 44px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--texto-tenue);
+}
+.creador-herramientas .btn-secundario.activo,
+.creador-herramientas-flotante .btn-secundario.activo {
+  background: var(--primario);
+  border-color: var(--primario);
+  color: #fff;
+}
+
 .creador-flotante::before {
   content: '';
   display: block;

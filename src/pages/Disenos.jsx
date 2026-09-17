@@ -182,10 +182,139 @@ function CampoRango({ etiqueta, valor, unidad = '%', min, max, step = 1, onChang
     <label className="campo-rango">
       <span className="campo-rango-cabecera">
         <span className="campo-rango-etiqueta">{etiqueta}</span>
-        <span className="campo-rango-valor">{valor}{unidad}</span>
+        <span className="campo-rango-valor-editable">
+          <input
+            type="number"
+            className="campo-rango-valor-input"
+            value={valor}
+            min={min} max={max} step={step}
+            onClick={(e) => e.stopPropagation()}
+            onChange={(e) => {
+              const n = Number(e.target.value);
+              if (Number.isFinite(n)) onChange(Math.min(max, Math.max(min, n)));
+            }}
+          />
+          <span>{unidad}</span>
+        </span>
       </span>
       <input type="range" min={min} max={max} step={step} value={valor} onChange={(e) => onChange(Number(e.target.value))} />
       {ayuda && <span className="campo-rango-ayuda">{ayuda}</span>}
+    </label>
+  );
+}
+
+// Borde/contorno + sombra + mezcla — controles compartidos por los 4 tipos
+// de elemento del Creador (forma/imagen/logo/texto). El render real de
+// cada uno vive en ElementosLibres.jsx (box-shadow para forma, drop-shadow
+// para imagen/logo con transparencia, text-shadow + -webkit-text-stroke
+// para texto) — acá es solo el panel. Por defecto, texto ya traía sombra
+// (para leerse sobre cualquier fondo) — el resto arranca sin nada, para no
+// cambiarle el aspecto a ningún diseño ya guardado.
+function ControlEstiloComun({ el, actualizar }) {
+  const sombraPorDefecto = el.tipo === 'texto';
+  const sombraActiva = sombraPorDefecto ? el.sombra !== false : !!el.sombra;
+  return (
+    <>
+      <label className="mv-check-detalle" style={{ color: 'inherit' }}>
+        <input type="checkbox" checked={!!el.bordeAncho} onChange={(e) => actualizar({ bordeAncho: e.target.checked ? 3 : 0 })} />
+        {el.tipo === 'texto' ? 'Contorno del texto' : 'Borde'}
+      </label>
+      {!!el.bordeAncho && (
+        <div className="fila-form" style={{ margin: 0 }}>
+          <input type="color" value={/^#/.test(el.bordeColor) ? el.bordeColor : '#ffffff'} onChange={(e) => actualizar({ bordeColor: e.target.value })} />
+          <CampoRango etiqueta="Grosor" valor={el.bordeAncho ?? 3} unidad="px" min={1} max={20} onChange={(v) => actualizar({ bordeAncho: v })} />
+        </div>
+      )}
+      <label className="mv-check-detalle" style={{ color: 'inherit' }}>
+        <input type="checkbox" checked={sombraActiva} onChange={(e) => actualizar({ sombra: e.target.checked })} />
+        Sombra
+      </label>
+      {sombraActiva && (
+        <div className="fila-form" style={{ margin: 0 }}>
+          <input type="color" value={/^#/.test(el.sombraColor) ? el.sombraColor : '#000000'} onChange={(e) => actualizar({ sombraColor: e.target.value })} />
+          <CampoRango etiqueta="Desenfoque" valor={el.sombraBlur ?? (el.tipo === 'texto' ? 6 : 20)} unidad="px" min={0} max={60} onChange={(v) => actualizar({ sombraBlur: v })} />
+          <CampoRango etiqueta="Desplaz. X" valor={el.sombraX ?? 0} unidad="px" min={-40} max={40} onChange={(v) => actualizar({ sombraX: v })} />
+          <CampoRango etiqueta="Desplaz. Y" valor={el.sombraY ?? (el.tipo === 'texto' ? 2 : 8)} unidad="px" min={-40} max={40} onChange={(v) => actualizar({ sombraY: v })} />
+        </div>
+      )}
+      <label>
+        Mezcla con el fondo
+        <select value={el.mezcla || 'normal'} onChange={(e) => actualizar({ mezcla: e.target.value })}>
+          <option value="normal">Normal</option>
+          <option value="multiply">Multiplicar</option>
+          <option value="screen">Trama (screen)</option>
+          <option value="overlay">Superponer</option>
+          <option value="color-dodge">Sobreexponer</option>
+        </select>
+      </label>
+    </>
+  );
+}
+
+// Degradado de 2 o 3 colores, lineal o radial — compartido por "forma"
+// (campos color/color2/color3) y el fondo de "texto" (fondoColor/
+// fondoColor2/fondoColor3): mismos controles, distinto nombre de campo
+// según cuál de los dos sea (`campoColor2`/`campoColor3`).
+function ControlGradiente({ el, actualizar, campoColor2, campoColor3 }) {
+  const c3 = el[campoColor3];
+  return (
+    <>
+      <label className="mv-check-detalle" style={{ color: 'inherit' }}>
+        <input type="checkbox" checked={!!el.gradiente} onChange={(e) => actualizar({ gradiente: e.target.checked })} />
+        Degradado de color
+      </label>
+      {el.gradiente && (
+        <>
+          <div className="fila-form" style={{ margin: 0 }}>
+            <label className="mv-check-detalle" style={{ color: 'inherit' }}>
+              <input type="radio" name={`gradtipo-${el.id}`} checked={el.gradienteTipo !== 'radial'} onChange={() => actualizar({ gradienteTipo: 'lineal' })} />
+              Lineal
+            </label>
+            <label className="mv-check-detalle" style={{ color: 'inherit' }}>
+              <input type="radio" name={`gradtipo-${el.id}`} checked={el.gradienteTipo === 'radial'} onChange={() => actualizar({ gradienteTipo: 'radial' })} />
+              Radial
+            </label>
+          </div>
+          <div className="fila-form" style={{ margin: 0 }}>
+            <input type="color" value={/^#/.test(el[campoColor2]) ? el[campoColor2] : '#4a4a4a'} onChange={(e) => actualizar({ [campoColor2]: e.target.value })} />
+            {el.gradienteTipo !== 'radial' && (
+              <CampoRango etiqueta="Ángulo" valor={el.gradienteAngulo ?? 90} unidad="°" min={0} max={360} onChange={(v) => actualizar({ gradienteAngulo: v })} />
+            )}
+          </div>
+          <label className="mv-check-detalle" style={{ color: 'inherit' }}>
+            <input type="checkbox" checked={!!c3} onChange={(e) => actualizar({ [campoColor3]: e.target.checked ? '#ffffff' : null })} />
+            Agregar un tercer color
+          </label>
+          {c3 && (
+            <input type="color" value={/^#/.test(c3) ? c3 : '#ffffff'} onChange={(e) => actualizar({ [campoColor3]: e.target.value })} />
+          )}
+        </>
+      )}
+    </>
+  );
+}
+
+// Campo numérico suelto (sin slider) — para valores donde arrastrar no
+// tiene sentido o hace falta la precisión de tipear directo, como la
+// posición X/Y exacta de un elemento del Creador.
+function CampoNumero({ etiqueta, valor, unidad = '', min, max, step = 1, onChange }) {
+  return (
+    <label style={{ display: 'flex', flexDirection: 'column', gap: 2, fontSize: 12, flex: 1, minWidth: 80 }}>
+      <span className="texto-tenue">{etiqueta}</span>
+      <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        <input
+          type="number"
+          value={Math.round(valor * 10) / 10}
+          min={min} max={max} step={step}
+          onClick={(e) => e.stopPropagation()}
+          onChange={(e) => {
+            const n = Number(e.target.value);
+            if (Number.isFinite(n)) onChange(Math.min(max, Math.max(min, n)));
+          }}
+          style={{ width: '100%' }}
+        />
+        {unidad && <span className="texto-tenue">{unidad}</span>}
+      </span>
     </label>
   );
 }
@@ -486,9 +615,37 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
   // los datos reales en vez de un selector de "equipo de muestra" aparte.
   const [equipoLocalVivo, setEquipoLocalVivo] = useState(null);
   const [equipoVisitaVivo, setEquipoVisitaVivo] = useState(null);
-  // Elemento libre elegido para editar en el panel "Creador" — solo
-  // estado de UI (qué inspector mostrar), no se guarda en el diseño.
-  const [elementoSeleccionadoId, setElementoSeleccionadoId] = useState(null);
+  // Elementos libres elegidos para editar en el panel "Creador" — solo
+  // estado de UI (qué inspector mostrar, no se guarda en el diseño). Es un
+  // array (no un solo id) para poder seleccionar varios a la vez (shift+
+  // click en el lienzo, o el check de cada fila en la lista de capas) y
+  // moverlos juntos — redimensionar/rotar con manijas sigue siendo de a
+  // uno, así que esas solo aparecen cuando hay exactamente un elemento acá.
+  const [elementosSeleccionadosIds, setElementosSeleccionadosIds] = useState([]);
+  const seleccionarElemento = (id, opciones = {}) => {
+    if (id == null) { setElementosSeleccionadosIds([]); return; }
+    setElementosSeleccionadosIds((actual) => {
+      if (opciones.extender) {
+        return actual.includes(id) ? actual.filter((x) => x !== id) : [...actual, id];
+      }
+      return [id];
+    });
+  };
+  // Herramientas del lienzo del Creador (grilla/margen seguro/zoom/mover
+  // vista): solo afectan a la EDICIÓN, nunca se guardan en el diseño ni
+  // cambian la posición/tamaño real de nada — son una ayuda visual
+  // temporal, como en cualquier editor de diseño.
+  const [mostrarGrillaCreador, setMostrarGrillaCreador] = useState(false);
+  const [mostrarMargenSeguroCreador, setMostrarMargenSeguroCreador] = useState(false);
+  const [zoomCreador, setZoomCreador] = useState(1);
+  const [panCreador, setPanCreador] = useState({ x: 0, y: 0 });
+  const [modoPanCreador, setModoPanCreador] = useState(false);
+  const cambiarZoomCreador = (nuevo) => {
+    const clamp = Math.min(3, Math.max(0.5, nuevo));
+    setZoomCreador(clamp);
+    if (clamp === 1) setPanCreador({ x: 0, y: 0 });
+  };
+  const restablecerVistaCreador = () => { setZoomCreador(1); setPanCreador({ x: 0, y: 0 }); setModoPanCreador(false); };
   // "Guardar como plantilla nueva" (Creador → Paso 4): la plantilla queda
   // en la cuenta del usuario y aparece en el catálogo principal junto a
   // las de fábrica — independiente de ESTE diseño puntual, que sigue
@@ -636,7 +793,7 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
   const agregarElemento = (tipo) => {
     const nuevo = crearElemento(tipo);
     cambiarConfig('creadorElementos', [...creadorElementos, nuevo]);
-    setElementoSeleccionadoId(nuevo.id);
+    setElementosSeleccionadosIds([nuevo.id]);
   };
   // "Par reflejado": agrega Local y Visita juntos, ya enlazados por `parId`
   // — arrastrar cualquiera de los dos mueve al otro en espejo (mismo Y,
@@ -647,7 +804,7 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
     const visita = crearElemento(tipoVisita, { xPercent: 75, yPercent: 50, parId: local.id });
     local.parId = visita.id;
     cambiarConfig('creadorElementos', [...creadorElementos, local, visita]);
-    setElementoSeleccionadoId(local.id);
+    setElementosSeleccionadosIds([local.id]);
   };
   const actualizarElemento = (id, cambios) => {
     let siguiente = creadorElementos.map((el) => (el.id === id ? { ...el, ...cambios } : el));
@@ -665,10 +822,61 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
     }
     cambiarConfig('creadorElementos', siguiente);
   };
+  // Arrastre desde el lienzo (ver ElementosLibres.jsx `onArrastrar`): si el
+  // elemento soltado forma parte de una selección MÚLTIPLE, todos los
+  // seleccionados se mueven juntos por el mismo delta (en vez de que el
+  // resto se quede atrás) — un solo `cambiarConfig` para que quede como UN
+  // paso de deshacer, no uno por elemento.
+  const arrastrarElementoLibre = (id, x, y) => {
+    if (elementosSeleccionadosIds.length > 1 && elementosSeleccionadosIds.includes(id)) {
+      const referencia = creadorElementos.find((el) => el.id === id);
+      if (!referencia) return;
+      const dx = x - (Number.isFinite(referencia.xPercent) ? referencia.xPercent : 50);
+      const dy = y - (Number.isFinite(referencia.yPercent) ? referencia.yPercent : 50);
+      cambiarConfig('creadorElementos', creadorElementos.map((el) => (
+        elementosSeleccionadosIds.includes(el.id)
+          ? {
+              ...el,
+              xPercent: Math.min(100, Math.max(0, (Number.isFinite(el.xPercent) ? el.xPercent : 50) + dx)),
+              yPercent: Math.min(100, Math.max(0, (Number.isFinite(el.yPercent) ? el.yPercent : 50) + dy)),
+            }
+          : el
+      )));
+      return;
+    }
+    actualizarElemento(id, { xPercent: x, yPercent: y });
+  };
   const eliminarElemento = (id) => {
     cambiarConfig('creadorElementos', creadorElementos.filter((el) => el.id !== id));
-    setElementoSeleccionadoId((actual) => (actual === id ? null : actual));
+    setElementosSeleccionadosIds((actual) => actual.filter((x) => x !== id));
   };
+  const eliminarSeleccion = () => {
+    if (elementosSeleccionadosIds.length === 0) return;
+    cambiarConfig('creadorElementos', creadorElementos.filter((el) => !elementosSeleccionadosIds.includes(el.id)));
+    setElementosSeleccionadosIds([]);
+  };
+  // Duplicar (botón o Ctrl/Cmd+D): copia cada elemento seleccionado un poco
+  // corrido, sin arrastrar el `parId` (si no, mover la copia movería en
+  // espejo al ORIGINAL, no a la otra copia — más confuso que útil).
+  const duplicarSeleccion = () => {
+    if (elementosSeleccionadosIds.length === 0) return;
+    const copias = creadorElementos
+      .filter((el) => elementosSeleccionadosIds.includes(el.id))
+      .map((el) => ({
+        ...el,
+        id: `el-${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`,
+        xPercent: Math.min(97, (Number.isFinite(el.xPercent) ? el.xPercent : 50) + 3),
+        yPercent: Math.min(97, (Number.isFinite(el.yPercent) ? el.yPercent : 50) + 3),
+        parId: undefined,
+      }));
+    cambiarConfig('creadorElementos', [...creadorElementos, ...copias]);
+    setElementosSeleccionadosIds(copias.map((c) => c.id));
+  };
+  // Bloquear/ocultar/renombrar: banderas simples por elemento, sin lógica
+  // extra — bloqueado apaga el arrastre/manijas en el lienzo (pero se
+  // puede seguir editando desde el panel), oculto no se dibuja en absoluto.
+  const alternarBloqueo = (id) => actualizarElemento(id, { bloqueado: !creadorElementos.find((el) => el.id === id)?.bloqueado });
+  const alternarOculto = (id) => actualizarElemento(id, { oculto: !creadorElementos.find((el) => el.id === id)?.oculto });
   // Orden de apilado: el último del array se dibuja arriba de todos (ver
   // ElementosLibres.jsx) — "traer al frente"/"enviar atrás" mueve el
   // elemento a una punta u otra del array, sin necesitar z-index.
@@ -684,8 +892,94 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
   const aplicarPresetCreador = (elementos) => {
     if (creadorElementos.length > 0 && !window.confirm('Esto reemplaza los elementos actuales del Creador por los del diseño elegido. ¿Continuar?')) return;
     cambiarConfig('creadorElementos', elementos.map((el) => ({ ...el, id: `el-${Date.now()}-${Math.random().toString(36).slice(2)}` })));
-    setElementoSeleccionadoId(null);
+    setElementosSeleccionadosIds([]);
   };
+  // Medida aproximada (px nativos) de un elemento, para "Alinear" — no hace
+  // falta que sea exacta (el texto de datos como "Puntos Local" varía según
+  // el partido real): alcanza con una estimación razonable, el usuario
+  // puede ajustar a mano después si hace falta.
+  const medidaNativaAprox = (el) => {
+    if (el.tipo === 'forma' || el.tipo === 'imagen') {
+      return { w: el.ancho || (el.tipo === 'imagen' ? 220 : 200), h: el.alto || (el.tipo === 'imagen' ? 220 : 80) };
+    }
+    if (el.tipo === 'logoLocal' || el.tipo === 'logoVisita') {
+      return { w: el.tamano || 80, h: el.alto || el.tamano || 80 };
+    }
+    const tam = el.tamano || 32;
+    const largo = (el.tipo === 'texto' ? (el.texto || 'Texto libre').length : 8) || 8;
+    return { w: Math.max(30, largo * tam * 0.62), h: tam * 1.4 };
+  };
+  // Alinear contra el borde del LIENZO (no entre elementos entre sí, para
+  // mantenerlo simple) — con varios seleccionados, cada uno se alinea por
+  // su cuenta al mismo borde, en un solo paso de deshacer.
+  const alinearSeleccion = (borde) => {
+    if (elementosSeleccionadosIds.length === 0) return;
+    cambiarConfig('creadorElementos', creadorElementos.map((el) => {
+      if (!elementosSeleccionadosIds.includes(el.id)) return el;
+      const { w, h } = medidaNativaAprox(el);
+      const cambios = {};
+      if (borde === 'izquierda') cambios.xPercent = (w / 2 / 1920) * 100;
+      if (borde === 'centroH') cambios.xPercent = 50;
+      if (borde === 'derecha') cambios.xPercent = 100 - (w / 2 / 1920) * 100;
+      if (borde === 'arriba') cambios.yPercent = (h / 2 / 1080) * 100;
+      if (borde === 'centroV') cambios.yPercent = 50;
+      if (borde === 'abajo') cambios.yPercent = 100 - (h / 2 / 1080) * 100;
+      return { ...el, ...cambios };
+    }));
+  };
+
+  // Atajos de teclado del Creador — solo mientras esa pestaña está abierta,
+  // y nunca si el foco está en un campo de TEXTO (si no, Backspace
+  // borrando una letra en el nombre de un elemento borraría el elemento
+  // entero). Ojo: esto es más angosto que "cualquier INPUT" a propósito —
+  // un checkbox/radio/color recién tocado (p. ej. el de "Sombra" o
+  // "Degradado") se queda con el foco encima, y si tratáramos CUALQUIER
+  // INPUT como "campo de texto" las flechas/Supr/Ctrl+D dejarían de
+  // funcionar justo después de tocar cualquiera de esos controles — un
+  // bug real que apareció al probarlo. Suprimir/Retroceso elimina la
+  // selección, Ctrl/Cmd+D la duplica, las flechas la mueven de a poco (con
+  // Shift, un paso más grande) — todo en un solo paso de deshacer por
+  // tecla.
+  useEffect(() => {
+    if (seccionAbierta !== 'creador' || elementosSeleccionadosIds.length === 0) return undefined;
+    const esCampoDeTexto = (el) => {
+      if (!el) return false;
+      if (el.tagName === 'TEXTAREA' || el.tagName === 'SELECT') return true;
+      if (el.tagName === 'INPUT') return !['checkbox', 'radio', 'button', 'submit', 'color'].includes((el.type || 'text').toLowerCase());
+      return false;
+    };
+    const alPresionar = (e) => {
+      if (esCampoDeTexto(document.activeElement)) return;
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        e.preventDefault();
+        eliminarSeleccion();
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'd') {
+        e.preventDefault();
+        duplicarSeleccion();
+      } else if (e.key.startsWith('Arrow')) {
+        e.preventDefault();
+        const paso = e.shiftKey ? 2 : 0.3;
+        let dx = 0;
+        let dy = 0;
+        if (e.key === 'ArrowLeft') dx = -paso;
+        if (e.key === 'ArrowRight') dx = paso;
+        if (e.key === 'ArrowUp') dy = -paso;
+        if (e.key === 'ArrowDown') dy = paso;
+        cambiarConfig('creadorElementos', creadorElementos.map((el) => (
+          elementosSeleccionadosIds.includes(el.id)
+            ? {
+                ...el,
+                xPercent: Math.min(100, Math.max(0, (Number.isFinite(el.xPercent) ? el.xPercent : 50) + dx)),
+                yPercent: Math.min(100, Math.max(0, (Number.isFinite(el.yPercent) ? el.yPercent : 50) + dy)),
+              }
+            : el
+        )));
+      }
+    };
+    window.addEventListener('keydown', alPresionar);
+    return () => window.removeEventListener('keydown', alPresionar);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seccionAbierta, elementosSeleccionadosIds, creadorElementos]);
 
   const posX = Number.isFinite(config.posX) ? config.posX : 50;
   const posY = Number.isFinite(config.posY) ? config.posY : 88;
@@ -984,15 +1278,37 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
               logosLibresEditable={seccionAbierta === 'logos'}
               onArrastrarLogoLibre={(id, x, y) => actualizarLogoLibre(id, { xPercent: x, yPercent: y })}
               elementosLibresEditable={seccionAbierta === 'creador'}
-              onArrastrarElementoLibre={(id, x, y) => actualizarElemento(id, { xPercent: x, yPercent: y })}
+              onArrastrarElementoLibre={arrastrarElementoLibre}
               onCambiarElementoLibre={actualizarElemento}
-              elementoSeleccionadoId={elementoSeleccionadoId}
-              onSeleccionarElemento={(id) => { setElementoSeleccionadoId(id); if (previaPantallaCompleta && id) setPanelCreadorAbierto(true); }}
+              elementosSeleccionadosIds={elementosSeleccionadosIds}
+              onSeleccionarElemento={(id, opciones) => { seleccionarElemento(id, opciones); if (previaPantallaCompleta && id != null) setPanelCreadorAbierto(true); }}
+              zoomCreador={zoomCreador}
+              panCreador={panCreador}
+              modoPanCreador={modoPanCreador}
+              onPanearCreador={(dx, dy) => setPanCreador((p) => ({ x: p.x + dx, y: p.y + dy }))}
+              mostrarGrillaCreador={mostrarGrillaCreador}
+              mostrarMargenSeguroCreador={mostrarMargenSeguroCreador}
               animacionPuntosEditable={seccionAbierta === 'marcador'}
               onArrastrarAnimacionPuntos={arrastrarAnimacionPuntos}
               anunciosEditable={seccionAbierta === 'anuncios'}
               onArrastrarAnuncios={arrastrarAnuncios}
             />
+          )}
+          {mostrarPrevia && seccionAbierta === 'creador' && (
+            <div className={previaPantallaCompleta ? 'creador-herramientas-flotante' : 'creador-herramientas'}>
+              <button type="button" className={`btn-secundario btn-chico ${mostrarGrillaCreador ? 'activo' : ''}`} onClick={() => setMostrarGrillaCreador((v) => !v)} title="Grilla con imán cada 10%">▦ Grilla</button>
+              <button type="button" className={`btn-secundario btn-chico ${mostrarMargenSeguroCreador ? 'activo' : ''}`} onClick={() => setMostrarMargenSeguroCreador((v) => !v)} title="Guía de margen seguro para transmisión (5%)">⛶ Margen seguro</button>
+              <span className="creador-herramientas-separador" />
+              <button type="button" className="btn-secundario btn-chico" onClick={() => cambiarZoomCreador(zoomCreador - 0.25)} disabled={zoomCreador <= 0.5} title="Alejar">−</button>
+              <span className="creador-herramientas-zoom">{Math.round(zoomCreador * 100)}%</span>
+              <button type="button" className="btn-secundario btn-chico" onClick={() => cambiarZoomCreador(zoomCreador + 0.25)} disabled={zoomCreador >= 3} title="Acercar (para trabajar un detalle de cerca)">+</button>
+              {zoomCreador !== 1 && (
+                <button type="button" className={`btn-secundario btn-chico ${modoPanCreador ? 'activo' : ''}`} onClick={() => setModoPanCreador((v) => !v)} title="Arrastrar para mover la vista (solo mientras hay zoom)">✋ Mover vista</button>
+              )}
+              {(zoomCreador !== 1 || panCreador.x !== 0 || panCreador.y !== 0) && (
+                <button type="button" className="btn-link" onClick={restablecerVistaCreador}>Restablecer vista</button>
+              )}
+            </div>
           )}
           {mostrarPrevia && previaPantallaCompleta && seccionAbierta === 'creador' && (
             <button
@@ -1757,8 +2073,68 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
             {creadorElementos.length === 0 ? (
               <p className="texto-tenue">Todavía no agregaste ningún elemento — empezá por el Paso 2.</p>
             ) : (
+              <>
+                <p className="texto-tenue" style={{ margin: '0 0 6px', fontSize: 12 }}>
+                  Capas (tocá para elegir una; shift+click o el check para elegir varias — mover en el lienzo mueve a
+                  todas juntas). También podés shift+click directo sobre un elemento en el lienzo.
+                </p>
+                <div className="creador-capas-lista">
+                  {creadorElementos.map((el, indice) => {
+                    const info = TIPOS_ELEMENTO_DATO.find((t) => t.tipo === el.tipo);
+                    const etiquetaTipo = info?.etiqueta || (el.tipo === 'texto' ? 'Texto libre' : el.tipo === 'forma' ? 'Forma / fondo' : el.tipo === 'imagen' ? 'Logo / imagen libre' : el.tipo);
+                    const seleccionado = elementosSeleccionadosIds.includes(el.id);
+                    return (
+                      <div
+                        key={el.id}
+                        className={`creador-capa-fila ${seleccionado ? 'seleccionada' : ''}`}
+                        onClick={(e) => seleccionarElemento(el.id, { extender: e.shiftKey })}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={seleccionado}
+                          onClick={(e) => e.stopPropagation()}
+                          onChange={() => seleccionarElemento(el.id, { extender: true })}
+                          title="Sumar/sacar de la selección"
+                        />
+                        <input
+                          className="creador-capa-nombre"
+                          value={el.nombre || ''}
+                          placeholder={etiquetaTipo}
+                          onClick={(e) => e.stopPropagation()}
+                          onChange={(e) => actualizarElemento(el.id, { nombre: e.target.value })}
+                        />
+                        {el.parId && <span title="Enlazado en espejo con su par Local/Visita">🔗</span>}
+                        <button type="button" className="btn-link" title={el.oculto ? 'Mostrar' : 'Ocultar'} onClick={(e) => { e.stopPropagation(); alternarOculto(el.id); }}>{el.oculto ? '🚫' : '👁️'}</button>
+                        <button type="button" className="btn-link" title={el.bloqueado ? 'Desbloquear' : 'Bloquear'} onClick={(e) => { e.stopPropagation(); alternarBloqueo(el.id); }}>{el.bloqueado ? '🔒' : '🔓'}</button>
+                        <button type="button" className="btn-link" title="Enviar atrás" disabled={indice === 0} onClick={(e) => { e.stopPropagation(); moverElementoCapa(el.id, 'atras'); }}>⬇️</button>
+                        <button type="button" className="btn-link" title="Traer al frente" disabled={indice === creadorElementos.length - 1} onClick={(e) => { e.stopPropagation(); moverElementoCapa(el.id, 'frente'); }}>⬆️</button>
+                        <button type="button" className="btn-link" title="Eliminar" onClick={(e) => { e.stopPropagation(); eliminarElemento(el.id); }}>🗑️</button>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {elementosSeleccionadosIds.length > 0 && (
+                  <div className="creador-seleccion-barra">
+                    <span className="texto-tenue" style={{ fontSize: 12 }}>
+                      {elementosSeleccionadosIds.length === 1 ? '1 elemento elegido' : `${elementosSeleccionadosIds.length} elementos elegidos`}
+                    </span>
+                    <span className="creador-herramientas-separador" />
+                    <button type="button" className="btn-secundario btn-chico" title="Alinear a la izquierda del lienzo" onClick={() => alinearSeleccion('izquierda')}>⇤</button>
+                    <button type="button" className="btn-secundario btn-chico" title="Centrar horizontal" onClick={() => alinearSeleccion('centroH')}>⇔</button>
+                    <button type="button" className="btn-secundario btn-chico" title="Alinear a la derecha" onClick={() => alinearSeleccion('derecha')}>⇥</button>
+                    <button type="button" className="btn-secundario btn-chico" title="Alinear arriba" onClick={() => alinearSeleccion('arriba')}>⇡</button>
+                    <button type="button" className="btn-secundario btn-chico" title="Centrar vertical" onClick={() => alinearSeleccion('centroV')}>⇕</button>
+                    <button type="button" className="btn-secundario btn-chico" title="Alinear abajo" onClick={() => alinearSeleccion('abajo')}>⇣</button>
+                    <span className="creador-herramientas-separador" />
+                    <button type="button" className="btn-secundario btn-chico" title="Duplicar (Ctrl/Cmd+D)" onClick={duplicarSeleccion}>⧉ Duplicar</button>
+                    <button type="button" className="btn-secundario btn-chico" title="Eliminar (Supr)" onClick={eliminarSeleccion}>🗑️ Eliminar</button>
+                    <button type="button" className="btn-link" onClick={() => seleccionarElemento(null)}>Deseleccionar</button>
+                  </div>
+                )}
+
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {creadorElementos.map((el, indice) => {
+                {creadorElementos.map((el) => {
                   const info = TIPOS_ELEMENTO_DATO.find((t) => t.tipo === el.tipo);
                   const etiquetaTipo = info?.etiqueta || (el.tipo === 'texto' ? 'Texto libre' : el.tipo === 'forma' ? 'Forma / fondo' : el.tipo === 'imagen' ? 'Logo / imagen libre' : el.tipo);
                   const esTexto = el.tipo === 'texto';
@@ -1770,19 +2146,20 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
                     <div
                       key={el.id}
                       className="tarjeta"
-                      style={{ display: 'flex', flexDirection: 'column', gap: 8, borderColor: elementoSeleccionadoId === el.id ? 'var(--primario)' : undefined }}
-                      onClick={() => setElementoSeleccionadoId(el.id)}
+                      style={{ display: 'flex', flexDirection: 'column', gap: 8, borderColor: elementosSeleccionadosIds.includes(el.id) ? 'var(--primario)' : undefined }}
+                      onClick={(e) => seleccionarElemento(el.id, { extender: e.shiftKey })}
                     >
                       <div className="fila-form" style={{ margin: 0, justifyContent: 'space-between' }}>
                         <strong style={{ fontSize: 13 }}>
-                          {etiquetaTipo}
+                          {el.nombre || etiquetaTipo}
                           {el.parId && <span className="texto-tenue" title="Enlazado en espejo con su par Local/Visita" style={{ fontSize: 11, fontWeight: 400 }}> 🔗 reflejado</span>}
+                          {el.bloqueado && <span className="texto-tenue" title="Bloqueado: no se mueve/redimensiona desde el lienzo" style={{ fontSize: 11, fontWeight: 400 }}> 🔒 bloqueado</span>}
                         </strong>
-                        <span style={{ display: 'flex', gap: 4 }}>
-                          <button type="button" className="btn-link" title="Enviar atrás" disabled={indice === 0} onClick={(e) => { e.stopPropagation(); moverElementoCapa(el.id, 'atras'); }}>⬇️</button>
-                          <button type="button" className="btn-link" title="Traer al frente" disabled={indice === creadorElementos.length - 1} onClick={(e) => { e.stopPropagation(); moverElementoCapa(el.id, 'frente'); }}>⬆️</button>
-                          <button type="button" className="btn-link" onClick={(e) => { e.stopPropagation(); eliminarElemento(el.id); }}>🗑️ Quitar</button>
-                        </span>
+                      </div>
+
+                      <div className="fila-form" style={{ margin: 0 }}>
+                        <CampoNumero etiqueta="X" valor={el.xPercent ?? 50} unidad="%" min={0} max={100} onChange={(v) => actualizarElemento(el.id, { xPercent: v })} />
+                        <CampoNumero etiqueta="Y" valor={el.yPercent ?? 50} unidad="%" min={0} max={100} onChange={(v) => actualizarElemento(el.id, { yPercent: v })} />
                       </div>
 
                       {esTexto && (
@@ -1823,19 +2200,11 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
                             />
                           ) : (
                             <>
-                              <label className="mv-check-detalle" style={{ color: 'inherit' }}>
-                                <input type="checkbox" checked={!!el.gradiente} onChange={(e) => actualizarElemento(el.id, { gradiente: e.target.checked })} />
-                                Degradado de color
-                              </label>
                               <div className="fila-form" style={{ margin: 0 }}>
+                                <span className="texto-tenue" style={{ fontSize: 12 }}>Color</span>
                                 <input type="color" value={/^#/.test(el.color) ? el.color : '#0a0c14'} onChange={(e) => actualizarElemento(el.id, { color: e.target.value })} />
-                                {el.gradiente && (
-                                  <>
-                                    <input type="color" value={/^#/.test(el.color2) ? el.color2 : '#4a4a4a'} onChange={(e) => actualizarElemento(el.id, { color2: e.target.value })} />
-                                    <CampoRango etiqueta="Ángulo del degradado" valor={el.gradienteAngulo ?? 90} unidad="°" min={0} max={360} onChange={(v) => actualizarElemento(el.id, { gradienteAngulo: v })} />
-                                  </>
-                                )}
                               </div>
+                              <ControlGradiente el={el} actualizar={(c) => actualizarElemento(el.id, c)} campoColor2="color2" campoColor3="color3" />
                             </>
                           )}
                           <CampoRango etiqueta="Ancho" valor={el.ancho ?? 220} unidad="px" min={20} max={800} onChange={(v) => actualizarElemento(el.id, { ancho: v })} />
@@ -1878,6 +2247,7 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
                             />
                           )}
                           <CampoRango etiqueta="Transparencia" valor={el.opacidad ?? 100} min={5} max={100} onChange={(v) => actualizarElemento(el.id, { opacidad: v })} />
+                          <ControlEstiloComun el={el} actualizar={(c) => actualizarElemento(el.id, c)} />
                         </>
                       ) : esImagen ? (
                         <>
@@ -1937,6 +2307,7 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
                             />
                           )}
                           <CampoRango etiqueta="Transparencia" valor={el.opacidad ?? 100} min={5} max={100} onChange={(v) => actualizarElemento(el.id, { opacidad: v })} />
+                          <ControlEstiloComun el={el} actualizar={(c) => actualizarElemento(el.id, c)} />
                         </>
                       ) : esLogo ? (
                         <>
@@ -1966,6 +2337,7 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
                             onChange={(v) => actualizarElemento(el.id, { radio: v })}
                           />
                           <CampoRango etiqueta="Transparencia" valor={el.opacidad ?? 100} min={10} max={100} onChange={(v) => actualizarElemento(el.id, { opacidad: v })} />
+                          <ControlEstiloComun el={el} actualizar={(c) => actualizarElemento(el.id, c)} />
                         </>
                       ) : (
                         <>
@@ -2000,26 +2372,20 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
                           {el.fondoColor && (
                             <>
                               <div className="fila-form" style={{ margin: 0 }}>
+                                <span className="texto-tenue" style={{ fontSize: 12 }}>Color de fondo</span>
                                 <input type="color" value={/^#/.test(el.fondoColor) ? el.fondoColor : '#0a0c14'} onChange={(e) => actualizarElemento(el.id, { fondoColor: e.target.value })} />
-                                <label className="mv-check-detalle" style={{ color: 'inherit' }}>
-                                  <input type="checkbox" checked={!!el.gradiente} onChange={(e) => actualizarElemento(el.id, { gradiente: e.target.checked })} />
-                                  Degradado
-                                </label>
                               </div>
-                              {el.gradiente && (
-                                <div className="fila-form" style={{ margin: 0 }}>
-                                  <input type="color" value={/^#/.test(el.fondoColor2) ? el.fondoColor2 : '#4a4a4a'} onChange={(e) => actualizarElemento(el.id, { fondoColor2: e.target.value })} />
-                                  <CampoRango etiqueta="Ángulo del degradado" valor={el.gradienteAngulo ?? 90} min={0} max={360} onChange={(v) => actualizarElemento(el.id, { gradienteAngulo: v })} />
-                                </div>
-                              )}
+                              <ControlGradiente el={el} actualizar={(c) => actualizarElemento(el.id, c)} campoColor2="fondoColor2" campoColor3="fondoColor3" />
                             </>
                           )}
+                          <ControlEstiloComun el={el} actualizar={(c) => actualizarElemento(el.id, c)} />
                         </>
                       )}
                     </div>
                   );
                 })}
               </div>
+              </>
             )}
           </div>
 

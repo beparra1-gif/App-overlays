@@ -77,7 +77,9 @@ const OPACIDAD_CONTEXTO = 0.14;
 export default function PreviaCombinada({
   plantillaId, config, equipoLocalPreview, equipoVisitaPreview, partidoReal, modo = 'general',
   logosLibresEditable = false, onArrastrarLogoLibre,
-  elementosLibresEditable = false, onArrastrarElementoLibre, onCambiarElementoLibre, elementoSeleccionadoId, onSeleccionarElemento,
+  elementosLibresEditable = false, onArrastrarElementoLibre, onCambiarElementoLibre, elementosSeleccionadosIds, onSeleccionarElemento,
+  zoomCreador = 1, panCreador, modoPanCreador = false, onPanearCreador,
+  mostrarGrillaCreador = false, mostrarMargenSeguroCreador = false,
   animacionPuntosEditable = false, onArrastrarAnimacionPuntos,
   anunciosEditable = false, onArrastrarAnuncios,
   // Modo "pantalla completa": el recuadro 16:9 de siempre (mismo mecanismo,
@@ -111,6 +113,14 @@ export default function PreviaCombinada({
   // canvas de un ancho distinto según cuán grande estuviera este recuadro).
   const marcoRef = useRef(null);
   const escalaLienzo = useEscalaLienzo(marcoRef);
+  // Zoom de edición (solo Creador, ver Disenos.jsx): una lupa temporal para
+  // trabajar de cerca un detalle, NUNCA cambia el tamaño/posición
+  // GUARDADOS — multiplica la MISMA escala real de siempre, así que al
+  // volver a 100% queda exactamente como estaba (nada de "otro" sistema de
+  // coordenadas). Las manijas y el arrastre de ElementosLibres reciben
+  // esta escala ya combinada, así su matemática ni se entera de que hay
+  // zoom: sigue viendo "la escala del lienzo", nada más.
+  const escalaEfectiva = escalaLienzo * (zoomCreador || 1);
 
   const base = partidoReal || PARTIDO_DEMO;
   const partido = (equipoLocalPreview || equipoVisitaPreview)
@@ -168,7 +178,15 @@ export default function PreviaCombinada({
         {pantallaCompleta && (
           <button type="button" className="mini-preview-cerrar" onClick={onCerrarPantallaCompleta} title="Salir de pantalla completa">✕</button>
         )}
-        <div className="mini-preview-lienzo" ref={lienzoRef} style={{ '--escala-lienzo': escalaLienzo }}>
+        <div
+          className="mini-preview-lienzo"
+          ref={lienzoRef}
+          style={{
+            '--escala-lienzo': escalaEfectiva,
+            '--pan-x': `${panCreador?.x || 0}px`,
+            '--pan-y': `${panCreador?.y || 0}px`,
+          }}
+        >
         <div style={{ opacity: opacidadMarcador, transition: 'opacity .25s ease', pointerEvents: opacidadMarcador === 1 ? 'auto' : 'none' }}>
           <LogoMarcaAgua equipoLocal={partido.equipoLocal} equipoVisita={partido.equipoVisita} config={config} caja={caja} />
           <Marcador partido={partido} config={config} />
@@ -221,9 +239,13 @@ export default function PreviaCombinada({
           onArrastrar={onArrastrarElementoLibre}
           onCambiarElemento={onCambiarElementoLibre}
           onSeleccionar={onSeleccionarElemento}
-          seleccionadoId={elementoSeleccionadoId}
+          seleccionadosIds={elementosSeleccionadosIds}
           contenedorRef={lienzoRef}
-          escalaLienzo={escalaLienzo}
+          escalaLienzo={escalaEfectiva}
+          modoPan={modoPanCreador}
+          onPanear={onPanearCreador}
+          mostrarGrilla={mostrarGrillaCreador}
+          mostrarMargenSeguro={mostrarMargenSeguroCreador}
         />
         </div>
       </div>
