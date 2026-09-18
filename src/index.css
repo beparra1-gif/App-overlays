@@ -691,6 +691,76 @@ select {
   gap: 6px;
 }
 
+/* Mesa de trabajo del Creador — pantalla completa fija, SIEMPRE (no un
+   acordeón más ni un toggle opcional): barra superior, lienzo al centro,
+   agregar elementos a la izquierda, capas + inspector del elemento
+   elegido a la derecha. Nada de scroll de página — cada panel se
+   scrollea solo si su propio contenido no entra. */
+.creador-workspace {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  display: flex;
+  flex-direction: column;
+  background: var(--fondo);
+}
+.creador-workspace-top {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px 16px;
+  background: var(--tarjeta);
+  border-bottom: 1px solid var(--borde);
+}
+.creador-workspace-titulo {
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 260px;
+}
+.creador-workspace-spacer { flex: 1 1 auto; }
+.creador-workspace-cuerpo {
+  flex: 1 1 auto;
+  display: flex;
+  min-height: 0;
+}
+.creador-workspace-panel {
+  flex: 0 0 300px;
+  overflow-y: auto;
+  padding: 16px;
+  background: var(--tarjeta);
+}
+.creador-workspace-izquierda { border-right: 1px solid var(--borde); }
+.creador-workspace-derecha { border-left: 1px solid var(--borde); }
+.creador-workspace-centro {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  position: relative;
+  container-type: size;
+  background: repeating-conic-gradient(#20222b 0% 25%, #16171d 0% 50%) 0 0 / 24px 24px;
+}
+/* El recuadro 16:9 de siempre (mismo mecanismo de PreviaCombinada, nunca
+   deforma/recorta), pero acá se ajusta al ESPACIO DISPONIBLE del panel
+   central en vez de a un ancho de página fijo — el más grande que entre
+   entero, sea el que limite el ancho o el alto. */
+.creador-workspace-centro .mini-preview-marco {
+  max-width: none;
+  width: min(100cqw, calc(100cqh * 16 / 9));
+  margin: 0;
+}
+
+@media (max-width: 1000px) {
+  .creador-workspace-panel { flex-basis: 240px; padding: 12px; }
+  .creador-workspace-titulo { display: none; }
+}
+
 /* Pasos del Creador de marcador — cada paso (punto de partida, agregar
    elementos, ajustarlos, guardar como plantilla) en su propia tarjeta
    numerada, para que se lea como una secuencia y no como una lista larga

@@ -60,6 +60,38 @@ function construirFondo({ gradiente, tipo, angulo, c1, c2, c3 }) {
   return `linear-gradient(${Number(angulo) || 90}deg, ${colores})`;
 }
 
+// Formas prediseñadas (elemento "forma", campo `formaId`) — más allá del
+// rectángulo de siempre (que ya tiene su propio sistema de redondeo/corte
+// por vértice, ver clipPathVertices). "círculo" usa border-radius:50% en
+// vez de clip-path (así una forma NO cuadrada da una elipse, no un
+// círculo recortado raro); el resto son polígonos fijos — no editables
+// vértice por vértice como el rectángulo cortado, pero cubren las formas
+// más pedidas en un editor tipo Canva sin la complejidad de un editor de
+// puntos libre.
+export const CATALOGO_FORMAS = [
+  { id: 'rectangulo', etiqueta: 'Rectángulo' },
+  { id: 'circulo', etiqueta: 'Círculo / óvalo' },
+  { id: 'diamante', etiqueta: 'Diamante' },
+  { id: 'hexagono', etiqueta: 'Hexágono' },
+  { id: 'pentagono', etiqueta: 'Pentágono' },
+  { id: 'estrella', etiqueta: 'Estrella' },
+  { id: 'flecha', etiqueta: 'Flecha' },
+  { id: 'cinta', etiqueta: 'Cinta / banner' },
+];
+
+const FORMA_CLIP_PATHS = {
+  diamante: 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)',
+  hexagono: 'polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)',
+  pentagono: 'polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%)',
+  estrella: 'polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)',
+  flecha: 'polygon(0% 25%, 60% 25%, 60% 0%, 100% 50%, 60% 100%, 60% 75%, 0% 75%)',
+  cinta: 'polygon(0% 0%, 100% 0%, 100% 85%, 50% 100%, 0% 85%)',
+};
+
+export function clipPathDeForma(formaId) {
+  return FORMA_CLIP_PATHS[formaId] || null;
+}
+
 // Qué tan cerca (en % del lienzo) hace falta estar de una guía para que el
 // arrastre "pegue" ahí — bastante angosto a propósito: tiene que sentirse
 // como una ayuda, no como que el elemento no puede quedar donde el dedo/
@@ -460,20 +492,49 @@ export default function ElementosLibres({
         ) : null;
 
         if (el.tipo === 'forma') {
-          const usaImagen = Boolean(el.usarImagen && el.imagenUrl);
+          // Relleno: color/degradado fijo (de siempre), una imagen SUBIDA
+          // fija, o — nuevo — el logo del equipo Local/Visita, en vivo. En
+          // el modo "logo del equipo" no hay ninguna URL guardada en el
+          // elemento: se lee de `partido` en cada render, así que si el
+          // partido cambia de rival el tablero se actualiza solo, en vez
+          // de quedar con el logo del primer equipo con el que se armó el
+          // diseño (eso era justo el problema del modo "imagen" a secas
+          // para este caso de uso).
+          const relleno = el.rellenoTipo || (el.usarImagen ? 'imagen' : 'color');
+          const equipoDelRelleno = relleno === 'equipoLocal' ? partido?.equipoLocal : relleno === 'equipoVisita' ? partido?.equipoVisita : null;
+          const esRellenoLogo = relleno === 'equipoLocal' || relleno === 'equipoVisita';
+          const imagenUrlFinal = relleno === 'imagen' ? el.imagenUrl : (equipoDelRelleno?.logo_url || null);
+          const usaImagen = Boolean(imagenUrlFinal);
+          // Mismo concepto que el "color automático" que ya tenía el
+          // texto: si se elige, el COLOR de la forma (base sólida, primer
+          // color del degradado, o fondo detrás de un logo) sigue al color
+          // real del equipo elegido en vez de un hex fijo — independiente
+          // de si el relleno además usa una imagen o no.
+          const equipoDelColor = el.colorAuto === 'local' ? partido?.equipoLocal : el.colorAuto === 'visita' ? partido?.equipoVisita : null;
+          const colorBase = equipoDelColor?.color || el.color || 'rgba(10,12,20,.85)';
           // `backgroundColor`/`backgroundImage` en vez del shorthand
           // `background` a propósito: React avisa (y con razón — puede
           // dejar un valor viejo pegado) si un re-render mezcla el
           // shorthand con sus propias propiedades largas (backgroundSize/
           // backgroundPosition, acá abajo) para el mismo elemento.
           const fondoImagen = usaImagen
-            ? `url(${el.imagenUrl})`
+            ? `url(${imagenUrlFinal})`
             : (el.gradiente ? construirFondo({
                 gradiente: true, tipo: el.gradienteTipo, angulo: el.gradienteAngulo,
-                c1: el.color || 'rgba(10,12,20,.85)', c2: el.color2 || '#4a4a4a', c3: el.color3,
+                c1: colorBase, c2: el.color2 || '#4a4a4a', c3: el.color3,
               }) : undefined);
-          const fondoColorSolido = (!usaImagen && !el.gradiente) ? (el.color || 'rgba(10,12,20,.85)') : undefined;
-          const esquinaCortada = el.esquinaModo === 'cortada';
+          // Detrás de un logo de equipo (transparente, tipo escudo) sigue
+          // sirviendo un color de fondo — arma un "escudo/badge" en vez de
+          // dejar ver lo que sea que haya debajo. Una imagen SUBIDA a
+          // mano (fotos, texturas) en cambio suele ya cubrir todo el
+          // recuadro sola, así que no le agrega ningún fondo.
+          const fondoColorSolido = usaImagen
+            ? (esRellenoLogo ? colorBase : undefined)
+            : (el.gradiente ? undefined : colorBase);
+          const formaId = el.formaId || 'rectangulo';
+          const esCirculo = formaId === 'circulo';
+          const clipForma = clipPathDeForma(formaId);
+          const esquinaCortada = formaId === 'rectangulo' && el.esquinaModo === 'cortada';
           return (
             <div key={el.id} style={{ display: 'contents' }}>
               <div
@@ -484,10 +545,11 @@ export default function ElementosLibres({
                   height: `${el.alto || 80}px`,
                   backgroundColor: fondoColorSolido,
                   backgroundImage: fondoImagen,
-                  backgroundSize: usaImagen ? 'cover' : undefined,
+                  backgroundSize: usaImagen ? (esRellenoLogo ? 'contain' : 'cover') : undefined,
                   backgroundPosition: usaImagen ? 'center' : undefined,
-                  borderRadius: esquinaCortada ? 0 : `${el.radio ?? 12}px`,
-                  clipPath: esquinaCortada ? clipPathVertices(el.corteTL || 0, el.corteTR || 0, el.corteBR || 0, el.corteBL || 0) : 'none',
+                  backgroundRepeat: usaImagen ? 'no-repeat' : undefined,
+                  borderRadius: esCirculo ? '50%' : (esquinaCortada || clipForma ? 0 : `${el.radio ?? 12}px`),
+                  clipPath: clipForma || (esquinaCortada ? clipPathVertices(el.corteTL || 0, el.corteTR || 0, el.corteBR || 0, el.corteBL || 0) : 'none'),
                   border: el.bordeAncho ? `${el.bordeAncho}px solid ${el.bordeColor || '#ffffff'}` : undefined,
                   boxShadow: el.sombra ? `${el.sombraX ?? 0}px ${el.sombraY ?? 8}px ${el.sombraBlur ?? 20}px 0 ${el.sombraColor || 'rgba(0,0,0,.6)'}` : undefined,
                   opacity: opacidadBase,

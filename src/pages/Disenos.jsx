@@ -5,6 +5,7 @@ import { PLANTILLAS_MARCADOR } from '../marcadores/registro';
 import { PRESETS_POSICION, mostrar, FUENTES_DISPONIBLES } from '../marcadores/utils';
 import MiniPreviewMarcador from '../marcadores/MiniPreviewMarcador';
 import { CATALOGO_ICONOS, IconoSvg } from '../marcadores/iconosLibres';
+import { CATALOGO_FORMAS, clipPathDeForma } from '../marcadores/ElementosLibres';
 import PreviaCombinada from '../marcadores/PreviaCombinada';
 import EquipoFicha from '../components/EquipoFicha';
 import SelectorLogo from '../components/SelectorLogo';
@@ -586,13 +587,6 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
   // de comparar la previa contra la transmisión real: incluso agrandada
   // (900px → 1600px) seguía bastante por debajo de cómo se ve de verdad.
   const [previaPantallaCompleta, setPreviaPantallaCompleta] = useState(false);
-  // En pantalla completa + pestaña Creador, el panel de edición (Pasos 1-4)
-  // se muestra como una hoja flotante que se puede ocultar del todo — así
-  // el lienzo queda libre para trabajar "a mano" (arrastrar, redimensionar
-  // con las manijas, rotar) sin el panel tapando nada, tipo Canva/Photoshop
-  // en modo tableta. Arranca cerrada; tocar un elemento del lienzo la abre
-  // sola para mostrar su inspector.
-  const [panelCreadorAbierto, setPanelCreadorAbierto] = useState(false);
   const [pestanaExterna, setPestanaExterna] = useState(inicial?._irADirecto || 'personalizar');
   // El partido de "Juego en vivo" se prepara solo (nunca hace falta pedirlo
   // a mano) y se queda guardado en este estado mientras la pantalla siga
@@ -1233,6 +1227,595 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pestanaExterna]);
 
+  // El Creador SIEMPRE es una mesa de trabajo de pantalla completa — no un
+  // acordeón más dentro del panel normal de "Personalizar tablero". Por
+  // eso es un `return` aparte (temprano), no una sección más del árbol de
+  // abajo: nada de layout de página alrededor, lienzo al centro y los
+  // editores fijos a los costados, todo visible de una sin tener que
+  // scrollear por pasos. Sigue viviendo DENTRO de FormularioDiseno (no es
+  // un componente separado) a propósito: así reusa exactamente el mismo
+  // estado/funciones (creadorElementos, actualizarElemento, etc.) sin
+  // tener que pasar treinta props para abajo.
+  if (seccionAbierta === 'creador' && pestanaExterna === 'personalizar') {
+    const elegidos = creadorElementos.filter((el) => elementosSeleccionadosIds.includes(el.id));
+    return (
+      <div className="creador-workspace">
+        <div className="creador-workspace-top">
+          <button type="button" className="btn-link" onClick={() => setSeccionAbierta('marcador')}>← Salir del Creador</button>
+          <strong className="creador-workspace-titulo">
+            {PLANTILLAS_MARCADOR.find((p) => p.id === plantillaBase)?.nombre || inicial?._nombrePlantilla || 'Plantilla propia (Creador)'}
+          </strong>
+          <span className="creador-workspace-spacer" />
+          <div className="creador-herramientas" style={{ margin: 0 }}>
+            <button type="button" className={`btn-secundario btn-chico ${mostrarGrillaCreador ? 'activo' : ''}`} onClick={() => setMostrarGrillaCreador((v) => !v)} title="Grilla con imán cada 10%">▦ Grilla</button>
+            <button type="button" className={`btn-secundario btn-chico ${mostrarMargenSeguroCreador ? 'activo' : ''}`} onClick={() => setMostrarMargenSeguroCreador((v) => !v)} title="Guía de margen seguro para transmisión (5%)">⛶ Margen</button>
+            <span className="creador-herramientas-separador" />
+            <button type="button" className="btn-secundario btn-chico" onClick={() => cambiarZoomCreador(zoomCreador - 0.25)} disabled={zoomCreador <= 0.5} title="Alejar">−</button>
+            <span className="creador-herramientas-zoom">{Math.round(zoomCreador * 100)}%</span>
+            <button type="button" className="btn-secundario btn-chico" onClick={() => cambiarZoomCreador(zoomCreador + 0.25)} disabled={zoomCreador >= 3} title="Acercar (para trabajar un detalle de cerca)">+</button>
+            {zoomCreador !== 1 && (
+              <button type="button" className={`btn-secundario btn-chico ${modoPanCreador ? 'activo' : ''}`} onClick={() => setModoPanCreador((v) => !v)} title="Arrastrar para mover la vista">✋</button>
+            )}
+            {(zoomCreador !== 1 || panCreador.x !== 0 || panCreador.y !== 0) && (
+              <button type="button" className="btn-link" onClick={restablecerVistaCreador}>Restablecer vista</button>
+            )}
+          </div>
+          <span className="creador-workspace-spacer" />
+          <button type="button" className="btn-secundario btn-chico" title="Deshacer (Ctrl+Z)" disabled={historialRef.current.length === 0} onClick={deshacer}>↶ Deshacer</button>
+          <button type="button" className="btn-secundario btn-chico" title="Rehacer (Ctrl+Shift+Z)" disabled={futuroRef.current.length === 0} onClick={rehacer}>↷ Rehacer</button>
+        </div>
+
+        <div className="creador-workspace-cuerpo">
+          <aside className="creador-workspace-panel creador-workspace-izquierda">
+            <div className="creador-paso">
+              <h4 className="creador-paso-titulo">Punto de partida</h4>
+              <p className="texto-tenue" style={{ margin: '0 0 8px', fontSize: 12 }}>
+                Cargá un diseño predefinido para no empezar de cero — después seguís ajustando cada pieza a gusto.
+              </p>
+              <div className="fila-form" style={{ margin: 0 }}>
+                {PRESETS_CREADOR.map((p) => (
+                  <button key={p.id} type="button" className="btn-secundario btn-chico" onClick={() => aplicarPresetCreador(p.elementos)}>
+                    🖼️ {p.nombre}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="creador-paso">
+              <h4 className="creador-paso-titulo">Agregar elemento</h4>
+              <p className="texto-tenue" style={{ margin: '0 0 6px', fontSize: 12 }}>
+                Los "reflejados" agregan Local y Visita juntos, ya enlazados: mover uno mueve al otro en espejo.
+              </p>
+              <div className="modal-opciones-grid" style={{ marginBottom: 10 }}>
+                {PARES_REFLEJADOS.map((p) => (
+                  <button key={p.local} type="button" className="btn-primario btn-chico" onClick={() => agregarParReflejado(p.local, p.visita)}>
+                    🔗 {p.etiqueta}
+                  </button>
+                ))}
+              </div>
+              <p className="texto-tenue" style={{ margin: '0 0 6px', fontSize: 12 }}>O agregá un solo lado / un dato suelto:</p>
+              <div className="modal-opciones-grid" style={{ marginBottom: 10 }}>
+                {TIPOS_ELEMENTO_DATO.map((t) => (
+                  <button key={t.tipo} type="button" className="btn-secundario btn-chico" onClick={() => agregarElemento(t.tipo)}>
+                    + {t.etiqueta}
+                  </button>
+                ))}
+              </div>
+              <div className="fila-form" style={{ margin: 0 }}>
+                <button type="button" className="btn-secundario" onClick={() => agregarElemento('texto')}>+ Texto libre</button>
+                <button type="button" className="btn-secundario" onClick={() => agregarElemento('forma')}>+ Forma / fondo</button>
+                <button type="button" className="btn-secundario" onClick={() => agregarElemento('imagen')} title="Un logo/imagen suelto en cualquier parte del tablero — ideal para el logo de un campeonato, torneo o auspiciante">+ Logo de campeonato / auspiciante</button>
+                <button type="button" className="btn-secundario" onClick={() => agregarElemento('icono')} title="Pelota, trofeo, estrella, rayo... un ícono deportivo ya hecho, sin subir ninguna imagen">+ Ícono</button>
+              </div>
+            </div>
+          </aside>
+
+          <main className="creador-workspace-centro">
+            <PreviaCombinada
+              plantillaId={plantillaBase}
+              config={config}
+              equipoLocalPreview={equipoLocalVivo}
+              equipoVisitaPreview={equipoVisitaVivo}
+              partidoReal={partidoEnVivo}
+              modo="marcador"
+              elementosLibresEditable
+              onArrastrarElementoLibre={arrastrarElementoLibre}
+              onCambiarElementoLibre={actualizarElemento}
+              elementosSeleccionadosIds={elementosSeleccionadosIds}
+              onSeleccionarElemento={(id, opciones) => seleccionarElemento(id, opciones)}
+              zoomCreador={zoomCreador}
+              panCreador={panCreador}
+              modoPanCreador={modoPanCreador}
+              onPanearCreador={(dx, dy) => setPanCreador((p) => ({ x: p.x + dx, y: p.y + dy }))}
+              mostrarGrillaCreador={mostrarGrillaCreador}
+              mostrarMargenSeguroCreador={mostrarMargenSeguroCreador}
+            />
+          </main>
+
+          <aside className="creador-workspace-panel creador-workspace-derecha">
+            {creadorElementos.length === 0 ? (
+              <p className="texto-tenue">Todavía no agregaste ningún elemento — usá el panel de la izquierda.</p>
+            ) : (
+              <>
+                <h4 className="creador-paso-titulo">Capas</h4>
+                <p className="texto-tenue" style={{ margin: '0 0 6px', fontSize: 12 }}>
+                  Tocá una para elegirla (shift+click o el check para elegir varias). También podés shift+click directo
+                  sobre un elemento en el lienzo.
+                </p>
+                <div className="creador-capas-lista">
+                  {creadorElementos.map((el, indice) => {
+                    const info = TIPOS_ELEMENTO_DATO.find((t) => t.tipo === el.tipo);
+                    const etiquetaTipo = info?.etiqueta || (el.tipo === 'texto' ? 'Texto libre' : el.tipo === 'forma' ? 'Forma / fondo' : el.tipo === 'imagen' ? 'Logo / imagen libre' : el.tipo === 'icono' ? 'Ícono' : el.tipo);
+                    const seleccionado = elementosSeleccionadosIds.includes(el.id);
+                    return (
+                      <div
+                        key={el.id}
+                        className={`creador-capa-fila ${seleccionado ? 'seleccionada' : ''}`}
+                        onClick={(e) => seleccionarElemento(el.id, { extender: e.shiftKey })}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={seleccionado}
+                          onClick={(e) => e.stopPropagation()}
+                          onChange={() => seleccionarElemento(el.id, { extender: true })}
+                          title="Sumar/sacar de la selección"
+                        />
+                        <input
+                          className="creador-capa-nombre"
+                          value={el.nombre || ''}
+                          placeholder={etiquetaTipo}
+                          onClick={(e) => e.stopPropagation()}
+                          onChange={(e) => actualizarElemento(el.id, { nombre: e.target.value })}
+                        />
+                        {el.parId && <span title="Enlazado en espejo con su par Local/Visita">🔗</span>}
+                        <button type="button" className="btn-link" title={el.oculto ? 'Mostrar' : 'Ocultar'} onClick={(e) => { e.stopPropagation(); alternarOculto(el.id); }}>{el.oculto ? '🚫' : '👁️'}</button>
+                        <button type="button" className="btn-link" title={el.bloqueado ? 'Desbloquear' : 'Bloquear'} onClick={(e) => { e.stopPropagation(); alternarBloqueo(el.id); }}>{el.bloqueado ? '🔒' : '🔓'}</button>
+                        <button type="button" className="btn-link" title="Enviar atrás" disabled={indice === 0} onClick={(e) => { e.stopPropagation(); moverElementoCapa(el.id, 'atras'); }}>⬇️</button>
+                        <button type="button" className="btn-link" title="Traer al frente" disabled={indice === creadorElementos.length - 1} onClick={(e) => { e.stopPropagation(); moverElementoCapa(el.id, 'frente'); }}>⬆️</button>
+                        <button type="button" className="btn-link" title="Eliminar" onClick={(e) => { e.stopPropagation(); eliminarElemento(el.id); }}>🗑️</button>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {elementosSeleccionadosIds.length > 0 && (
+                  <div className="creador-seleccion-barra">
+                    <span className="texto-tenue" style={{ fontSize: 12 }}>
+                      {elementosSeleccionadosIds.length === 1 ? '1 elemento elegido' : `${elementosSeleccionadosIds.length} elementos elegidos`}
+                    </span>
+                    <span className="creador-herramientas-separador" />
+                    <button type="button" className="btn-secundario btn-chico" title="Alinear a la izquierda del lienzo" onClick={() => alinearSeleccion('izquierda')}>⇤</button>
+                    <button type="button" className="btn-secundario btn-chico" title="Centrar horizontal" onClick={() => alinearSeleccion('centroH')}>⇔</button>
+                    <button type="button" className="btn-secundario btn-chico" title="Alinear a la derecha" onClick={() => alinearSeleccion('derecha')}>⇥</button>
+                    <button type="button" className="btn-secundario btn-chico" title="Alinear arriba" onClick={() => alinearSeleccion('arriba')}>⇡</button>
+                    <button type="button" className="btn-secundario btn-chico" title="Centrar vertical" onClick={() => alinearSeleccion('centroV')}>⇕</button>
+                    <button type="button" className="btn-secundario btn-chico" title="Alinear abajo" onClick={() => alinearSeleccion('abajo')}>⇣</button>
+                    {elementosSeleccionadosIds.length >= 3 && (
+                      <>
+                        <span className="creador-herramientas-separador" />
+                        <button type="button" className="btn-secundario btn-chico" title="Distribuir parejo, horizontal" onClick={() => distribuirSeleccion('x')}>⟷ Distribuir</button>
+                        <button type="button" className="btn-secundario btn-chico" title="Distribuir parejo, vertical" onClick={() => distribuirSeleccion('y')}>↕ Distribuir</button>
+                      </>
+                    )}
+                    <span className="creador-herramientas-separador" />
+                    {elementosSeleccionadosIds.length === 1 && (
+                      <button type="button" className="btn-secundario btn-chico" title="Copiar el borde/sombra/mezcla/animación/transparencia de este elemento, para pegarlo en otros" onClick={() => copiarEstilo(elementosSeleccionadosIds[0])}>📋 Copiar estilo</button>
+                    )}
+                    {estiloCopiado && (
+                      <button type="button" className="btn-secundario btn-chico" title="Aplica el estilo copiado a toda la selección actual" onClick={pegarEstilo}>🖌️ Pegar estilo</button>
+                    )}
+                    <span className="creador-herramientas-separador" />
+                    <button type="button" className="btn-secundario btn-chico" title="Duplicar (Ctrl/Cmd+D)" onClick={duplicarSeleccion}>⧉ Duplicar</button>
+                    <button type="button" className="btn-secundario btn-chico" title="Eliminar (Supr)" onClick={eliminarSeleccion}>🗑️ Eliminar</button>
+                    <button type="button" className="btn-link" onClick={() => seleccionarElemento(null)}>Deseleccionar</button>
+                  </div>
+                )}
+
+                {elegidos.length === 0 ? (
+                  <p className="texto-tenue">Elegí un elemento (tocalo en el lienzo o en la lista de arriba) para editar sus propiedades acá.</p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {elegidos.map((el) => {
+                      const info = TIPOS_ELEMENTO_DATO.find((t) => t.tipo === el.tipo);
+                      const etiquetaTipo = info?.etiqueta || (el.tipo === 'texto' ? 'Texto libre' : el.tipo === 'forma' ? 'Forma / fondo' : el.tipo === 'imagen' ? 'Logo / imagen libre' : el.tipo === 'icono' ? 'Ícono' : el.tipo);
+                      const esTexto = el.tipo === 'texto';
+                      const esForma = el.tipo === 'forma';
+                      const esImagen = el.tipo === 'imagen';
+                      const esIcono = el.tipo === 'icono';
+                      const esLogo = el.tipo === 'logoLocal' || el.tipo === 'logoVisita';
+                      const tieneColorEquipo = el.tipo.endsWith('Local') || el.tipo.endsWith('Visita');
+                      return (
+                        <div key={el.id} className="tarjeta" style={{ display: 'flex', flexDirection: 'column', gap: 8, borderColor: 'var(--primario)' }}>
+                          <div className="fila-form" style={{ margin: 0, justifyContent: 'space-between' }}>
+                            <strong style={{ fontSize: 13 }}>
+                              {el.nombre || etiquetaTipo}
+                              {el.parId && <span className="texto-tenue" title="Enlazado en espejo con su par Local/Visita" style={{ fontSize: 11, fontWeight: 400 }}> 🔗 reflejado</span>}
+                              {el.bloqueado && <span className="texto-tenue" title="Bloqueado: no se mueve/redimensiona desde el lienzo" style={{ fontSize: 11, fontWeight: 400 }}> 🔒 bloqueado</span>}
+                            </strong>
+                          </div>
+
+                          <div className="fila-form" style={{ margin: 0 }}>
+                            <CampoNumero etiqueta="X" valor={el.xPercent ?? 50} unidad="%" min={0} max={100} onChange={(v) => actualizarElemento(el.id, { xPercent: v })} />
+                            <CampoNumero etiqueta="Y" valor={el.yPercent ?? 50} unidad="%" min={0} max={100} onChange={(v) => actualizarElemento(el.id, { yPercent: v })} />
+                          </div>
+
+                          {esTexto && (
+                            <>
+                              {el.multilinea ? (
+                                <textarea
+                                  value={el.texto || ''}
+                                  onChange={(e) => actualizarElemento(el.id, { texto: e.target.value })}
+                                  placeholder="Escribí el texto… (Enter para pasar de línea)"
+                                  rows={3}
+                                  style={{ resize: 'vertical', width: '100%' }}
+                                />
+                              ) : (
+                                <input
+                                  value={el.texto || ''}
+                                  onChange={(e) => actualizarElemento(el.id, { texto: e.target.value })}
+                                  placeholder="Escribí el texto…"
+                                />
+                              )}
+                              <label className="mv-check-detalle" style={{ color: 'inherit' }}>
+                                <input type="checkbox" checked={!!el.multilinea} onChange={(e) => actualizarElemento(el.id, { multilinea: e.target.checked })} />
+                                Varias líneas (para un texto largo — banner, lema, auspiciante)
+                              </label>
+                              {el.multilinea && (
+                                <>
+                                  <CampoRango etiqueta="Ancho del bloque de texto" valor={el.anchoTexto ?? 400} unidad="px" min={100} max={1600} onChange={(v) => actualizarElemento(el.id, { anchoTexto: v })} />
+                                  <label>
+                                    Alineación del párrafo
+                                    <select value={el.alineacion || 'center'} onChange={(e) => actualizarElemento(el.id, { alineacion: e.target.value })}>
+                                      <option value="left">Izquierda</option>
+                                      <option value="center">Centro</option>
+                                      <option value="right">Derecha</option>
+                                    </select>
+                                  </label>
+                                </>
+                              )}
+                            </>
+                          )}
+
+                          <div className="fila-form" style={{ margin: 0 }}>
+                            <CampoRango
+                              etiqueta="Ángulo (girar todo el elemento)"
+                              valor={el.rotacion ?? 0} unidad="°" min={-180} max={180}
+                              onChange={(v) => actualizarElemento(el.id, { rotacion: v })}
+                              ayuda="También podés rotarlo arrastrando la manija redonda de arriba, directo en el lienzo."
+                            />
+                            <label style={{ flex: 1, minWidth: 160 }}>
+                              Animación
+                              <select value={el.animacion || 'ninguna'} onChange={(e) => actualizarElemento(el.id, { animacion: e.target.value })}>
+                                {ANIMACIONES_ELEMENTO.map((a) => <option key={a.id} value={a.id}>{a.etiqueta}</option>)}
+                              </select>
+                            </label>
+                          </div>
+
+                          {esForma ? (
+                            <>
+                              <p className="texto-tenue" style={{ margin: '0 0 2px', fontSize: 12 }}>Forma</p>
+                              <div className="creador-icono-grilla">
+                                {CATALOGO_FORMAS.map((f) => (
+                                  <button
+                                    key={f.id}
+                                    type="button"
+                                    title={f.etiqueta}
+                                    className={`creador-icono-btn ${(el.formaId || 'rectangulo') === f.id ? 'elegido' : ''}`}
+                                    onClick={() => actualizarElemento(el.id, {
+                                      formaId: f.id,
+                                      // Diamante/hexágono/estrella/etc. se ven mal estirados en el
+                                      // rectángulo angosto por defecto (220×90, pensado para un
+                                      // banner) — la primera vez que se sale de "Rectángulo" se
+                                      // cuadra el alto al ancho actual, un punto de partida mucho
+                                      // más razonable para estas formas. Si ya venía de otra forma
+                                      // no rectangular, no se vuelve a tocar (no pelea con un
+                                      // tamaño que el usuario ya ajustó a mano).
+                                      ...(f.id !== 'rectangulo' && (el.formaId || 'rectangulo') === 'rectangulo' ? { alto: el.ancho || 220 } : {}),
+                                    })}
+                                  >
+                                    <div style={{
+                                      width: '100%', height: '100%', background: 'var(--texto-tenue)',
+                                      borderRadius: f.id === 'circulo' ? '50%' : 0,
+                                      clipPath: clipPathDeForma(f.id) || 'none',
+                                    }} />
+                                  </button>
+                                ))}
+                              </div>
+
+                              <label>
+                                Relleno
+                                <select
+                                  value={el.rellenoTipo || (el.usarImagen ? 'imagen' : 'color')}
+                                  onChange={(e) => actualizarElemento(el.id, { rellenoTipo: e.target.value })}
+                                >
+                                  <option value="color">Color / degradado</option>
+                                  <option value="imagen">Imagen fija (subida)</option>
+                                  <option value="equipoLocal">Logo del equipo Local (en vivo)</option>
+                                  <option value="equipoVisita">Logo del equipo Visita (en vivo)</option>
+                                </select>
+                              </label>
+                              {(el.rellenoTipo || (el.usarImagen ? 'imagen' : 'color')) === 'imagen' && (
+                                <SelectorLogo
+                                  logos={logos}
+                                  value={el.imagenUrl || ''}
+                                  onChange={(url) => actualizarElemento(el.id, { imagenUrl: url })}
+                                  onLogoSubido={(l) => { setLogos((prev) => [l, ...prev]); actualizarElemento(el.id, { imagenUrl: urlLogo(l.filename) }); }}
+                                />
+                              )}
+                              {(el.rellenoTipo === 'equipoLocal' || el.rellenoTipo === 'equipoVisita') && (
+                                <p className="texto-tenue" style={{ margin: 0, fontSize: 12 }}>
+                                  Se actualiza solo con el logo del equipo {el.rellenoTipo === 'equipoLocal' ? 'Local' : 'Visita'} de este partido —
+                                  no hace falta elegir ninguna imagen, y si mañana juega otro rival, la forma muestra el logo nuevo sola.
+                                </p>
+                              )}
+
+                              {(el.rellenoTipo || (el.usarImagen ? 'imagen' : 'color')) !== 'imagen' && (
+                                <>
+                                  <label className="mv-check-detalle" style={{ color: 'inherit' }}>
+                                    <input type="checkbox" checked={!!el.colorAuto} onChange={(e) => actualizarElemento(el.id, { colorAuto: e.target.checked ? 'local' : null })} />
+                                    Color automático del equipo (en vez de un color fijo)
+                                  </label>
+                                  {el.colorAuto ? (
+                                    <div className="fila-form" style={{ margin: 0 }}>
+                                      <label className="mv-check-detalle" style={{ color: 'inherit' }}>
+                                        <input type="radio" name={`colorequipo-${el.id}`} checked={el.colorAuto === 'local'} onChange={() => actualizarElemento(el.id, { colorAuto: 'local' })} />
+                                        Local
+                                      </label>
+                                      <label className="mv-check-detalle" style={{ color: 'inherit' }}>
+                                        <input type="radio" name={`colorequipo-${el.id}`} checked={el.colorAuto === 'visita'} onChange={() => actualizarElemento(el.id, { colorAuto: 'visita' })} />
+                                        Visita
+                                      </label>
+                                    </div>
+                                  ) : (
+                                    <div className="fila-form" style={{ margin: 0 }}>
+                                      <span className="texto-tenue" style={{ fontSize: 12 }}>Color</span>
+                                      <input type="color" value={/^#/.test(el.color) ? el.color : '#0a0c14'} onChange={(e) => actualizarElemento(el.id, { color: e.target.value })} />
+                                    </div>
+                                  )}
+                                  <ControlGradiente el={el} actualizar={(c) => actualizarElemento(el.id, c)} campoColor2="color2" campoColor3="color3" />
+                                </>
+                              )}
+
+                              <CampoRango etiqueta="Ancho" valor={el.ancho ?? 220} unidad="px" min={20} max={800} onChange={(v) => actualizarElemento(el.id, { ancho: v })} />
+                              <CampoRango etiqueta="Alto" valor={el.alto ?? 90} unidad="px" min={20} max={800} onChange={(v) => actualizarElemento(el.id, { alto: v })} />
+                              <label className="mv-check-detalle" style={{ color: 'inherit' }}>
+                                <input type="checkbox" checked={!!el.proporcionFija} onChange={(e) => actualizarElemento(el.id, { proporcionFija: e.target.checked })} />
+                                Mantener proporción al redimensionar con las manijas del lienzo
+                              </label>
+
+                              {(el.formaId || 'rectangulo') === 'rectangulo' && (
+                                <>
+                                  <p className="texto-tenue" style={{ margin: '4px 0 0', fontSize: 12 }}>Esquinas (ángulo de cada vértice — no es el ángulo de giro de arriba)</p>
+                                  <div className="fila-form" style={{ margin: 0 }}>
+                                    <label className="mv-check-detalle" style={{ color: 'inherit' }}>
+                                      <input
+                                        type="radio" name={`esquina-${el.id}`}
+                                        checked={el.esquinaModo !== 'cortada'}
+                                        onChange={() => actualizarElemento(el.id, { esquinaModo: 'redondeada' })}
+                                      />
+                                      Redondeada
+                                    </label>
+                                    <label className="mv-check-detalle" style={{ color: 'inherit' }}>
+                                      <input
+                                        type="radio" name={`esquina-${el.id}`}
+                                        checked={el.esquinaModo === 'cortada'}
+                                        onChange={() => actualizarElemento(el.id, { esquinaModo: 'cortada' })}
+                                      />
+                                      Cortada (recta, en ángulo — ribbon/paralelogramo)
+                                    </label>
+                                  </div>
+                                  {el.esquinaModo === 'cortada' ? (
+                                    <div className="fila-form" style={{ margin: 0 }}>
+                                      <CampoRango etiqueta="Vértice arriba-izq." valor={el.corteTL ?? 0} unidad="px" min={0} max={300} onChange={(v) => actualizarElemento(el.id, { corteTL: v })} />
+                                      <CampoRango etiqueta="Vértice arriba-der." valor={el.corteTR ?? 0} unidad="px" min={0} max={300} onChange={(v) => actualizarElemento(el.id, { corteTR: v })} />
+                                      <CampoRango etiqueta="Vértice abajo-der." valor={el.corteBR ?? 0} unidad="px" min={0} max={300} onChange={(v) => actualizarElemento(el.id, { corteBR: v })} />
+                                      <CampoRango etiqueta="Vértice abajo-izq." valor={el.corteBL ?? 0} unidad="px" min={0} max={300} onChange={(v) => actualizarElemento(el.id, { corteBL: v })} />
+                                    </div>
+                                  ) : (
+                                    <CampoRango
+                                      etiqueta="Redondeo de esquinas"
+                                      valor={el.radio ?? 12}
+                                      unidad="px"
+                                      min={0} max={400}
+                                      onChange={(v) => actualizarElemento(el.id, { radio: v })}
+                                      ayuda="Llevalo al máximo para un círculo o una píldora perfecta."
+                                    />
+                                  )}
+                                </>
+                              )}
+                              <CampoRango etiqueta="Transparencia" valor={el.opacidad ?? 100} min={5} max={100} onChange={(v) => actualizarElemento(el.id, { opacidad: v })} />
+                              <ControlEstiloComun el={el} actualizar={(c) => actualizarElemento(el.id, c)} />
+                            </>
+                          ) : esImagen ? (
+                            <>
+                              <p className="texto-tenue" style={{ margin: '0 0 2px', fontSize: 12 }}>
+                                Logo de un campeonato/torneo, auspiciante, o cualquier imagen suelta.
+                              </p>
+                              <SelectorLogo
+                                logos={logos}
+                                value={el.imagenUrl || ''}
+                                onChange={(url) => actualizarElemento(el.id, { imagenUrl: url })}
+                                onLogoSubido={(l) => { setLogos((prev) => [l, ...prev]); actualizarElemento(el.id, { imagenUrl: urlLogo(l.filename) }); }}
+                              />
+                              <CampoRango etiqueta="Ancho" valor={el.ancho ?? 200} unidad="px" min={20} max={800} onChange={(v) => actualizarElemento(el.id, { ancho: v })} />
+                              <CampoRango etiqueta="Alto" valor={el.alto ?? 200} unidad="px" min={20} max={800} onChange={(v) => actualizarElemento(el.id, { alto: v })} />
+                              <label className="mv-check-detalle" style={{ color: 'inherit' }}>
+                                <input type="checkbox" checked={!!el.proporcionFija} onChange={(e) => actualizarElemento(el.id, { proporcionFija: e.target.checked })} />
+                                Mantener proporción al redimensionar con las manijas del lienzo
+                              </label>
+                              <label>
+                                Ajuste de la imagen adentro
+                                <select value={el.ajuste || 'contain'} onChange={(e) => actualizarElemento(el.id, { ajuste: e.target.value })}>
+                                  <option value="contain">Contener (se ve completo, puede dejar huecos)</option>
+                                  <option value="cover">Cubrir (llena todo, puede recortar bordes)</option>
+                                  <option value="fill">Estirar (llena todo, puede deformar)</option>
+                                </select>
+                              </label>
+                              <p className="texto-tenue" style={{ margin: '4px 0 0', fontSize: 12 }}>Esquinas (ángulo de cada vértice — no es el ángulo de giro de arriba)</p>
+                              <div className="fila-form" style={{ margin: 0 }}>
+                                <label className="mv-check-detalle" style={{ color: 'inherit' }}>
+                                  <input
+                                    type="radio" name={`esquina-${el.id}`}
+                                    checked={el.esquinaModo !== 'cortada'}
+                                    onChange={() => actualizarElemento(el.id, { esquinaModo: 'redondeada' })}
+                                  />
+                                  Redondeada
+                                </label>
+                                <label className="mv-check-detalle" style={{ color: 'inherit' }}>
+                                  <input
+                                    type="radio" name={`esquina-${el.id}`}
+                                    checked={el.esquinaModo === 'cortada'}
+                                    onChange={() => actualizarElemento(el.id, { esquinaModo: 'cortada' })}
+                                  />
+                                  Cortada (recta, en ángulo)
+                                </label>
+                              </div>
+                              {el.esquinaModo === 'cortada' ? (
+                                <div className="fila-form" style={{ margin: 0 }}>
+                                  <CampoRango etiqueta="Vértice arriba-izq." valor={el.corteTL ?? 0} unidad="px" min={0} max={300} onChange={(v) => actualizarElemento(el.id, { corteTL: v })} />
+                                  <CampoRango etiqueta="Vértice arriba-der." valor={el.corteTR ?? 0} unidad="px" min={0} max={300} onChange={(v) => actualizarElemento(el.id, { corteTR: v })} />
+                                  <CampoRango etiqueta="Vértice abajo-der." valor={el.corteBR ?? 0} unidad="px" min={0} max={300} onChange={(v) => actualizarElemento(el.id, { corteBR: v })} />
+                                  <CampoRango etiqueta="Vértice abajo-izq." valor={el.corteBL ?? 0} unidad="px" min={0} max={300} onChange={(v) => actualizarElemento(el.id, { corteBL: v })} />
+                                </div>
+                              ) : (
+                                <CampoRango
+                                  etiqueta="Redondeo de esquinas"
+                                  valor={el.radio ?? 0}
+                                  unidad="px"
+                                  min={0} max={400}
+                                  onChange={(v) => actualizarElemento(el.id, { radio: v })}
+                                  ayuda="Llevalo al máximo para un círculo o una píldora perfecta."
+                                />
+                              )}
+                              <CampoRango etiqueta="Transparencia" valor={el.opacidad ?? 100} min={5} max={100} onChange={(v) => actualizarElemento(el.id, { opacidad: v })} />
+                              <ControlEstiloComun el={el} actualizar={(c) => actualizarElemento(el.id, c)} />
+                            </>
+                          ) : esIcono ? (
+                            <>
+                              <div className="creador-icono-grilla">
+                                {CATALOGO_ICONOS.map((ic) => (
+                                  <button
+                                    key={ic.id}
+                                    type="button"
+                                    title={ic.etiqueta}
+                                    className={`creador-icono-btn ${el.iconoId === ic.id ? 'elegido' : ''}`}
+                                    onClick={() => actualizarElemento(el.id, { iconoId: ic.id })}
+                                  >
+                                    <IconoSvg id={ic.id} color={el.color || '#ffd60a'} />
+                                  </button>
+                                ))}
+                              </div>
+                              <div className="fila-form" style={{ margin: 0 }}>
+                                <span className="texto-tenue" style={{ fontSize: 12 }}>Color</span>
+                                <input type="color" value={/^#/.test(el.color) ? el.color : '#ffd60a'} onChange={(e) => actualizarElemento(el.id, { color: e.target.value })} />
+                              </div>
+                              <CampoRango etiqueta="Tamaño" valor={el.tamano ?? 80} unidad="px" min={20} max={400} onChange={(v) => actualizarElemento(el.id, { tamano: v })} />
+                              <CampoRango etiqueta="Transparencia" valor={el.opacidad ?? 100} min={10} max={100} onChange={(v) => actualizarElemento(el.id, { opacidad: v })} />
+                              <ControlEstiloComun el={el} actualizar={(c) => actualizarElemento(el.id, c)} />
+                            </>
+                          ) : esLogo ? (
+                            <>
+                              <CampoRango etiqueta="Ancho" valor={el.tamano ?? 90} unidad="px" min={20} max={400} onChange={(v) => actualizarElemento(el.id, { tamano: v })} />
+                              <div className="fila-form" style={{ margin: 0 }}>
+                                <label className="mv-check-detalle" style={{ color: 'inherit' }}>
+                                  <input type="checkbox" checked={Boolean(el.alto)} onChange={(e) => actualizarElemento(el.id, { alto: e.target.checked ? (el.tamano ?? 90) : null })} />
+                                  Fijar alto propio (si no, se mantiene proporcional)
+                                </label>
+                              </div>
+                              {Boolean(el.alto) && (
+                                <>
+                                  <CampoRango etiqueta="Alto" valor={el.alto ?? 90} unidad="px" min={20} max={400} onChange={(v) => actualizarElemento(el.id, { alto: v })} />
+                                  <label>
+                                    Ajuste de la imagen adentro
+                                    <select value={el.ajuste || 'contain'} onChange={(e) => actualizarElemento(el.id, { ajuste: e.target.value })}>
+                                      <option value="contain">Contener (se ve completo, puede dejar huecos)</option>
+                                      <option value="cover">Cubrir (llena todo, puede recortar bordes)</option>
+                                      <option value="fill">Estirar (llena todo, puede deformar)</option>
+                                    </select>
+                                  </label>
+                                </>
+                              )}
+                              <CampoRango
+                                etiqueta="Redondeo (marco circular/píldora)"
+                                valor={el.radio ?? 0} unidad="px" min={0} max={200}
+                                onChange={(v) => actualizarElemento(el.id, { radio: v })}
+                              />
+                              <CampoRango etiqueta="Transparencia" valor={el.opacidad ?? 100} min={10} max={100} onChange={(v) => actualizarElemento(el.id, { opacidad: v })} />
+                              <ControlEstiloComun el={el} actualizar={(c) => actualizarElemento(el.id, c)} />
+                            </>
+                          ) : (
+                            <>
+                              <SelectorFuente value={el.fuente} onChange={(v) => actualizarElemento(el.id, { fuente: v })} />
+                              <CampoRango etiqueta="Tamaño" valor={el.tamano ?? 32} unidad="px" min={10} max={160} onChange={(v) => actualizarElemento(el.id, { tamano: v })} />
+                              <div className="fila-form" style={{ margin: 0 }}>
+                                <label className="mv-check-detalle" style={{ color: 'inherit' }}>
+                                  <input type="checkbox" checked={el.negrita !== false} onChange={(e) => actualizarElemento(el.id, { negrita: e.target.checked })} />
+                                  Negrita
+                                </label>
+                                <label className="mv-check-detalle" style={{ color: 'inherit' }}>
+                                  <input type="checkbox" checked={!!el.mayusculas} onChange={(e) => actualizarElemento(el.id, { mayusculas: e.target.checked })} />
+                                  MAYÚSCULAS
+                                </label>
+                              </div>
+                              {tieneColorEquipo && (
+                                <label className="mv-check-detalle" style={{ color: 'inherit' }}>
+                                  <input type="checkbox" checked={el.colorAuto !== false} onChange={(e) => actualizarElemento(el.id, { colorAuto: e.target.checked })} />
+                                  Usar el color del equipo
+                                </label>
+                              )}
+                              {(!tieneColorEquipo || el.colorAuto === false) && (
+                                <div className="fila-form" style={{ margin: 0 }}>
+                                  <span className="texto-tenue" style={{ fontSize: 12 }}>Color del texto</span>
+                                  <input type="color" value={/^#/.test(el.color) ? el.color : '#ffffff'} onChange={(e) => actualizarElemento(el.id, { color: e.target.value })} />
+                                </div>
+                              )}
+                              <label className="mv-check-detalle" style={{ color: 'inherit' }}>
+                                <input type="checkbox" checked={!!el.fondoColor} onChange={(e) => actualizarElemento(el.id, { fondoColor: e.target.checked ? 'rgba(10,12,20,.75)' : null })} />
+                                Fondo detrás del texto
+                              </label>
+                              {el.fondoColor && (
+                                <>
+                                  <div className="fila-form" style={{ margin: 0 }}>
+                                    <span className="texto-tenue" style={{ fontSize: 12 }}>Color de fondo</span>
+                                    <input type="color" value={/^#/.test(el.fondoColor) ? el.fondoColor : '#0a0c14'} onChange={(e) => actualizarElemento(el.id, { fondoColor: e.target.value })} />
+                                  </div>
+                                  <ControlGradiente el={el} actualizar={(c) => actualizarElemento(el.id, c)} campoColor2="fondoColor2" campoColor3="fondoColor3" />
+                                </>
+                              )}
+                              <ControlEstiloComun el={el} actualizar={(c) => actualizarElemento(el.id, c)} />
+                            </>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </>
+            )}
+
+            <div className="creador-paso" style={{ marginTop: 16 }}>
+              <h4 className="creador-paso-titulo">Guardar como plantilla propia</h4>
+              <p className="texto-tenue" style={{ margin: '0 0 8px', fontSize: 12 }}>
+                Guarda ESTE armado como una plantilla nueva en tu cuenta, con su propio enlace fijo de OBS. Este diseño
+                puntual se sigue guardando solo, como siempre.
+              </p>
+              <input
+                placeholder="Nombre de la plantilla (ej. Mi marcador de liga)"
+                value={nombreNuevaPlantilla}
+                onChange={(e) => setNombreNuevaPlantilla(e.target.value)}
+                style={{ width: '100%', marginBottom: 8 }}
+              />
+              <button type="button" className="btn-primario" disabled={guardandoPlantilla} onClick={guardarComoPlantilla} style={{ width: '100%' }}>
+                {guardandoPlantilla ? 'Guardando…' : '💾 Guardar como plantilla nueva'}
+              </button>
+              {mensajePlantilla && <p className={mensajePlantilla.includes('✓') ? 'mensaje-exito' : 'mensaje-error'} style={{ marginTop: 8 }}>{mensajePlantilla}</p>}
+            </div>
+          </aside>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="tarjeta" style={{ marginBottom: 20 }}>
       <div className="fila-form" style={{ justifyContent: 'space-between' }}>
@@ -1337,48 +1920,11 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
               onCerrarPantallaCompleta={() => setPreviaPantallaCompleta(false)}
               logosLibresEditable={seccionAbierta === 'logos'}
               onArrastrarLogoLibre={(id, x, y) => actualizarLogoLibre(id, { xPercent: x, yPercent: y })}
-              elementosLibresEditable={seccionAbierta === 'creador'}
-              onArrastrarElementoLibre={arrastrarElementoLibre}
-              onCambiarElementoLibre={actualizarElemento}
-              elementosSeleccionadosIds={elementosSeleccionadosIds}
-              onSeleccionarElemento={(id, opciones) => { seleccionarElemento(id, opciones); if (previaPantallaCompleta && id != null) setPanelCreadorAbierto(true); }}
-              zoomCreador={zoomCreador}
-              panCreador={panCreador}
-              modoPanCreador={modoPanCreador}
-              onPanearCreador={(dx, dy) => setPanCreador((p) => ({ x: p.x + dx, y: p.y + dy }))}
-              mostrarGrillaCreador={mostrarGrillaCreador}
-              mostrarMargenSeguroCreador={mostrarMargenSeguroCreador}
               animacionPuntosEditable={seccionAbierta === 'marcador'}
               onArrastrarAnimacionPuntos={arrastrarAnimacionPuntos}
               anunciosEditable={seccionAbierta === 'anuncios'}
               onArrastrarAnuncios={arrastrarAnuncios}
             />
-          )}
-          {mostrarPrevia && seccionAbierta === 'creador' && (
-            <div className={previaPantallaCompleta ? 'creador-herramientas-flotante' : 'creador-herramientas'}>
-              <button type="button" className={`btn-secundario btn-chico ${mostrarGrillaCreador ? 'activo' : ''}`} onClick={() => setMostrarGrillaCreador((v) => !v)} title="Grilla con imán cada 10%">▦ Grilla</button>
-              <button type="button" className={`btn-secundario btn-chico ${mostrarMargenSeguroCreador ? 'activo' : ''}`} onClick={() => setMostrarMargenSeguroCreador((v) => !v)} title="Guía de margen seguro para transmisión (5%)">⛶ Margen seguro</button>
-              <span className="creador-herramientas-separador" />
-              <button type="button" className="btn-secundario btn-chico" onClick={() => cambiarZoomCreador(zoomCreador - 0.25)} disabled={zoomCreador <= 0.5} title="Alejar">−</button>
-              <span className="creador-herramientas-zoom">{Math.round(zoomCreador * 100)}%</span>
-              <button type="button" className="btn-secundario btn-chico" onClick={() => cambiarZoomCreador(zoomCreador + 0.25)} disabled={zoomCreador >= 3} title="Acercar (para trabajar un detalle de cerca)">+</button>
-              {zoomCreador !== 1 && (
-                <button type="button" className={`btn-secundario btn-chico ${modoPanCreador ? 'activo' : ''}`} onClick={() => setModoPanCreador((v) => !v)} title="Arrastrar para mover la vista (solo mientras hay zoom)">✋ Mover vista</button>
-              )}
-              {(zoomCreador !== 1 || panCreador.x !== 0 || panCreador.y !== 0) && (
-                <button type="button" className="btn-link" onClick={restablecerVistaCreador}>Restablecer vista</button>
-              )}
-            </div>
-          )}
-          {mostrarPrevia && previaPantallaCompleta && seccionAbierta === 'creador' && (
-            <button
-              type="button"
-              className="creador-flotante-toggle"
-              onClick={() => setPanelCreadorAbierto((v) => !v)}
-              title="Mostrar/ocultar el panel de edición"
-            >
-              {panelCreadorAbierto ? '✕ Cerrar panel' : '🛠️ Editar elementos'}
-            </button>
           )}
         </div>
 
@@ -2067,484 +2613,6 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
               ))}
             </div>
           )}
-        </div>
-
-        {/* ───────── CREADOR (Canva libre del marcador) ───────── */}
-        {/* En pantalla completa, este mismo panel (sin duplicar nada) pasa a
-            ser una hoja flotante inferior tipo iOS — así se puede seguir
-            agregando/ajustando elementos sin salir del modo "lienzo grande",
-            y se puede ocultar del todo para trabajar solo con las manijas
-            en el lienzo (ver el botón "🛠️ Editar elementos" de arriba). */}
-        <div
-          className={`grupo-personalizacion${previaPantallaCompleta && seccionAbierta === 'creador' ? ' creador-flotante' : ''}`}
-          hidden={seccionAbierta !== 'creador' || (previaPantallaCompleta && !panelCreadorAbierto)}
-        >
-          <div className="grupo-titulo">🎨 Creador de marcador</div>
-          <p className="texto-tenue" style={{ margin: '0 0 14px' }}>
-            Armá el marcador paso a paso: elegí un punto de partida, agregá elementos, ajustalos uno por uno arrastrando
-            directo en la vista previa de arriba, y guardá el resultado como una plantilla propia si querés reusarla.
-            Funciona sobre CUALQUIER plantilla — para un lienzo completamente en blanco, elegí "🎨 Creador Libre" en el catálogo.
-          </p>
-
-          <div className="creador-paso">
-            <h4 className="creador-paso-titulo">Paso 1 · Punto de partida (opcional)</h4>
-            <p className="texto-tenue" style={{ margin: '0 0 8px', fontSize: 12 }}>
-              Cargá un diseño predefinido para no empezar de cero — después seguís ajustando cada pieza a gusto.
-            </p>
-            <div className="fila-form" style={{ margin: 0 }}>
-              {PRESETS_CREADOR.map((p) => (
-                <button key={p.id} type="button" className="btn-secundario btn-chico" onClick={() => aplicarPresetCreador(p.elementos)}>
-                  🖼️ {p.nombre}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="creador-paso">
-            <h4 className="creador-paso-titulo">Paso 2 · Agregar elementos</h4>
-            <p className="texto-tenue" style={{ margin: '0 0 6px', fontSize: 12 }}>
-              Los "reflejados" agregan Local y Visita juntos, ya enlazados: mover uno mueve al otro en espejo, así el
-              tablero queda siempre simétrico (lo que se ajusta a la izquierda se refleja solo a la derecha).
-            </p>
-            <div className="modal-opciones-grid" style={{ marginBottom: 10 }}>
-              {PARES_REFLEJADOS.map((p) => (
-                <button key={p.local} type="button" className="btn-primario btn-chico" onClick={() => agregarParReflejado(p.local, p.visita)}>
-                  🔗 {p.etiqueta} (Local + Visita)
-                </button>
-              ))}
-            </div>
-            <p className="texto-tenue" style={{ margin: '0 0 6px', fontSize: 12 }}>O agregá un solo lado / un dato suelto:</p>
-            <div className="modal-opciones-grid" style={{ marginBottom: 10 }}>
-              {TIPOS_ELEMENTO_DATO.map((t) => (
-                <button key={t.tipo} type="button" className="btn-secundario btn-chico" onClick={() => agregarElemento(t.tipo)}>
-                  + {t.etiqueta}
-                </button>
-              ))}
-            </div>
-            <div className="fila-form" style={{ margin: 0 }}>
-              <button type="button" className="btn-secundario" onClick={() => agregarElemento('texto')}>+ Texto libre</button>
-              <button type="button" className="btn-secundario" onClick={() => agregarElemento('forma')}>+ Forma / fondo</button>
-              <button type="button" className="btn-secundario" onClick={() => agregarElemento('imagen')} title="Un logo/imagen suelto en cualquier parte del tablero — ideal para el logo de un campeonato, torneo o auspiciante">+ Logo de campeonato / auspiciante</button>
-              <button type="button" className="btn-secundario" onClick={() => agregarElemento('icono')} title="Pelota, trofeo, estrella, rayo... un ícono deportivo ya hecho, sin subir ninguna imagen">+ Ícono</button>
-            </div>
-          </div>
-
-          <div className="creador-paso">
-            <h4 className="creador-paso-titulo">Paso 3 · Ajustar cada elemento</h4>
-            {creadorElementos.length === 0 ? (
-              <p className="texto-tenue">Todavía no agregaste ningún elemento — empezá por el Paso 2.</p>
-            ) : (
-              <>
-                <p className="texto-tenue" style={{ margin: '0 0 6px', fontSize: 12 }}>
-                  Capas (tocá para elegir una; shift+click o el check para elegir varias — mover en el lienzo mueve a
-                  todas juntas). También podés shift+click directo sobre un elemento en el lienzo.
-                </p>
-                <div className="creador-capas-lista">
-                  {creadorElementos.map((el, indice) => {
-                    const info = TIPOS_ELEMENTO_DATO.find((t) => t.tipo === el.tipo);
-                    const etiquetaTipo = info?.etiqueta || (el.tipo === 'texto' ? 'Texto libre' : el.tipo === 'forma' ? 'Forma / fondo' : el.tipo === 'imagen' ? 'Logo / imagen libre' : el.tipo === 'icono' ? 'Ícono' : el.tipo);
-                    const seleccionado = elementosSeleccionadosIds.includes(el.id);
-                    return (
-                      <div
-                        key={el.id}
-                        className={`creador-capa-fila ${seleccionado ? 'seleccionada' : ''}`}
-                        onClick={(e) => seleccionarElemento(el.id, { extender: e.shiftKey })}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={seleccionado}
-                          onClick={(e) => e.stopPropagation()}
-                          onChange={() => seleccionarElemento(el.id, { extender: true })}
-                          title="Sumar/sacar de la selección"
-                        />
-                        <input
-                          className="creador-capa-nombre"
-                          value={el.nombre || ''}
-                          placeholder={etiquetaTipo}
-                          onClick={(e) => e.stopPropagation()}
-                          onChange={(e) => actualizarElemento(el.id, { nombre: e.target.value })}
-                        />
-                        {el.parId && <span title="Enlazado en espejo con su par Local/Visita">🔗</span>}
-                        <button type="button" className="btn-link" title={el.oculto ? 'Mostrar' : 'Ocultar'} onClick={(e) => { e.stopPropagation(); alternarOculto(el.id); }}>{el.oculto ? '🚫' : '👁️'}</button>
-                        <button type="button" className="btn-link" title={el.bloqueado ? 'Desbloquear' : 'Bloquear'} onClick={(e) => { e.stopPropagation(); alternarBloqueo(el.id); }}>{el.bloqueado ? '🔒' : '🔓'}</button>
-                        <button type="button" className="btn-link" title="Enviar atrás" disabled={indice === 0} onClick={(e) => { e.stopPropagation(); moverElementoCapa(el.id, 'atras'); }}>⬇️</button>
-                        <button type="button" className="btn-link" title="Traer al frente" disabled={indice === creadorElementos.length - 1} onClick={(e) => { e.stopPropagation(); moverElementoCapa(el.id, 'frente'); }}>⬆️</button>
-                        <button type="button" className="btn-link" title="Eliminar" onClick={(e) => { e.stopPropagation(); eliminarElemento(el.id); }}>🗑️</button>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {elementosSeleccionadosIds.length > 0 && (
-                  <div className="creador-seleccion-barra">
-                    <span className="texto-tenue" style={{ fontSize: 12 }}>
-                      {elementosSeleccionadosIds.length === 1 ? '1 elemento elegido' : `${elementosSeleccionadosIds.length} elementos elegidos`}
-                    </span>
-                    <span className="creador-herramientas-separador" />
-                    <button type="button" className="btn-secundario btn-chico" title="Alinear a la izquierda del lienzo" onClick={() => alinearSeleccion('izquierda')}>⇤</button>
-                    <button type="button" className="btn-secundario btn-chico" title="Centrar horizontal" onClick={() => alinearSeleccion('centroH')}>⇔</button>
-                    <button type="button" className="btn-secundario btn-chico" title="Alinear a la derecha" onClick={() => alinearSeleccion('derecha')}>⇥</button>
-                    <button type="button" className="btn-secundario btn-chico" title="Alinear arriba" onClick={() => alinearSeleccion('arriba')}>⇡</button>
-                    <button type="button" className="btn-secundario btn-chico" title="Centrar vertical" onClick={() => alinearSeleccion('centroV')}>⇕</button>
-                    <button type="button" className="btn-secundario btn-chico" title="Alinear abajo" onClick={() => alinearSeleccion('abajo')}>⇣</button>
-                    {elementosSeleccionadosIds.length >= 3 && (
-                      <>
-                        <span className="creador-herramientas-separador" />
-                        <button type="button" className="btn-secundario btn-chico" title="Distribuir parejo, horizontal" onClick={() => distribuirSeleccion('x')}>⟷ Distribuir</button>
-                        <button type="button" className="btn-secundario btn-chico" title="Distribuir parejo, vertical" onClick={() => distribuirSeleccion('y')}>↕ Distribuir</button>
-                      </>
-                    )}
-                    <span className="creador-herramientas-separador" />
-                    {elementosSeleccionadosIds.length === 1 && (
-                      <button type="button" className="btn-secundario btn-chico" title="Copiar el borde/sombra/mezcla/animación/transparencia de este elemento, para pegarlo en otros" onClick={() => copiarEstilo(elementosSeleccionadosIds[0])}>📋 Copiar estilo</button>
-                    )}
-                    {estiloCopiado && (
-                      <button type="button" className="btn-secundario btn-chico" title="Aplica el estilo copiado a toda la selección actual" onClick={pegarEstilo}>🖌️ Pegar estilo</button>
-                    )}
-                    <span className="creador-herramientas-separador" />
-                    <button type="button" className="btn-secundario btn-chico" title="Duplicar (Ctrl/Cmd+D)" onClick={duplicarSeleccion}>⧉ Duplicar</button>
-                    <button type="button" className="btn-secundario btn-chico" title="Eliminar (Supr)" onClick={eliminarSeleccion}>🗑️ Eliminar</button>
-                    <button type="button" className="btn-link" onClick={() => seleccionarElemento(null)}>Deseleccionar</button>
-                  </div>
-                )}
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {creadorElementos.map((el) => {
-                  const info = TIPOS_ELEMENTO_DATO.find((t) => t.tipo === el.tipo);
-                  const etiquetaTipo = info?.etiqueta || (el.tipo === 'texto' ? 'Texto libre' : el.tipo === 'forma' ? 'Forma / fondo' : el.tipo === 'imagen' ? 'Logo / imagen libre' : el.tipo === 'icono' ? 'Ícono' : el.tipo);
-                  const esTexto = el.tipo === 'texto';
-                  const esForma = el.tipo === 'forma';
-                  const esImagen = el.tipo === 'imagen';
-                  const esIcono = el.tipo === 'icono';
-                  const esLogo = el.tipo === 'logoLocal' || el.tipo === 'logoVisita';
-                  const tieneColorEquipo = el.tipo.endsWith('Local') || el.tipo.endsWith('Visita');
-                  return (
-                    <div
-                      key={el.id}
-                      className="tarjeta"
-                      style={{ display: 'flex', flexDirection: 'column', gap: 8, borderColor: elementosSeleccionadosIds.includes(el.id) ? 'var(--primario)' : undefined }}
-                      onClick={(e) => seleccionarElemento(el.id, { extender: e.shiftKey })}
-                    >
-                      <div className="fila-form" style={{ margin: 0, justifyContent: 'space-between' }}>
-                        <strong style={{ fontSize: 13 }}>
-                          {el.nombre || etiquetaTipo}
-                          {el.parId && <span className="texto-tenue" title="Enlazado en espejo con su par Local/Visita" style={{ fontSize: 11, fontWeight: 400 }}> 🔗 reflejado</span>}
-                          {el.bloqueado && <span className="texto-tenue" title="Bloqueado: no se mueve/redimensiona desde el lienzo" style={{ fontSize: 11, fontWeight: 400 }}> 🔒 bloqueado</span>}
-                        </strong>
-                      </div>
-
-                      <div className="fila-form" style={{ margin: 0 }}>
-                        <CampoNumero etiqueta="X" valor={el.xPercent ?? 50} unidad="%" min={0} max={100} onChange={(v) => actualizarElemento(el.id, { xPercent: v })} />
-                        <CampoNumero etiqueta="Y" valor={el.yPercent ?? 50} unidad="%" min={0} max={100} onChange={(v) => actualizarElemento(el.id, { yPercent: v })} />
-                      </div>
-
-                      {esTexto && (
-                        <>
-                          {el.multilinea ? (
-                            <textarea
-                              value={el.texto || ''}
-                              onChange={(e) => actualizarElemento(el.id, { texto: e.target.value })}
-                              placeholder="Escribí el texto… (Enter para pasar de línea)"
-                              rows={3}
-                              style={{ resize: 'vertical', width: '100%' }}
-                            />
-                          ) : (
-                            <input
-                              value={el.texto || ''}
-                              onChange={(e) => actualizarElemento(el.id, { texto: e.target.value })}
-                              placeholder="Escribí el texto…"
-                            />
-                          )}
-                          <label className="mv-check-detalle" style={{ color: 'inherit' }}>
-                            <input type="checkbox" checked={!!el.multilinea} onChange={(e) => actualizarElemento(el.id, { multilinea: e.target.checked })} />
-                            Varias líneas (para un texto largo — banner, lema, auspiciante)
-                          </label>
-                          {el.multilinea && (
-                            <>
-                              <CampoRango etiqueta="Ancho del bloque de texto" valor={el.anchoTexto ?? 400} unidad="px" min={100} max={1600} onChange={(v) => actualizarElemento(el.id, { anchoTexto: v })} />
-                              <label>
-                                Alineación del párrafo
-                                <select value={el.alineacion || 'center'} onChange={(e) => actualizarElemento(el.id, { alineacion: e.target.value })}>
-                                  <option value="left">Izquierda</option>
-                                  <option value="center">Centro</option>
-                                  <option value="right">Derecha</option>
-                                </select>
-                              </label>
-                            </>
-                          )}
-                        </>
-                      )}
-
-                      <div className="fila-form" style={{ margin: 0 }}>
-                        <CampoRango
-                          etiqueta="Ángulo (girar todo el elemento)"
-                          valor={el.rotacion ?? 0} unidad="°" min={-180} max={180}
-                          onChange={(v) => actualizarElemento(el.id, { rotacion: v })}
-                          ayuda="También podés rotarlo arrastrando la manija redonda de arriba, directo en el lienzo."
-                        />
-                        <label style={{ flex: 1, minWidth: 160 }}>
-                          Animación
-                          <select value={el.animacion || 'ninguna'} onChange={(e) => actualizarElemento(el.id, { animacion: e.target.value })}>
-                            {ANIMACIONES_ELEMENTO.map((a) => <option key={a.id} value={a.id}>{a.etiqueta}</option>)}
-                          </select>
-                        </label>
-                      </div>
-
-                      {esForma ? (
-                        <>
-                          <label className="mv-check-detalle" style={{ color: 'inherit' }}>
-                            <input type="checkbox" checked={!!el.usarImagen} onChange={(e) => actualizarElemento(el.id, { usarImagen: e.target.checked })} />
-                            Rellenar con una imagen/logo (en vez de color)
-                          </label>
-                          {el.usarImagen ? (
-                            <SelectorLogo
-                              logos={logos}
-                              value={el.imagenUrl || ''}
-                              onChange={(url) => actualizarElemento(el.id, { imagenUrl: url })}
-                              onLogoSubido={(l) => { setLogos((prev) => [l, ...prev]); actualizarElemento(el.id, { imagenUrl: urlLogo(l.filename) }); }}
-                            />
-                          ) : (
-                            <>
-                              <div className="fila-form" style={{ margin: 0 }}>
-                                <span className="texto-tenue" style={{ fontSize: 12 }}>Color</span>
-                                <input type="color" value={/^#/.test(el.color) ? el.color : '#0a0c14'} onChange={(e) => actualizarElemento(el.id, { color: e.target.value })} />
-                              </div>
-                              <ControlGradiente el={el} actualizar={(c) => actualizarElemento(el.id, c)} campoColor2="color2" campoColor3="color3" />
-                            </>
-                          )}
-                          <CampoRango etiqueta="Ancho" valor={el.ancho ?? 220} unidad="px" min={20} max={800} onChange={(v) => actualizarElemento(el.id, { ancho: v })} />
-                          <CampoRango etiqueta="Alto" valor={el.alto ?? 90} unidad="px" min={20} max={800} onChange={(v) => actualizarElemento(el.id, { alto: v })} />
-                          <label className="mv-check-detalle" style={{ color: 'inherit' }}>
-                            <input type="checkbox" checked={!!el.proporcionFija} onChange={(e) => actualizarElemento(el.id, { proporcionFija: e.target.checked })} />
-                            Mantener proporción al redimensionar con las manijas del lienzo
-                          </label>
-
-                          <p className="texto-tenue" style={{ margin: '4px 0 0', fontSize: 12 }}>Esquinas (ángulo de cada vértice — no es el ángulo de giro de arriba)</p>
-                          <div className="fila-form" style={{ margin: 0 }}>
-                            <label className="mv-check-detalle" style={{ color: 'inherit' }}>
-                              <input
-                                type="radio" name={`esquina-${el.id}`}
-                                checked={el.esquinaModo !== 'cortada'}
-                                onChange={() => actualizarElemento(el.id, { esquinaModo: 'redondeada' })}
-                              />
-                              Redondeada
-                            </label>
-                            <label className="mv-check-detalle" style={{ color: 'inherit' }}>
-                              <input
-                                type="radio" name={`esquina-${el.id}`}
-                                checked={el.esquinaModo === 'cortada'}
-                                onChange={() => actualizarElemento(el.id, { esquinaModo: 'cortada' })}
-                              />
-                              Cortada (recta, en ángulo — ribbon/paralelogramo)
-                            </label>
-                          </div>
-                          {el.esquinaModo === 'cortada' ? (
-                            <div className="fila-form" style={{ margin: 0 }}>
-                              <CampoRango etiqueta="Vértice arriba-izq." valor={el.corteTL ?? 0} unidad="px" min={0} max={300} onChange={(v) => actualizarElemento(el.id, { corteTL: v })} />
-                              <CampoRango etiqueta="Vértice arriba-der." valor={el.corteTR ?? 0} unidad="px" min={0} max={300} onChange={(v) => actualizarElemento(el.id, { corteTR: v })} />
-                              <CampoRango etiqueta="Vértice abajo-der." valor={el.corteBR ?? 0} unidad="px" min={0} max={300} onChange={(v) => actualizarElemento(el.id, { corteBR: v })} />
-                              <CampoRango etiqueta="Vértice abajo-izq." valor={el.corteBL ?? 0} unidad="px" min={0} max={300} onChange={(v) => actualizarElemento(el.id, { corteBL: v })} />
-                            </div>
-                          ) : (
-                            <CampoRango
-                              etiqueta="Redondeo de esquinas"
-                              valor={el.radio ?? 12}
-                              unidad="px"
-                              min={0} max={400}
-                              onChange={(v) => actualizarElemento(el.id, { radio: v })}
-                              ayuda="Llevalo al máximo para un círculo o una píldora perfecta."
-                            />
-                          )}
-                          <CampoRango etiqueta="Transparencia" valor={el.opacidad ?? 100} min={5} max={100} onChange={(v) => actualizarElemento(el.id, { opacidad: v })} />
-                          <ControlEstiloComun el={el} actualizar={(c) => actualizarElemento(el.id, c)} />
-                        </>
-                      ) : esImagen ? (
-                        <>
-                          <p className="texto-tenue" style={{ margin: '0 0 2px', fontSize: 12 }}>
-                            Logo de un campeonato/torneo, auspiciante, o cualquier imagen suelta — se puede ubicar en cualquier parte del tablero, tamaño y ángulo libres.
-                          </p>
-                          <SelectorLogo
-                            logos={logos}
-                            value={el.imagenUrl || ''}
-                            onChange={(url) => actualizarElemento(el.id, { imagenUrl: url })}
-                            onLogoSubido={(l) => { setLogos((prev) => [l, ...prev]); actualizarElemento(el.id, { imagenUrl: urlLogo(l.filename) }); }}
-                          />
-                          <CampoRango etiqueta="Ancho" valor={el.ancho ?? 200} unidad="px" min={20} max={800} onChange={(v) => actualizarElemento(el.id, { ancho: v })} />
-                          <CampoRango etiqueta="Alto" valor={el.alto ?? 200} unidad="px" min={20} max={800} onChange={(v) => actualizarElemento(el.id, { alto: v })} />
-                          <label className="mv-check-detalle" style={{ color: 'inherit' }}>
-                            <input type="checkbox" checked={!!el.proporcionFija} onChange={(e) => actualizarElemento(el.id, { proporcionFija: e.target.checked })} />
-                            Mantener proporción al redimensionar con las manijas del lienzo
-                          </label>
-                          <label>
-                            Ajuste de la imagen adentro
-                            <select value={el.ajuste || 'contain'} onChange={(e) => actualizarElemento(el.id, { ajuste: e.target.value })}>
-                              <option value="contain">Contener (se ve completo, puede dejar huecos)</option>
-                              <option value="cover">Cubrir (llena todo, puede recortar bordes)</option>
-                              <option value="fill">Estirar (llena todo, puede deformar)</option>
-                            </select>
-                          </label>
-                          <p className="texto-tenue" style={{ margin: '4px 0 0', fontSize: 12 }}>Esquinas (ángulo de cada vértice — no es el ángulo de giro de arriba)</p>
-                          <div className="fila-form" style={{ margin: 0 }}>
-                            <label className="mv-check-detalle" style={{ color: 'inherit' }}>
-                              <input
-                                type="radio" name={`esquina-${el.id}`}
-                                checked={el.esquinaModo !== 'cortada'}
-                                onChange={() => actualizarElemento(el.id, { esquinaModo: 'redondeada' })}
-                              />
-                              Redondeada
-                            </label>
-                            <label className="mv-check-detalle" style={{ color: 'inherit' }}>
-                              <input
-                                type="radio" name={`esquina-${el.id}`}
-                                checked={el.esquinaModo === 'cortada'}
-                                onChange={() => actualizarElemento(el.id, { esquinaModo: 'cortada' })}
-                              />
-                              Cortada (recta, en ángulo)
-                            </label>
-                          </div>
-                          {el.esquinaModo === 'cortada' ? (
-                            <div className="fila-form" style={{ margin: 0 }}>
-                              <CampoRango etiqueta="Vértice arriba-izq." valor={el.corteTL ?? 0} unidad="px" min={0} max={300} onChange={(v) => actualizarElemento(el.id, { corteTL: v })} />
-                              <CampoRango etiqueta="Vértice arriba-der." valor={el.corteTR ?? 0} unidad="px" min={0} max={300} onChange={(v) => actualizarElemento(el.id, { corteTR: v })} />
-                              <CampoRango etiqueta="Vértice abajo-der." valor={el.corteBR ?? 0} unidad="px" min={0} max={300} onChange={(v) => actualizarElemento(el.id, { corteBR: v })} />
-                              <CampoRango etiqueta="Vértice abajo-izq." valor={el.corteBL ?? 0} unidad="px" min={0} max={300} onChange={(v) => actualizarElemento(el.id, { corteBL: v })} />
-                            </div>
-                          ) : (
-                            <CampoRango
-                              etiqueta="Redondeo de esquinas"
-                              valor={el.radio ?? 0}
-                              unidad="px"
-                              min={0} max={400}
-                              onChange={(v) => actualizarElemento(el.id, { radio: v })}
-                              ayuda="Llevalo al máximo para un círculo o una píldora perfecta."
-                            />
-                          )}
-                          <CampoRango etiqueta="Transparencia" valor={el.opacidad ?? 100} min={5} max={100} onChange={(v) => actualizarElemento(el.id, { opacidad: v })} />
-                          <ControlEstiloComun el={el} actualizar={(c) => actualizarElemento(el.id, c)} />
-                        </>
-                      ) : esIcono ? (
-                        <>
-                          <div className="creador-icono-grilla">
-                            {CATALOGO_ICONOS.map((ic) => (
-                              <button
-                                key={ic.id}
-                                type="button"
-                                title={ic.etiqueta}
-                                className={`creador-icono-btn ${el.iconoId === ic.id ? 'elegido' : ''}`}
-                                onClick={() => actualizarElemento(el.id, { iconoId: ic.id })}
-                              >
-                                <IconoSvg id={ic.id} color={el.color || '#ffd60a'} />
-                              </button>
-                            ))}
-                          </div>
-                          <div className="fila-form" style={{ margin: 0 }}>
-                            <span className="texto-tenue" style={{ fontSize: 12 }}>Color</span>
-                            <input type="color" value={/^#/.test(el.color) ? el.color : '#ffd60a'} onChange={(e) => actualizarElemento(el.id, { color: e.target.value })} />
-                          </div>
-                          <CampoRango etiqueta="Tamaño" valor={el.tamano ?? 80} unidad="px" min={20} max={400} onChange={(v) => actualizarElemento(el.id, { tamano: v })} />
-                          <CampoRango etiqueta="Transparencia" valor={el.opacidad ?? 100} min={10} max={100} onChange={(v) => actualizarElemento(el.id, { opacidad: v })} />
-                          <ControlEstiloComun el={el} actualizar={(c) => actualizarElemento(el.id, c)} />
-                        </>
-                      ) : esLogo ? (
-                        <>
-                          <CampoRango etiqueta="Ancho" valor={el.tamano ?? 90} unidad="px" min={20} max={400} onChange={(v) => actualizarElemento(el.id, { tamano: v })} />
-                          <div className="fila-form" style={{ margin: 0 }}>
-                            <label className="mv-check-detalle" style={{ color: 'inherit' }}>
-                              <input type="checkbox" checked={Boolean(el.alto)} onChange={(e) => actualizarElemento(el.id, { alto: e.target.checked ? (el.tamano ?? 90) : null })} />
-                              Fijar alto propio (si no, se mantiene proporcional)
-                            </label>
-                          </div>
-                          {Boolean(el.alto) && (
-                            <>
-                              <CampoRango etiqueta="Alto" valor={el.alto ?? 90} unidad="px" min={20} max={400} onChange={(v) => actualizarElemento(el.id, { alto: v })} />
-                              <label>
-                                Ajuste de la imagen adentro
-                                <select value={el.ajuste || 'contain'} onChange={(e) => actualizarElemento(el.id, { ajuste: e.target.value })}>
-                                  <option value="contain">Contener (se ve completo, puede dejar huecos)</option>
-                                  <option value="cover">Cubrir (llena todo, puede recortar bordes)</option>
-                                  <option value="fill">Estirar (llena todo, puede deformar)</option>
-                                </select>
-                              </label>
-                            </>
-                          )}
-                          <CampoRango
-                            etiqueta="Redondeo (marco circular/píldora)"
-                            valor={el.radio ?? 0} unidad="px" min={0} max={200}
-                            onChange={(v) => actualizarElemento(el.id, { radio: v })}
-                          />
-                          <CampoRango etiqueta="Transparencia" valor={el.opacidad ?? 100} min={10} max={100} onChange={(v) => actualizarElemento(el.id, { opacidad: v })} />
-                          <ControlEstiloComun el={el} actualizar={(c) => actualizarElemento(el.id, c)} />
-                        </>
-                      ) : (
-                        <>
-                          <SelectorFuente value={el.fuente} onChange={(v) => actualizarElemento(el.id, { fuente: v })} />
-                          <CampoRango etiqueta="Tamaño" valor={el.tamano ?? 32} unidad="px" min={10} max={160} onChange={(v) => actualizarElemento(el.id, { tamano: v })} />
-                          <div className="fila-form" style={{ margin: 0 }}>
-                            <label className="mv-check-detalle" style={{ color: 'inherit' }}>
-                              <input type="checkbox" checked={el.negrita !== false} onChange={(e) => actualizarElemento(el.id, { negrita: e.target.checked })} />
-                              Negrita
-                            </label>
-                            <label className="mv-check-detalle" style={{ color: 'inherit' }}>
-                              <input type="checkbox" checked={!!el.mayusculas} onChange={(e) => actualizarElemento(el.id, { mayusculas: e.target.checked })} />
-                              MAYÚSCULAS
-                            </label>
-                          </div>
-                          {tieneColorEquipo && (
-                            <label className="mv-check-detalle" style={{ color: 'inherit' }}>
-                              <input type="checkbox" checked={el.colorAuto !== false} onChange={(e) => actualizarElemento(el.id, { colorAuto: e.target.checked })} />
-                              Usar el color del equipo
-                            </label>
-                          )}
-                          {(!tieneColorEquipo || el.colorAuto === false) && (
-                            <div className="fila-form" style={{ margin: 0 }}>
-                              <span className="texto-tenue" style={{ fontSize: 12 }}>Color del texto</span>
-                              <input type="color" value={/^#/.test(el.color) ? el.color : '#ffffff'} onChange={(e) => actualizarElemento(el.id, { color: e.target.value })} />
-                            </div>
-                          )}
-                          <label className="mv-check-detalle" style={{ color: 'inherit' }}>
-                            <input type="checkbox" checked={!!el.fondoColor} onChange={(e) => actualizarElemento(el.id, { fondoColor: e.target.checked ? 'rgba(10,12,20,.75)' : null })} />
-                            Fondo detrás del texto
-                          </label>
-                          {el.fondoColor && (
-                            <>
-                              <div className="fila-form" style={{ margin: 0 }}>
-                                <span className="texto-tenue" style={{ fontSize: 12 }}>Color de fondo</span>
-                                <input type="color" value={/^#/.test(el.fondoColor) ? el.fondoColor : '#0a0c14'} onChange={(e) => actualizarElemento(el.id, { fondoColor: e.target.value })} />
-                              </div>
-                              <ControlGradiente el={el} actualizar={(c) => actualizarElemento(el.id, c)} campoColor2="fondoColor2" campoColor3="fondoColor3" />
-                            </>
-                          )}
-                          <ControlEstiloComun el={el} actualizar={(c) => actualizarElemento(el.id, c)} />
-                        </>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-              </>
-            )}
-          </div>
-
-          <div className="creador-paso">
-            <h4 className="creador-paso-titulo">Paso 4 · Guardar como plantilla propia</h4>
-            <p className="texto-tenue" style={{ margin: '0 0 8px', fontSize: 12 }}>
-              Guarda ESTE armado (todos los elementos de arriba) como una plantilla nueva en tu cuenta — va a aparecer
-              en el catálogo de Diseños junto a las de fábrica, lista para elegir en cualquier partido futuro con su
-              propio enlace fijo de OBS, igual que las demás. Este diseño puntual se sigue guardando solo, como siempre.
-            </p>
-            <div className="fila-form" style={{ margin: 0 }}>
-              <input
-                placeholder="Nombre de la plantilla (ej. Mi marcador de liga)"
-                value={nombreNuevaPlantilla}
-                onChange={(e) => setNombreNuevaPlantilla(e.target.value)}
-                style={{ flex: 1, minWidth: 200 }}
-              />
-              <button type="button" className="btn-primario" disabled={guardandoPlantilla} onClick={guardarComoPlantilla}>
-                {guardandoPlantilla ? 'Guardando…' : '💾 Guardar como plantilla nueva'}
-              </button>
-            </div>
-            {mensajePlantilla && <p className={mensajePlantilla.includes('✓') ? 'mensaje-exito' : 'mensaje-error'} style={{ marginTop: 8 }}>{mensajePlantilla}</p>}
-          </div>
         </div>
 
         <button
