@@ -101,6 +101,15 @@ export const api = {
   obtenerPartidoArchivado: (id) => solicitud(`/partidos-archivados/${id}`),
   eliminarPartidoArchivado: (id) => solicitud(`/partidos-archivados/${id}`, { method: 'DELETE' }),
 
+  // "Temporada" = todos los partidos archivados que comparten categoría/
+  // rama de equipo, ver backend/routes/temporadas.js — categoria/rama
+  // pueden venir vacíos (equipos sin esa categoría cargada), de ahí el
+  // `?? ''` antes de meterlos en la URL.
+  listarTemporadas: () => solicitud('/temporadas'),
+  obtenerTablaTemporada: (categoria, rama) => solicitud(`/temporadas/tabla?${new URLSearchParams({ categoria: categoria ?? '', rama: rama ?? '' })}`),
+  obtenerJugadoresTemporada: (categoria, rama) => solicitud(`/temporadas/jugadores?${new URLSearchParams({ categoria: categoria ?? '', rama: rama ?? '' })}`),
+  obtenerHistorialTemporada: (categoria, rama) => solicitud(`/temporadas/historial?${new URLSearchParams({ categoria: categoria ?? '', rama: rama ?? '' })}`),
+
   obtenerMarcadorPublico: (token) => solicitud(`/public/partidos/${token}`, { autenticado: false }),
 
   listarPatrocinadores: () => solicitud('/patrocinadores'),

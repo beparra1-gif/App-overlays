@@ -11,6 +11,7 @@ import ResetearPassword from './pages/ResetearPassword';
 import Equipos from './pages/Equipos';
 import Disenos from './pages/Disenos';
 import Partidos from './pages/Partidos';
+import Temporadas from './pages/Temporadas';
 import Mesa from './pages/Mesa';
 import MesaSimple from './pages/MesaSimple';
 import EscenaPublica from './pages/EscenaPublica';
@@ -43,6 +44,7 @@ export default function App() {
                   <Route path="/equipos" element={<ProtectedRoute><Equipos /></ProtectedRoute>} />
                   <Route path="/disenos" element={<ProtectedRoute><Disenos /></ProtectedRoute>} />
                   <Route path="/partidos" element={<ProtectedRoute><Partidos /></ProtectedRoute>} />
+                  <Route path="/temporadas" element={<ProtectedRoute><Temporadas /></ProtectedRoute>} />
                   <Route path="/mesa/:id" element={<ProtectedRoute><Mesa /></ProtectedRoute>} />
                   <Route path="/mesa/:id/simple" element={<ProtectedRoute><MesaSimple /></ProtectedRoute>} />
                   {/* Enlace fijo por usuario (sin id de partido) — se resuelve solo al

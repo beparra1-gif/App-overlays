@@ -576,10 +576,20 @@ export async function archivarPartido(partido) {
 
   const estado = await construirEstado(partido);
   const resumen = { ...estado, puntosPorPeriodo: await puntosPorPeriodo(partido.id) };
+  // Categoría/rama de cada equipo AL MOMENTO de archivar — consulta aparte
+  // (no se mete en construirEstado, que corre en cada broadcast en vivo y
+  // no necesita este dato) para poder agrupar partidos en "temporadas" por
+  // categoría más adelante (ver routes/temporadas.js), sobreviviendo a que
+  // el equipo se edite o se borre después.
+  const categorias = await pool.query('SELECT id, categoria, rama FROM equipos WHERE id = ANY($1::int[])', [[partido.equipo_local_id, partido.equipo_visita_id]]);
+  const categoriaDe = (equipoId) => categorias.rows.find((e) => e.id === equipoId) || {};
+  const catLocal = categoriaDe(partido.equipo_local_id);
+  const catVisita = categoriaDe(partido.equipo_visita_id);
   const resultado = await pool.query(
     `INSERT INTO partidos_archivados
-       (user_id, partido_id, equipo_local_nombre, equipo_visita_nombre, equipo_local_color, equipo_visita_color, equipo_local_logo_url, equipo_visita_logo_url, pts_local, pts_visita, resumen)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb) RETURNING *`,
+       (user_id, partido_id, equipo_local_nombre, equipo_visita_nombre, equipo_local_color, equipo_visita_color, equipo_local_logo_url, equipo_visita_logo_url, pts_local, pts_visita, resumen,
+        equipo_local_categoria, equipo_local_rama, equipo_visita_categoria, equipo_visita_rama)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb, $12, $13, $14, $15) RETURNING *`,
     [
       partido.user_id, partido.id,
       estado.equipoLocal.nombre, estado.equipoVisita.nombre,
@@ -587,6 +597,8 @@ export async function archivarPartido(partido) {
       estado.equipoLocal.logo_url, estado.equipoVisita.logo_url,
       estado.ptsLocal, estado.ptsVisita,
       JSON.stringify(resumen),
+      catLocal.categoria || null, catLocal.rama || null,
+      catVisita.categoria || null, catVisita.rama || null,
     ]
   );
   return resultado.rows[0];
