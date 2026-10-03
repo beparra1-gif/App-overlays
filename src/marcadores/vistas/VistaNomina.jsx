@@ -67,6 +67,22 @@ export default function VistaNomina({ partido, modo = 'ambos', claveAnimacion = 
   const presentacionFotoTamano = Number.isFinite(config?.nominaPresentacionFotoTamano) ? config.nominaPresentacionFotoTamano : 170;
   const presentacionFotoPosX = Number.isFinite(config?.nominaPresentacionFotoPosX) ? config.nominaPresentacionFotoPosX : 50;
   const presentacionFotoPosY = Number.isFinite(config?.nominaPresentacionFotoPosY) ? config.nominaPresentacionFotoPosY : 50;
+  // Chip chico de cada jugador que YA pasó por la ficha grande de
+  // Presentación (queda acumulado en la fila de abajo) — tenía tamaño fijo
+  // (32px), sin ligar con ninguno de los dos controles de arriba (son fotos
+  // en momentos distintos: una a la vez vs. una lista que se va llenando).
+  const chipFotoTamano = Number.isFinite(config?.nominaPresentacionChipFotoTamano) ? config.nominaPresentacionChipFotoTamano : 32;
+  // Borde de las fotos (color/grosor) — antes fijo: 2px del color de banner
+  // para la chica, 4px del color del equipo para la grande. Grosor siempre
+  // tiene un valor (el de siempre si no se tocó nada); el color en cambio
+  // solo se manda como variable CSS cuando el usuario eligió uno a mano —
+  // si no, la regla en nomina.css cae en su fallback de siempre (var
+  // encadenada), así default y "restablecer" (borrar la config) se ven
+  // IGUAL sin tener que duplicar acá cuál es ese color por defecto.
+  const fotoBordeAncho = Number.isFinite(config?.nominaFotoBordeAncho) ? config.nominaFotoBordeAncho : 2;
+  const fotoBordeColor = /^#/.test(config?.nominaFotoBordeColor) ? config.nominaFotoBordeColor : null;
+  const presentacionFotoBordeAncho = Number.isFinite(config?.nominaPresentacionFotoBordeAncho) ? config.nominaPresentacionFotoBordeAncho : 4;
+  const presentacionFotoBordeColor = /^#/.test(config?.nominaPresentacionFotoBordeColor) ? config.nominaPresentacionFotoBordeColor : null;
   // Antes había un techo de ANCHO fijo acá (32vw, después 40vw/88vw según el
   // modo) pensado para que dos logos grandes en modo "ambos" no se tocaran.
   // El problema real reportado: para un `<img>` con `height` fijo y SIN
@@ -121,8 +137,13 @@ export default function VistaNomina({ partido, modo = 'ambos', claveAnimacion = 
     alignItems, justifyContent, '--pm-fuente': fuenteEfectiva(config, plantillaId),
     '--nomina-foto-tamano': `${fotoTamano}px`,
     '--nomina-foto-pos': `${fotoPosX}% ${fotoPosY}%`,
+    '--nomina-foto-borde-ancho': `${fotoBordeAncho}px`,
+    ...(fotoBordeColor ? { '--nomina-foto-borde-color': fotoBordeColor } : {}),
     '--np-foto-tamano': `${presentacionFotoTamano}px`,
     '--np-foto-pos': `${presentacionFotoPosX}% ${presentacionFotoPosY}%`,
+    '--np-foto-borde-ancho': `${presentacionFotoBordeAncho}px`,
+    ...(presentacionFotoBordeColor ? { '--np-foto-borde-color': presentacionFotoBordeColor } : {}),
+    '--np-chip-foto-tamano': `${chipFotoTamano}px`,
     ...(offsetY ? { transform: `translateY(${offsetY}px)` } : {}),
   };
 

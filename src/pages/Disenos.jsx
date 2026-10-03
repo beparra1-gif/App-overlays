@@ -2495,9 +2495,30 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
                       onChange={(v) => cambiarConfig('nominaFotoPosY', v)}
                     />
                   </div>
+                  <div className="fila-form">
+                    <CampoRango
+                      etiqueta="Grosor del borde (lista)"
+                      valor={Number.isFinite(config.nominaFotoBordeAncho) ? config.nominaFotoBordeAncho : 2}
+                      unidad="px" min={0} max={12} step={1}
+                      onChange={(v) => cambiarConfig('nominaFotoBordeAncho', v)}
+                    />
+                  </div>
+                  <Toggle
+                    etiqueta="Color de borde personalizado (lista)"
+                    checked={!!config.nominaFotoBordeColor}
+                    onChange={(v) => cambiarConfig('nominaFotoBordeColor', v ? '#ffffff' : '')}
+                    title="Apagado: usa el color de banner del diseño, como siempre."
+                  />
+                  {config.nominaFotoBordeColor && (
+                    <input
+                      type="color"
+                      value={/^#/.test(config.nominaFotoBordeColor) ? config.nominaFotoBordeColor : '#ffffff'}
+                      onChange={(e) => cambiarConfig('nominaFotoBordeColor', e.target.value)}
+                    />
+                  )}
                   <p className="texto-tenue" style={{ margin: '-4px 0 0', fontSize: 12 }}>
                     Esto es para la foto chica de la lista. La ficha grande de "Presentación uno por uno" tiene su
-                    propio tamaño y recorte, más abajo.
+                    propio tamaño, recorte y borde, más abajo.
                   </p>
                   <div className="fila-form">
                     <CampoRango
@@ -2519,6 +2540,36 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
                       valor={Number.isFinite(config.nominaPresentacionFotoPosY) ? config.nominaPresentacionFotoPosY : 50}
                       unidad="%" min={0} max={100} step={1}
                       onChange={(v) => cambiarConfig('nominaPresentacionFotoPosY', v)}
+                    />
+                  </div>
+                  <div className="fila-form">
+                    <CampoRango
+                      etiqueta="Grosor del borde (Presentación)"
+                      valor={Number.isFinite(config.nominaPresentacionFotoBordeAncho) ? config.nominaPresentacionFotoBordeAncho : 4}
+                      unidad="px" min={0} max={16} step={1}
+                      onChange={(v) => cambiarConfig('nominaPresentacionFotoBordeAncho', v)}
+                    />
+                  </div>
+                  <Toggle
+                    etiqueta="Color de borde personalizado (Presentación)"
+                    checked={!!config.nominaPresentacionFotoBordeColor}
+                    onChange={(v) => cambiarConfig('nominaPresentacionFotoBordeColor', v ? '#ffffff' : '')}
+                    title="Apagado: usa el color del equipo, como siempre."
+                  />
+                  {config.nominaPresentacionFotoBordeColor && (
+                    <input
+                      type="color"
+                      value={/^#/.test(config.nominaPresentacionFotoBordeColor) ? config.nominaPresentacionFotoBordeColor : '#ffffff'}
+                      onChange={(e) => cambiarConfig('nominaPresentacionFotoBordeColor', e.target.value)}
+                    />
+                  )}
+                  <div className="fila-form">
+                    <CampoRango
+                      etiqueta="Tamaño de los chips ya presentados"
+                      valor={Number.isFinite(config.nominaPresentacionChipFotoTamano) ? config.nominaPresentacionChipFotoTamano : 32}
+                      unidad="px" min={16} max={70} step={1}
+                      onChange={(v) => cambiarConfig('nominaPresentacionChipFotoTamano', v)}
+                      ayuda="La fila chica de abajo con quienes ya pasaron por la ficha grande."
                     />
                   </div>
                 </>
