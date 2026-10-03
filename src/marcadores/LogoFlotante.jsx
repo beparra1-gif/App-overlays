@@ -87,10 +87,18 @@ export default function LogoFlotante({ equipoLocal, equipoVisita, config, planti
       // punto porcentual) alcanza de sobra contra el redondeo de sub-píxel
       // de la medición, sin comerse el borde de la caja.
       const solape = 0.08;
+      // Mismo ajuste fino que "arriba"/"abajo" (offsetX/offsetY, ya
+      // leídos más arriba) — antes acá no tenían ningún efecto: los
+      // sliders se mostraban en el panel pero "costados" los ignoraba
+      // del todo. Mismo signo espejado que el resto de los ajustes "un
+      // control mueve los dos lados" de la app (ver nominaLogoFondoOffsetX
+      // en VistaNomina.jsx): positivo separa cada escudo hacia AFUERA del
+      // tablero, negativo lo acerca hacia ADENTRO.
       const burbuja = (equipo, ladoIzquierdo) => {
         if (!equipo?.logo_url) return null;
         const bordeCaja = ladoIzquierdo ? caja.left : caja.left + caja.width;
         const leftBurbuja = ladoIzquierdo ? bordeCaja - anchoBurbuja : bordeCaja - solape;
+        const offsetLado = ladoIzquierdo ? -offsetX : offsetX;
         return (
           <div
             className={`lf-burbuja ${ladoIzquierdo ? 'lf-burbuja-izquierda' : 'lf-burbuja-derecha'}`}
@@ -104,6 +112,7 @@ export default function LogoFlotante({ equipoLocal, equipoVisita, config, planti
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
+              transform: `translate(${offsetLado}px, ${offsetY}px)`,
               ...estiloTema(config),
             }}
           >
@@ -119,8 +128,7 @@ export default function LogoFlotante({ equipoLocal, equipoVisita, config, planti
       );
     }
 
-    // Modo 'fuera': el logo flota cerca del borde, sin caja/fondo propio —
-    // sin cambios respecto de antes.
+    // Modo 'fuera': el logo flota cerca del borde, sin caja/fondo propio.
     const separacionPx = 14;
     const panelBase = { position: 'fixed', top: `${caja.topAlto}%`, height: `${caja.heightAlto}%`, display: 'flex', alignItems: 'stretch', pointerEvents: 'none' };
     const panel = (equipo, ladoIzquierdo) => {
@@ -133,9 +141,12 @@ export default function LogoFlotante({ equipoLocal, equipoVisita, config, planti
         justifyContent: ladoIzquierdo ? 'flex-end' : 'flex-start',
         [ladoIzquierdo ? 'paddingRight' : 'paddingLeft']: separacionPx,
       };
+      // Mismo ajuste fino que la burbuja de arriba (antes tampoco tenía
+      // ningún efecto acá) — positivo separa del tablero, negativo acerca.
+      const offsetLado = ladoIzquierdo ? -offsetX : offsetX;
       return (
         <div style={estiloPanel}>
-          <div className="lf-costado">
+          <div className="lf-costado" style={{ transform: `translate(${offsetLado}px, ${offsetY}px)` }}>
             {/* Antes fijo en 60% de la caja, SIN mirar `tamano` — el
                 slider "Tamaño" de arriba lo mostraba en la pantalla de
                 edición pero acá no tenía ningún efecto (el bug reportado:

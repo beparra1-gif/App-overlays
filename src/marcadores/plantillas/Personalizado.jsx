@@ -30,14 +30,27 @@ export default function Personalizado({ partido, config }) {
   const forma = config?.personalizadoForma || 'redondeada';
   const borde = config?.personalizadoBorde || 'fino';
   const estiloCaja = { borderRadius: RADIO_POR_FORMA[forma] ?? 16, ...(ESTILO_POR_BORDE[borde] || ESTILO_POR_BORDE.fino) };
+  // 'arriba' (de siempre): nombre apilado arriba del puntaje, cada uno en
+  // su propia línea. 'costado': el logo se mantiene arriba (si no, no
+  // queda otro lugar razonable para ponerlo), pero nombre y puntaje pasan
+  // a compartir la MISMA línea — el de Visita con el orden invertido
+  // (puntaje primero, nombre después) para que los dos nombres "miren
+  // hacia afuera" del centro del tablero, como en un marcador de
+  // transmisión real, en vez de leerse los dos en el mismo sentido.
+  const nombreCostado = config?.personalizadoDisposicionNombre === 'costado';
+  const nombrePts = (equipo, puntos, pulso, esVisita) => {
+    const nombre = <span className="pz-nombre" style={{ color: equipo.color }}>{equipo.nombre}</span>;
+    const pts = <span className={`pz-pts ${pulso ? 'pm-pulso' : ''}`}>{puntos}</span>;
+    if (!nombreCostado) return <>{nombre}{pts}</>;
+    return <div className="pz-fila-nombre-pts">{esVisita ? <>{pts}{nombre}</> : <>{nombre}{pts}</>}</div>;
+  };
 
   return (
     <div className="plantilla-marcador pz-wrap" style={estiloPersonalizado(config)}>
       <div className="pz-caja" style={estiloCaja}>
         <div className="pz-equipo">
           <LogoEquipo equipo={partido.equipoLocal} config={config} className="pz-logo" />
-          <span className="pz-nombre" style={{ color: partido.equipoLocal.color }}>{partido.equipoLocal.nombre}</span>
-          <span className={`pz-pts ${pulsoLocal ? 'pm-pulso' : ''}`}>{partido.ptsLocal}</span>
+          {nombrePts(partido.equipoLocal, partido.ptsLocal, pulsoLocal, false)}
           {mostrar(config, 'mostrarFaltas') && <span className="pz-faltas">F {indicadorFaltas(partido.faltasPeriodoLocal, config?.estiloFaltas)}</span>}
         </div>
         <div className="pz-centro">
@@ -46,8 +59,7 @@ export default function Personalizado({ partido, config }) {
         </div>
         <div className="pz-equipo">
           <LogoEquipo equipo={partido.equipoVisita} config={config} className="pz-logo" />
-          <span className="pz-nombre" style={{ color: partido.equipoVisita.color }}>{partido.equipoVisita.nombre}</span>
-          <span className={`pz-pts ${pulsoVisita ? 'pm-pulso' : ''}`}>{partido.ptsVisita}</span>
+          {nombrePts(partido.equipoVisita, partido.ptsVisita, pulsoVisita, true)}
           {mostrar(config, 'mostrarFaltas') && <span className="pz-faltas">F {indicadorFaltas(partido.faltasPeriodoVisita, config?.estiloFaltas)}</span>}
         </div>
       </div>

@@ -45,26 +45,41 @@ export default function VistaNomina({ partido, modo = 'ambos', claveAnimacion = 
   // .nomina-encabezado-equipo, no de .nomina-equipo), así que el tamaño
   // también se independiza del alto de la columna: se mide en vh (alto de
   // pantalla), no en % de un contenedor cuya altura cambiaba con la
-  // cantidad de jugadores. 100% ≈ 55vh; el slider llega hasta 400% (libertad
-  // real para agrandarlo mucho) y el tope de CSS (max-height/max-width) se
-  // encarga de que nunca se salga de pantalla ni invada al otro equipo.
+  // cantidad de jugadores. 100% ≈ 55vh; el slider llega hasta 400% y de
+  // verdad crece hasta ahí (sin ningún tope de ancho escondido, ver el
+  // comentario junto a `estiloLogoFondo` más abajo) — a tamaños grandes
+  // puede salirse de pantalla o superponerse con el otro equipo, a
+  // propósito: el ajuste fino de posición de ahí abajo es la herramienta
+  // para corregir eso, no un límite automático.
   const altoLogoFondo = (Number.isFinite(config?.nominaLogoFondoTamano) ? config.nominaLogoFondoTamano : 130) * 0.55;
   const familia = familiaEfectiva(config, 'nomina', plantillaId);
   const mostrarFoto = config?.nominaMostrarFoto === true;
-  // Techo de ancho para el logo de fondo — antes, con un logo bien ancho (o
-  // el tamaño llevado al máximo) podía crecer tanto que se metía en la zona
-  // del OTRO equipo y los dos escudos quedaban superpuestos. El problema real
-  // reportado: ese techo (32vw fijo, sin importar el modo) frenaba el logo
-  // mucho antes de que el slider llegara a su tope real (400%) — a partir de
-  // cierto punto, seguir subiendo el número no cambiaba nada visible, porque
-  // el ancho ya estaba clavado en 32vw y el alto se reajustaba solo para
-  // mantener la proporción. Con "ambos" equipos en pantalla, compartiendo el
-  // ancho, ese cuidado sigue haciendo falta (se sube un poco, a 40vw, más
-  // lugar sin que lleguen a tocarse) — pero mostrando UN SOLO equipo
-  // (Local/Visita, sin nadie del otro lado con quien pisarse) no hay ningún
-  // motivo para seguir topándolo tan chico: ahí el logo puede ocupar casi
-  // toda la pantalla, así el slider tiene margen real para crecer de verdad.
-  const maxAnchoLogoFondo = modo === 'ambos' ? '40vw' : '88vw';
+  // Tamaño (px, diámetro del círculo) y posición del recorte (object-position,
+  // para centrar bien una foto donde la cara no quedó justo al medio) de las
+  // dos fotos de jugador que hay en la app: la chica de la lista normal y la
+  // grande de "Presentación" (la ficha que entra uno por uno al presentar el
+  // plantel). Van como variables CSS en `estilo` (más abajo) para que las
+  // reciban .nomina-foto-chica/.np-foto por herencia, sin pasar props fila
+  // por fila.
+  const fotoTamano = Number.isFinite(config?.nominaFotoTamano) ? config.nominaFotoTamano : 34;
+  const fotoPosX = Number.isFinite(config?.nominaFotoPosX) ? config.nominaFotoPosX : 50;
+  const fotoPosY = Number.isFinite(config?.nominaFotoPosY) ? config.nominaFotoPosY : 50;
+  const presentacionFotoTamano = Number.isFinite(config?.nominaPresentacionFotoTamano) ? config.nominaPresentacionFotoTamano : 170;
+  const presentacionFotoPosX = Number.isFinite(config?.nominaPresentacionFotoPosX) ? config.nominaPresentacionFotoPosX : 50;
+  const presentacionFotoPosY = Number.isFinite(config?.nominaPresentacionFotoPosY) ? config.nominaPresentacionFotoPosY : 50;
+  // Antes había un techo de ANCHO fijo acá (32vw, después 40vw/88vw según el
+  // modo) pensado para que dos logos grandes en modo "ambos" no se tocaran.
+  // El problema real reportado: para un `<img>` con `height` fijo y SIN
+  // `width` propio, un `max-width` no es un techo de ancho nomás — en
+  // cuanto el ancho calculado a partir del alto pedido lo supera, el
+  // navegador recalcula el alto EFECTIVO a partir de ese max-width (para
+  // mantener la proporción), así que el logo dejaba de crecer en los dos
+  // ejes mucho antes de que el slider llegara a su tope (400%), sin ningún
+  // aviso de por qué. Sacarlo del todo (en vez de subirlo de nuevo) es la
+  // única forma de que el slider haga lo que dice: el usuario ya tiene el
+  // ajuste fino de posición (abajo) para separar los dos escudos si llegan
+  // a superponerse al agrandarlos — el control queda en sus manos, no en un
+  // techo invisible.
   // Ajuste fino de POSICIÓN del logo de fondo: un solo control mueve los DOS
   // logos a la vez, reflejados en espejo respecto del centro de la pantalla
   // — mover "hacia afuera" separa los dos escudos de los costados del
@@ -77,7 +92,6 @@ export default function VistaNomina({ partido, modo = 'ambos', claveAnimacion = 
   const offsetYFondo = Number(config?.nominaLogoFondoOffsetY) || 0;
   const estiloLogoFondo = (esLocal) => ({
     height: `${altoLogoFondo}vh`,
-    maxWidth: maxAnchoLogoFondo,
     opacity: opacidadLogo,
     '--logo-opacidad-final': opacidadLogo,
     '--logofondo-offset-x': `${esLocal ? -offsetXFondo : offsetXFondo}px`,
@@ -105,6 +119,10 @@ export default function VistaNomina({ partido, modo = 'ambos', claveAnimacion = 
   const estilo = {
     ...estiloTema(config), ...estiloTemaCapa(config, 'nomina'),
     alignItems, justifyContent, '--pm-fuente': fuenteEfectiva(config, plantillaId),
+    '--nomina-foto-tamano': `${fotoTamano}px`,
+    '--nomina-foto-pos': `${fotoPosX}% ${fotoPosY}%`,
+    '--np-foto-tamano': `${presentacionFotoTamano}px`,
+    '--np-foto-pos': `${presentacionFotoPosX}% ${presentacionFotoPosY}%`,
     ...(offsetY ? { transform: `translateY(${offsetY}px)` } : {}),
   };
 

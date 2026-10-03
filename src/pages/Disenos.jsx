@@ -2012,6 +2012,13 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
                     <option value="glow">Con brillo (glow)</option>
                   </select>
                 </label>
+                <label>
+                  Nombre del equipo
+                  <select value={config.personalizadoDisposicionNombre || 'arriba'} onChange={(e) => cambiarConfig('personalizadoDisposicionNombre', e.target.value)}>
+                    <option value="arriba">Arriba del puntaje (como siempre)</option>
+                    <option value="costado">Al costado del puntaje (en la misma línea)</option>
+                  </select>
+                </label>
                 <p className="texto-tenue" style={{ margin: 0, fontSize: 12 }}>
                   El resto (colores, fuente, tamaños, logo, posición) se ajusta igual que en cualquier otra plantilla, más abajo.
                 </p>
@@ -2175,13 +2182,14 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
                   onChange={(v) => cambiarConfig('logoCostadoTamano', v)}
                 />
               )}
-              {(config.logoPosicion === 'arriba' || config.logoPosicion === 'abajo') && (
+              {(config.logoPosicion === 'arriba' || config.logoPosicion === 'abajo' || config.logoPosicion === 'costados') && (
                 <div className="fila-form">
                   <CampoRango
-                    etiqueta="Ajuste fino (izquierda/derecha)"
+                    etiqueta={config.logoPosicion === 'costados' ? 'Ajuste fino (afuera del tablero ↔ adentro)' : 'Ajuste fino (izquierda/derecha)'}
                     valor={Number.isFinite(config.logoFlotanteOffsetX) ? config.logoFlotanteOffsetX : 0}
                     unidad="px" min={-300} max={300} step={5}
                     onChange={(v) => cambiarConfig('logoFlotanteOffsetX', v)}
+                    ayuda={config.logoPosicion === 'costados' ? 'Un solo control mueve los dos escudos, reflejados en espejo — positivo los separa del tablero, negativo los acerca.' : undefined}
                   />
                   <CampoRango
                     etiqueta="Ajuste fino (arriba/abajo)"
@@ -2458,11 +2466,62 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
                 title="La foto se carga por jugador en Equipos → Nómina. Sin foto cargada, se ve un círculo con el dorsal en su lugar."
               />
               {config.nominaMostrarFoto && (
-                <p className="texto-tenue" style={{ margin: '-8px 0 0', fontSize: 12 }}>
-                  Cargá la foto de cada jugador en "Equipos → Nómina" (📷 junto al nombre). También habilita la
-                  "Presentación uno por uno" en la Mesa de control, para mostrar a cada titular con una ficha grande
-                  al entrar.
-                </p>
+                <>
+                  <p className="texto-tenue" style={{ margin: '-8px 0 0', fontSize: 12 }}>
+                    Cargá la foto de cada jugador en "Equipos → Nómina" (📷 junto al nombre). También habilita la
+                    "Presentación uno por uno" en la Mesa de control, para mostrar a cada titular con una ficha grande
+                    al entrar.
+                  </p>
+                  <div className="fila-form">
+                    <CampoRango
+                      etiqueta="Tamaño de la foto (lista)"
+                      valor={Number.isFinite(config.nominaFotoTamano) ? config.nominaFotoTamano : 34}
+                      unidad="px" min={20} max={90} step={1}
+                      onChange={(v) => cambiarConfig('nominaFotoTamano', v)}
+                    />
+                  </div>
+                  <div className="fila-form">
+                    <CampoRango
+                      etiqueta="Recorte: horizontal"
+                      valor={Number.isFinite(config.nominaFotoPosX) ? config.nominaFotoPosX : 50}
+                      unidad="%" min={0} max={100} step={1}
+                      onChange={(v) => cambiarConfig('nominaFotoPosX', v)}
+                      ayuda="Si la cara no quedó centrada en la foto subida, movés qué parte de la imagen se ve dentro del círculo."
+                    />
+                    <CampoRango
+                      etiqueta="Recorte: vertical"
+                      valor={Number.isFinite(config.nominaFotoPosY) ? config.nominaFotoPosY : 50}
+                      unidad="%" min={0} max={100} step={1}
+                      onChange={(v) => cambiarConfig('nominaFotoPosY', v)}
+                    />
+                  </div>
+                  <p className="texto-tenue" style={{ margin: '-4px 0 0', fontSize: 12 }}>
+                    Esto es para la foto chica de la lista. La ficha grande de "Presentación uno por uno" tiene su
+                    propio tamaño y recorte, más abajo.
+                  </p>
+                  <div className="fila-form">
+                    <CampoRango
+                      etiqueta="Tamaño de la foto (Presentación)"
+                      valor={Number.isFinite(config.nominaPresentacionFotoTamano) ? config.nominaPresentacionFotoTamano : 170}
+                      unidad="px" min={80} max={320} step={5}
+                      onChange={(v) => cambiarConfig('nominaPresentacionFotoTamano', v)}
+                    />
+                  </div>
+                  <div className="fila-form">
+                    <CampoRango
+                      etiqueta="Recorte (Presentación): horizontal"
+                      valor={Number.isFinite(config.nominaPresentacionFotoPosX) ? config.nominaPresentacionFotoPosX : 50}
+                      unidad="%" min={0} max={100} step={1}
+                      onChange={(v) => cambiarConfig('nominaPresentacionFotoPosX', v)}
+                    />
+                    <CampoRango
+                      etiqueta="Recorte (Presentación): vertical"
+                      valor={Number.isFinite(config.nominaPresentacionFotoPosY) ? config.nominaPresentacionFotoPosY : 50}
+                      unidad="%" min={0} max={100} step={1}
+                      onChange={(v) => cambiarConfig('nominaPresentacionFotoPosY', v)}
+                    />
+                  </div>
+                </>
               )}
               <SelectorDuracion etiqueta="Segundos visible al dispararla" valor={config.nominaDuracionSeg} porDefecto={6} onChange={(v) => cambiarConfig('nominaDuracionSeg', v)} />
               <SeccionEstiloCapa prefijo="nomina" config={config} cambiarConfig={cambiarConfig} etiquetaTitulo="Título" />

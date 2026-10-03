@@ -355,6 +355,10 @@ html:has(.plantilla-marcador) {
 }
 .pz-logo { display: block; margin: 0 auto 4px; object-fit: contain; opacity: var(--pm-logo-opacidad, 1); }
 .pz-equipo { display: flex; flex-direction: column; align-items: center; min-width: 80px; }
+/* "Nombre del equipo → Al costado del puntaje" (config.personalizadoDisposicionNombre):
+   nombre y puntaje comparten la misma línea en vez de quedar apilados
+   (el logo sigue arriba de todo, como siempre — ver Personalizado.jsx). */
+.pz-fila-nombre-pts { display: flex; align-items: baseline; gap: 8px; }
 .pz-nombre { font-size: calc(12px * var(--pm-escala-nombre, 1)); font-weight: 700; letter-spacing: .4px; text-transform: uppercase; }
 .pz-pts { font-size: calc(34px * var(--pm-escala-pts, 1)); font-weight: 900; line-height: 1.1; color: var(--pm-marcador, #fff); }
 .pz-faltas { color: #ff453a; font-size: 10px; font-weight: 700; }

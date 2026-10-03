@@ -86,14 +86,15 @@ html:has(.nomina-overlay) {
    inferior del título, sea cual sea el largo del plantel. Va DETRÁS de las
    filas (z-index) — las filas siguen teniendo su propio fondo opaco
    encima, así que el logo se nota sobre todo asomando por los costados.
-   `max-height` es un techo de seguridad: por más que el slider de tamaño
-   se lleve al máximo, nunca se sale por abajo de la pantalla. Antes era
-   78vh — junto con el `max-width` (ver el `maxAnchoLogoFondo` inline en
-   VistaNomina.jsx, que ahora también depende de si se muestran los dos
-   equipos o uno solo) terminaba frenando el logo mucho antes de que el
-   slider llegara a su tope real, así que "pedirle más" no cambiaba nada
-   visible. 88vh sigue dejando margen contra el título de arriba sin ser
-   un techo tan bajo. */
+   `max-width: none` a propósito — VistaNomina.jsx solía mandar un
+   `max-width` por inline style (variable según el modo) que en la
+   práctica frenaba el CRECIMIENTO EN ALTO también (un `<img>` con alto
+   fijo y sin ancho propio recalcula el alto efectivo a partir del
+   max-width para no deformarse), así que el slider de tamaño dejaba de
+   hacer nada visible mucho antes de llegar a su tope — se sacó del todo,
+   ver el comentario junto a `estiloLogoFondo` en VistaNomina.jsx. Queda
+   SOLO `max-height` como techo de seguridad vertical (88vh, deja margen
+   contra el título de arriba sin cortarle el paso a un logo grande). */
 .nomina-logo-fondo {
   position: absolute;
   top: 100%;
@@ -215,17 +216,24 @@ html:has(.nomina-overlay) {
    la fija `--pm-fuente` (misma que usa el marcador) para que todo el diseño
    comparta un solo tipo de letra. */
 /* Foto de jugador (config.nominaMostrarFoto), chica en la lista normal —
-   circular, mismo tamaño que ocuparía el dorsal, así no rompe la grilla de
-   columnas fijas (ver .nomina-jugador). Sin foto cargada, un círculo con el
-   dorsal adentro hace de placeholder — nunca queda un hueco vacío. */
-.nomina-jugador.con-foto { grid-template-columns: 34px 40px 1fr auto auto; }
+   circular, por defecto el mismo tamaño que ocuparía el dorsal (34px), así
+   no rompe la grilla de columnas fijas (ver .nomina-jugador). Sin foto
+   cargada, un círculo con el dorsal adentro hace de placeholder — nunca
+   queda un hueco vacío. Tamaño y recorte (object-position, para cuando la
+   cara no quedó centrada en la foto subida) son config del usuario
+   (nominaFotoTamano/PosX/PosY, ver VistaNomina.jsx) vía las variables CSS
+   --nomina-foto-tamano/--nomina-foto-pos — la columna de la grilla crece con
+   el mismo tamaño para que la foto nunca quede recortada por la fila. */
+.nomina-jugador.con-foto { grid-template-columns: var(--nomina-foto-tamano, 34px) 40px 1fr auto auto; }
 .nomina-foto-chica {
-  width: 34px; height: 34px; border-radius: 50%; object-fit: cover;
+  width: var(--nomina-foto-tamano, 34px); height: var(--nomina-foto-tamano, 34px);
+  border-radius: 50%; object-fit: cover; object-position: var(--nomina-foto-pos, 50% 50%);
   border: 2px solid var(--pm-banner, rgba(255,255,255,.35));
 }
 .nomina-foto-vacia {
   display: flex; align-items: center; justify-content: center;
-  background: rgba(255,255,255,.08); font-size: 13px; font-weight: 700; color: var(--nomina-texto, #cfd3dc);
+  background: rgba(255,255,255,.08); font-weight: 700; color: var(--nomina-texto, #cfd3dc);
+  font-size: calc(var(--nomina-foto-tamano, 34px) * 0.38);
 }
 
 /* Presentación uno por uno: ficha grande centrada para quien se está
@@ -255,14 +263,21 @@ html:has(.nomina-overlay) {
 }
 .np-titulo-equipo { font-size: calc(15px * var(--nomina-escala-titulo, 1)); text-transform: uppercase; letter-spacing: 2px; color: var(--color-equipo, inherit); font-weight: 700; }
 .np-logo-equipo { object-fit: contain; margin-bottom: -4px; opacity: var(--pm-logo-opacidad, 1); }
+/* Tamaño y recorte configurables (nominaPresentacionFotoTamano/PosX/PosY, ver
+   VistaNomina.jsx) vía --np-foto-tamano/--np-foto-pos — mismo mecanismo que
+   .nomina-foto-chica arriba, controles independientes porque esta ficha es
+   mucho más grande y vive en un momento distinto (la presentación uno por
+   uno), no tiene por qué compartir tamaño con la de la lista. */
 .np-foto {
-  width: 170px; height: 170px; border-radius: 50%; object-fit: cover;
+  width: var(--np-foto-tamano, 170px); height: var(--np-foto-tamano, 170px);
+  border-radius: 50%; object-fit: cover; object-position: var(--np-foto-pos, 50% 50%);
   border: 4px solid var(--color-equipo, #ffd60a);
   margin: 6px 0;
 }
 .np-foto-vacia {
   display: flex; align-items: center; justify-content: center;
-  background: rgba(255,255,255,.08); font-size: 56px; font-weight: 900; color: var(--nomina-texto, #fff);
+  background: rgba(255,255,255,.08); font-weight: 900; color: var(--nomina-texto, #fff);
+  font-size: calc(var(--np-foto-tamano, 170px) * 0.33);
 }
 .np-dorsal { font-size: calc(20px * var(--nomina-escala-texto, 1)); color: var(--color-equipo, #ffd60a); font-weight: 800; }
 .np-nombre { font-size: calc(34px * var(--nomina-escala-texto, 1)); font-weight: 800; text-transform: uppercase; letter-spacing: .5px; }
