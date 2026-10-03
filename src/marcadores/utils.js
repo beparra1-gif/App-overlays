@@ -1,10 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
 
+// Bajo el minuto (minutos === 0) y con un valor NO entero (ver useRelojVivo,
+// más abajo — el resto de la app sigue mandando enteros, que caen en la
+// rama de siempre) se suma la décima de segundo: más seriedad justo en el
+// momento más tenso del período, como en una transmisión real.
 export const formatearReloj = (totalSegundos = 0) => {
   const segurosTotal = Math.max(0, Number(totalSegundos) || 0);
   const minutos = Math.floor(segurosTotal / 60);
   const segundos = segurosTotal % 60;
-  return `${String(minutos).padStart(2, '0')}:${String(segundos).padStart(2, '0')}`;
+  if (minutos === 0 && !Number.isInteger(segurosTotal)) {
+    const segEnteros = Math.floor(segundos);
+    const decima = Math.floor((segundos - segEnteros) * 10);
+    return `${String(minutos).padStart(2, '0')}:${String(segEnteros).padStart(2, '0')}.${decima}`;
+  }
+  return `${String(minutos).padStart(2, '0')}:${String(Math.floor(segundos)).padStart(2, '0')}`;
 };
 
 export const etiquetaPeriodo = (periodo = 1) => (periodo <= 4 ? `Q${periodo}` : `OT${periodo - 4}`);
@@ -593,6 +602,42 @@ export function usePulso(valor) {
   }, [valor]);
 
   return pulso;
+}
+
+// Reloj con décimas en el último minuto ("mayor seriedad" para el momento
+// más tenso del período). El servidor sigue mandando `relojSegundos` una
+// vez por segundo (ya redondeado — ver relojActual en el backend), así que
+// ESE valor por sí solo no alcanza para un conteo suave entre tick y tick.
+// Junto con el tick de 1s, el backend también manda `relojSegundosBase`
+// (el entero del que partió ese tramo) y `relojReferenciaEn` (cuándo
+// arrancó/retomó ese tramo) — con esos dos, acá se recalcula el tiempo
+// restante EXACTO en cada frame (requestAnimationFrame), igual que hace el
+// propio backend para `relojActual()` pero sin el Math.floor.
+// Fuera del último minuto se devuelve tal cual `partido.relojSegundos`
+// (entero, sin ningún trabajo extra) — por eso el bucle de animación entero
+// solo corre durante esos últimos 60s de cada período, no el partido entero.
+export function useRelojVivo(partido) {
+  const relojSegundos = partido?.relojSegundos;
+  const corriendo = Boolean(partido?.relojCorriendo);
+  const referenciaEn = partido?.relojReferenciaEn;
+  const base = Number.isFinite(partido?.relojSegundosBase) ? partido.relojSegundosBase : relojSegundos;
+  const activo = corriendo && Number.isFinite(relojSegundos) && relojSegundos < 60 && referenciaEn;
+  const [preciso, setPreciso] = useState(null);
+
+  useEffect(() => {
+    if (!activo) { setPreciso(null); return undefined; }
+    const refMs = new Date(referenciaEn).getTime();
+    // 100ms: alcanza de sobra para una décima de segundo visible (no hace
+    // falta requestAnimationFrame a 60fps para mostrar 1 solo decimal) y
+    // re-renderiza el marcador entero muchas menos veces durante todo el
+    // último minuto de cada período.
+    const tick = () => setPreciso(Math.max(0, base - (Date.now() - refMs) / 1000));
+    tick();
+    const id = setInterval(tick, 100);
+    return () => clearInterval(id);
+  }, [activo, referenciaEn, base]);
+
+  return activo && preciso != null ? preciso : relojSegundos;
 }
 
 // `patrocinadores` llega dentro de cada broadcast 'estado' (cada segundo

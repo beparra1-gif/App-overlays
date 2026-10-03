@@ -45,7 +45,7 @@ export default function VistaNomina({ partido, modo = 'ambos', claveAnimacion = 
   // .nomina-encabezado-equipo, no de .nomina-equipo), así que el tamaño
   // también se independiza del alto de la columna: se mide en vh (alto de
   // pantalla), no en % de un contenedor cuya altura cambiaba con la
-  // cantidad de jugadores. 100% ≈ 55vh; el slider llega hasta 400% y de
+  // cantidad de jugadores. 100% ≈ 55vh; el slider llega hasta 500% y de
   // verdad crece hasta ahí (sin ningún tope de ancho escondido, ver el
   // comentario junto a `estiloLogoFondo` más abajo) — a tamaños grandes
   // puede salirse de pantalla o superponerse con el otro equipo, a

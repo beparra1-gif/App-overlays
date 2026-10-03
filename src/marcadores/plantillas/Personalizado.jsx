@@ -51,7 +51,7 @@ export default function Personalizado({ partido, config }) {
         <div className="pz-equipo">
           <LogoEquipo equipo={partido.equipoLocal} config={config} className="pz-logo" />
           {nombrePts(partido.equipoLocal, partido.ptsLocal, pulsoLocal, false)}
-          {mostrar(config, 'mostrarFaltas') && <span className="pz-faltas">F {indicadorFaltas(partido.faltasPeriodoLocal, config?.estiloFaltas)}</span>}
+          {mostrar(config, 'mostrarFaltas') && <span className={`pz-faltas ${partido.bonusLocal ? 'pm-bonus' : ''}`}>F {indicadorFaltas(partido.faltasPeriodoLocal, config?.estiloFaltas)}{partido.bonusLocal ? ' BONUS' : ''}</span>}
         </div>
         <div className="pz-centro">
           {mostrar(config, 'mostrarReloj') && <span className="pz-reloj">{formatearReloj(partido.relojSegundos)}</span>}
@@ -60,7 +60,7 @@ export default function Personalizado({ partido, config }) {
         <div className="pz-equipo">
           <LogoEquipo equipo={partido.equipoVisita} config={config} className="pz-logo" />
           {nombrePts(partido.equipoVisita, partido.ptsVisita, pulsoVisita, true)}
-          {mostrar(config, 'mostrarFaltas') && <span className="pz-faltas">F {indicadorFaltas(partido.faltasPeriodoVisita, config?.estiloFaltas)}</span>}
+          {mostrar(config, 'mostrarFaltas') && <span className={`pz-faltas ${partido.bonusVisita ? 'pm-bonus' : ''}`}>F {indicadorFaltas(partido.faltasPeriodoVisita, config?.estiloFaltas)}{partido.bonusVisita ? ' BONUS' : ''}</span>}
         </div>
       </div>
       <PatrocinadorBanner patrocinadores={partido.patrocinadores} className="pz-patrocinador" />

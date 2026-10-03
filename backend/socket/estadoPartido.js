@@ -147,6 +147,12 @@ export async function construirEstado(partido) {
     estado: partido.estado,
     periodo: partido.periodo,
     relojSegundos: relojActual(partido),
+    // Para el conteo con décimas del último minuto en el frontend (ver
+    // useRelojVivo): el entero de arranque de ESTE tramo corriendo/pausado
+    // y cuándo arrancó — con eso alcanza para recalcular el tiempo exacto
+    // entre un tick de 1s y el siguiente, sin mandar un tick por frame.
+    relojSegundosBase: partido.reloj_segundos,
+    relojReferenciaEn: partido.reloj_corriendo ? partido.reloj_referencia_en : null,
     relojCorriendo: partido.reloj_corriendo,
     minutosPeriodo: partido.minutos_periodo,
     minutosProrroga: partido.minutos_prorroga,
@@ -215,6 +221,28 @@ export async function corregirFaltas(partido, { equipo, jugadorId, faltas }) {
     [partido.id, 'CORRECCION_FALTAS', jugadorId, equipo, `Faltas personales corregidas a ${faltas}`, partido.periodo, relojActual(partido)]
   );
   return partido;
+}
+
+// Faltas de EQUIPO del período (distintas de las personales de arriba) —
+// las que disparan el bonus (ver `bonusLocal`/`bonusVisita` en
+// construirEstado, >= 5). A diferencia de las personales, acá sí hay una
+// columna directa (`faltas_periodo_*`, la misma que incrementa
+// registrarFalta) — no hace falta un "ajuste" por delta, se pisa tal cual,
+// mismo patrón que corregirPuntos. Solo toca el contador del PERÍODO (el
+// que se resetea a 0 en cada período nuevo y maneja el bonus) — el total
+// acumulado del partido (faltas_local/faltas_visita, que no resetea) sigue
+// sumando solo por jugada, como siempre.
+export async function corregirFaltasEquipo(partido, { equipo, faltas }) {
+  const campoPeriodo = equipo === 'local' ? 'faltas_periodo_local' : 'faltas_periodo_visita';
+  const resultado = await pool.query(
+    `UPDATE partidos SET ${campoPeriodo} = $1, actualizado_en = now() WHERE id = $2 RETURNING *`,
+    [faltas, partido.id]
+  );
+  await pool.query(
+    'INSERT INTO eventos_partido (partido_id, tipo, equipo, detalle, periodo, reloj_segundos_evento) VALUES ($1, $2, $3, $4, $5, $6)',
+    [partido.id, 'CORRECCION_FALTAS_EQUIPO', equipo, `Faltas de equipo del período corregidas a ${faltas}`, partido.periodo, relojActual(partido)]
+  );
+  return resultado.rows[0];
 }
 
 export async function registrarPunto(partido, { equipo, jugadorId, puntos }) {

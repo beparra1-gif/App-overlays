@@ -546,6 +546,44 @@ function FaltasCorregibles({ valor, editando, valorEdit, onEmpezar, onCambiarVal
   );
 }
 
+// Corrección manual de las faltas de EQUIPO del período (las que disparan
+// el bonus, `partido.faltasPeriodoLocal/Visita` — ver el comentario junto a
+// mv-scorebar más abajo) — mismo lápiz → número → ✓/✕ que las dos de
+// arriba, pero compacto para convivir en la línea chica "F: N" del pie de
+// cada caja de equipo en vez de ocupar una línea propia. `enBonus` agrega
+// una clase CSS que resalta la caja (borde/texto de alerta) en cuanto llega
+// a 5 — mismo umbral que ya usa `bonusLocal/bonusVisita` del backend.
+function FaltasEquipoCorregibles({ valor, enBonus, editando, valorEdit, onEmpezar, onCambiarValor, onConfirmar, onCancelar }) {
+  if (editando) {
+    return (
+      <span className="mv-faltas-equipo-edit">
+        F:
+        <input
+          type="number"
+          inputMode="numeric"
+          min="0"
+          max="20"
+          autoFocus
+          value={valorEdit}
+          onChange={(e) => onCambiarValor(e.target.value.replace(/[^0-9]/g, '').slice(0, 2))}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') onConfirmar();
+            if (e.key === 'Escape') onCancelar();
+          }}
+        />
+        <button type="button" className="mv-pts-edit-btn ok" title="Guardar" onClick={onConfirmar}>✓</button>
+        <button type="button" className="mv-pts-edit-btn cancelar" title="Cancelar" onClick={onCancelar}>✕</button>
+      </span>
+    );
+  }
+  return (
+    <span className={`mv-faltas ${enBonus ? 'mv-faltas-bonus' : ''}`}>
+      F: {valor}{enBonus ? ' · BONUS' : ''}
+      <button type="button" className="mv-faltas-equipo-corregir" title="Corregir faltas de equipo" onClick={onEmpezar}>✎</button>
+    </span>
+  );
+}
+
 // Panel flotante de acciones — antes este bloque (prompt + grilla FIBA +
 // Cambio) vivía fijo en la columna central de la Mesa todo el tiempo, aunque
 // no hubiera nada elegido. Ahora aparece recién al elegir un jugador (o, en
@@ -713,6 +751,11 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
   const [valorPuntosEdit, setValorPuntosEdit] = useState('');
   const [editandoFaltas, setEditandoFaltas] = useState(false);
   const [valorFaltasEdit, setValorFaltasEdit] = useState('');
+  // null | 'local' | 'visita' — corrección manual de las faltas de EQUIPO
+  // del período (distintas de las personales de arriba; son las que
+  // disparan el bonus). Mismo patrón lápiz → número → ✓/✕.
+  const [editandoFaltasEquipo, setEditandoFaltasEquipo] = useState(null);
+  const [valorFaltasEquipoEdit, setValorFaltasEquipoEdit] = useState('');
   // Edición manual del reloj (minutos:segundos) — antes solo se podía
   // sumar/restar de a 1:00 completo con los botones +1:00/-1:00, sin forma
   // de dejarlo en un valor exacto (p. ej. "quedaban 3:27" al reanudar tras
@@ -952,6 +995,19 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
     setEditandoFaltas(false);
   };
   const cancelarCorreccionFaltas = () => setEditandoFaltas(false);
+
+  const empezarCorreccionFaltasEquipo = (equipo) => {
+    setEditandoFaltasEquipo(equipo);
+    setValorFaltasEquipoEdit(String(equipo === 'local' ? partido.faltasPeriodoLocal : partido.faltasPeriodoVisita));
+  };
+  const confirmarCorreccionFaltasEquipo = () => {
+    const faltas = Number(valorFaltasEquipoEdit);
+    if (Number.isInteger(faltas) && faltas >= 0) {
+      emitirAccion('FALTAS_EQUIPO_CORREGIR', { equipo: editandoFaltasEquipo, faltas });
+    }
+    setEditandoFaltasEquipo(null);
+  };
+  const cancelarCorreccionFaltasEquipo = () => setEditandoFaltasEquipo(null);
 
   const empezarEdicionReloj = () => {
     const totalActual = partido.relojSegundos;
@@ -1425,7 +1481,16 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
                 />
               </div>
               <div className="mv-equipo-pie">
-                <span className="mv-faltas">F: {partido.faltasPeriodoLocal}</span>
+                <FaltasEquipoCorregibles
+                  valor={partido.faltasPeriodoLocal}
+                  enBonus={partido.faltasPeriodoLocal >= 5}
+                  editando={editandoFaltasEquipo === 'local'}
+                  valorEdit={valorFaltasEquipoEdit}
+                  onEmpezar={() => empezarCorreccionFaltasEquipo('local')}
+                  onCambiarValor={setValorFaltasEquipoEdit}
+                  onConfirmar={confirmarCorreccionFaltasEquipo}
+                  onCancelar={cancelarCorreccionFaltasEquipo}
+                />
               </div>
             </div>
 
@@ -1461,7 +1526,16 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
                 <BotonTimeout restantes={partido.timeoutsVisita} destacado={destacarTimeoutVisita} onClick={() => solicitarTimeout('visita')} />
               </div>
               <div className="mv-equipo-pie">
-                <span className="mv-faltas">F: {partido.faltasPeriodoVisita}</span>
+                <FaltasEquipoCorregibles
+                  valor={partido.faltasPeriodoVisita}
+                  enBonus={partido.faltasPeriodoVisita >= 5}
+                  editando={editandoFaltasEquipo === 'visita'}
+                  valorEdit={valorFaltasEquipoEdit}
+                  onEmpezar={() => empezarCorreccionFaltasEquipo('visita')}
+                  onCambiarValor={setValorFaltasEquipoEdit}
+                  onConfirmar={confirmarCorreccionFaltasEquipo}
+                  onCancelar={cancelarCorreccionFaltasEquipo}
+                />
               </div>
             </div>
           </div>

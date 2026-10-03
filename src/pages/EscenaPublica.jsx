@@ -8,7 +8,7 @@ import VistaEstadisticas from '../marcadores/vistas/VistaEstadisticas';
 import VistaAnuncios from '../marcadores/vistas/VistaAnuncios';
 import AlertaMarcador from '../marcadores/vistas/AlertaMarcador';
 import ErrorBoundary from '../components/ErrorBoundary';
-import { useCajaMarcador } from '../marcadores/utils';
+import { useCajaMarcador, useRelojVivo } from '../marcadores/utils';
 
 // El payload que viaja por socket (stats_pulso) trae solo lo mínimo; acá se
 // arma la config completa que espera VistaEstadisticas para cada uno de los
@@ -52,6 +52,13 @@ export default function EscenaPublica() {
   // simplemente no mide nada, sin costo.
   const contenedorRef = useRef(null);
   const caja = useCajaMarcador(contenedorRef, [datos?.diseno?.plantilla_base, datos?.diseno?.config]);
+
+  // Último minuto de cada período: reloj con décimas (ver useRelojVivo) —
+  // se arma UNA vez acá y se lo pasa a VistaMarcador en vez de
+  // `datos.partido.relojSegundos` tal cual, así las ~35 plantillas (todas
+  // llaman a formatearReloj(partido.relojSegundos) directo) lo reciben ya
+  // listo, sin tener que tocar ninguna.
+  const relojVivo = useRelojVivo(datos?.partido);
 
   // Fondo transparente de verdad, sin depender de que el reproductor
   // soporte el selector CSS :has() (las reglas `html:has(...) {background:
@@ -186,7 +193,7 @@ export default function EscenaPublica() {
               `oculto`; sacarlo de golpe con un `&&` condicional no dejaba
               lugar para ninguna transición. */}
           <ErrorBoundary>
-            <VistaMarcador partido={datos.partido} diseno={datos.diseno} oculto={ocultarMarcadorAhora} suprimirTitulo={suprimirTitulo} />
+            <VistaMarcador partido={{ ...datos.partido, relojSegundos: relojVivo }} diseno={datos.diseno} oculto={ocultarMarcadorAhora} suprimirTitulo={suprimirTitulo} />
           </ErrorBoundary>
           {alertaMarcador && (
             <ErrorBoundary>

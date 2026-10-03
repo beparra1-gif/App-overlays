@@ -181,7 +181,34 @@
 }
 
 .mv-equipo-pie { display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 4px; }
-.mv-faltas { font-size: 10px; color: var(--mv-rojo); font-weight: 800; }
+.mv-faltas { font-size: 10px; color: var(--mv-rojo); font-weight: 800; display: inline-flex; align-items: center; gap: 4px; }
+
+/* Faltas de EQUIPO del período, con corrección manual (ver
+   FaltasEquipoCorregibles en Mesa.jsx) — mismo ✓/✕ que el resto, pero
+   chico para convivir en la línea "F: N" del pie de cada caja en vez de
+   ocupar una línea propia (a diferencia de .mv-faltas-edit, que sí la
+   ocupa, para las faltas PERSONALES del jugador elegido). */
+.mv-faltas-equipo-corregir {
+  background: rgba(255, 255, 255, .08); border: 1px solid var(--mv-borde); color: var(--mv-texto-tenue);
+  border-radius: 6px; width: 16px; height: 16px; font-size: 9px; line-height: 1; cursor: pointer; flex-shrink: 0;
+}
+.mv-faltas-equipo-corregir:hover { color: #fff; background: rgba(255, 255, 255, .16); }
+.mv-faltas-equipo-edit { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 800; color: var(--mv-texto-tenue); }
+.mv-faltas-equipo-edit input {
+  width: 34px; font-size: 12px; text-align: center; font-weight: 900;
+  background: var(--mv-input); border: 1px solid var(--mv-azul); border-radius: 6px; color: #fff; padding: 2px;
+}
+.mv-faltas-equipo-edit .mv-pts-edit-btn { width: 20px; height: 20px; border-radius: 6px; font-size: 11px; }
+
+/* Bonus (faltas de equipo del período >= 5, mismo umbral que
+   bonusLocal/Visita del backend) — mismo color de alerta que ya usa
+   .mv-box-destacado para timeouts, para que "algo importa ahora" se lea
+   igual en toda la Mesa en vez de inventar un lenguaje de color aparte. */
+.mv-faltas-bonus { color: #ffd700; animation: mv-bonus-pulso 1.6s ease-in-out infinite; }
+@keyframes mv-bonus-pulso {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .55; }
+}
 
 /* Botón de tiempo muerto, en el borde externo de cada caja de equipo (junto
    al logo/nombre) — antes vivía como un botón "TM Local/Visita" aparte, sin

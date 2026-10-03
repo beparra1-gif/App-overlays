@@ -2422,9 +2422,9 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
                       <CampoRango
                         etiqueta="Tamaño (de fondo)"
                         valor={Number.isFinite(config.nominaLogoFondoTamano) ? config.nominaLogoFondoTamano : 130}
-                        min={5} max={400}
+                        min={5} max={500}
                         onChange={(v) => cambiarConfig('nominaLogoFondoTamano', v)}
-                        ayuda="Siempre arranca pegado justo abajo del título, sea cual sea el largo del plantel. Achicalo o agrandalo como quieras — hay un tope para que nunca se salga de pantalla."
+                        ayuda="Siempre arranca pegado justo abajo del título, sea cual sea el largo del plantel. Achicalo o agrandalo como quieras — a tamaños grandes puede salirse de pantalla o superponerse con el otro equipo; usá el ajuste fino de posición de abajo para corregirlo."
                       />
                       <div className="fila-form">
                         <CampoRango

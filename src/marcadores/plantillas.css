@@ -18,6 +18,20 @@ html:has(.plantilla-marcador) {
 }
 .pm-pulso { animation: pm-pulso 0.6s ease; }
 
+/* Alerta de BONUS (5+ faltas de equipo en el período, partido.bonusLocal/
+   Visita, ver estadoPartido.js) — clase compartida, pensada para agregarse
+   junto a la clase propia de "faltas" de cada plantilla (p. ej. pc-faltas,
+   pz-faltas) sin pisarla. Mismo dorado de alerta que ya usa la Mesa de
+   control para que "algo importa ahora" se lea igual en control y en
+   pantalla. Por ahora está cableada en Clásico y Personalizado — el resto
+   de las plantillas sigue mostrando el número de faltas tal cual, sin el
+   agregado "BONUS".  */
+@keyframes pm-bonus-pulso {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .5; }
+}
+.pm-bonus { color: #ffd60a !important; animation: pm-bonus-pulso 1.4s ease-in-out infinite; }
+
 .pm-patrocinador img {
   display: block;
   object-fit: contain;
