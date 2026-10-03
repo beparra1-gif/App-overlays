@@ -90,24 +90,31 @@ function ModalTiroLibre({ onElegir, onCerrar }) {
 // afuera ni hay "Cancelar" — hay que elegir quién entra. La única salida es
 // si la banca está vacía (no hay a quién meter), ahí sí se puede seguir sin
 // cambiar para no dejar la Mesa trabada sin salida.
+// Mismo grid de botones grandes que "Editar quinteto"/"Convocados" (ver
+// .selector-dorsal-grid en EquipoRoster.jsx) en vez de la lista angosta de
+// filas de antes — un solo toque entra directo (acá no hace falta un paso
+// de "confirmar", a diferencia de quinteto/convocados que sí son multi-
+// selección). `modal-caja-cambio` le da el acento ROJO propio de un cambio
+// (en vez del azul de siempre de selector-dorsal-btn), para que se lea de
+// un vistazo que es un flujo distinto — mismo rojo que ya usan las
+// acciones de falta, a propósito: "cambio" también corta el juego.
 function ModalCambio({ banca, onElegir, onCerrar, forzado }) {
   const sinBanca = banca.length === 0;
   const sePuedeCerrar = !forzado || sinBanca;
   return (
     <div className="modal-fondo" onClick={sePuedeCerrar ? onCerrar : undefined}>
-      <div className="modal-caja" onClick={(e) => e.stopPropagation()}>
+      <div className="modal-caja modal-caja-cambio" onClick={(e) => e.stopPropagation()}>
         <h3>{forzado ? '⚠ Sustitución obligatoria' : '¿Quién entra?'}</h3>
         {forzado && <p className="mensaje-error">Llegó al límite de faltas y tiene que salir de la cancha — elegí quién entra.</p>}
-        <ul className="modal-lista-filas">
+        <div className="selector-dorsal-grid">
           {banca.map((j) => (
-            <li key={j.id}>
-              <button className="modal-fila-btn" onClick={() => onElegir(j.id)}>
-                <span className="dorsal-chip">{j.dorsal ?? '-'}</span> {j.nombre}
-              </button>
-            </li>
+            <button key={j.id} type="button" className="selector-dorsal-btn" onClick={() => onElegir(j.id)}>
+              <span className="dorsal-chip">{j.dorsal ?? '-'}</span>
+              {j.nombre && <span className="selector-dorsal-nombre">{j.nombre}</span>}
+            </button>
           ))}
-          {sinBanca && <li className="texto-tenue">No hay jugadores en la banca.</li>}
-        </ul>
+          {sinBanca && <p className="texto-tenue">No hay jugadores en la banca.</p>}
+        </div>
         {sePuedeCerrar && (
           <button className="btn-link" onClick={onCerrar}>{forzado ? 'Seguir sin cambiar (no hay banca)' : 'Cancelar'}</button>
         )}

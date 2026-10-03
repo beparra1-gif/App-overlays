@@ -8,14 +8,34 @@ import EquipoRoster from './EquipoRoster';
 // ya existe, lo reusa entero (mismo id/color/logo) — así no se duplica un
 // equipo por un tipeo de mayúsculas. Si no hay coincidencia, recién ahí se
 // crea en la base — no en cada tecla, solo cuando hace falta un id real.
-export async function resolverOCrearEquipo({ nombre, color, logoUrl, equipos }) {
+export async function resolverOCrearEquipo({ nombre, color, logoUrl, categoria, rama, equipos }) {
   const limpio = (nombre || '').trim();
   if (!limpio) return null;
   const existente = equipos.find((e) => e.nombre.trim().toLowerCase() === limpio.toLowerCase());
   if (existente) return existente;
-  const { equipo } = await api.crearEquipo({ nombre: limpio, color: color || '#0a84ff', logo_url: logoUrl || null });
+  const { equipo } = await api.crearEquipo({ nombre: limpio, color: color || '#0a84ff', logo_url: logoUrl || null, categoria: categoria || null, rama: rama || null });
   return equipo;
 }
+
+// Lista fija de categorías (las que usa el club siempre) + cualquier otra
+// que el usuario ya haya tipeado antes en algún equipo guardado — así una
+// categoría "nueva" que se agregó una vez queda disponible para elegir de
+// nuevo después, sin necesidad de una tabla aparte en el backend (categoria
+// es una columna de texto libre, ver routes/equipos.js). El escape hatch
+// "+ Agregar categoría nueva" sigue estando siempre, para la primera vez.
+const CATEGORIAS_FIJAS = ['Sub-9', 'Sub-11', 'Sub-15', 'Sub-17-18'];
+function categoriasDisponibles(equipos) {
+  const extra = Array.from(new Set((equipos || []).map((e) => e.categoria).filter(Boolean)))
+    .filter((c) => !CATEGORIAS_FIJAS.includes(c))
+    .sort((a, b) => a.localeCompare(b));
+  return [...CATEGORIAS_FIJAS, ...extra];
+}
+
+const RAMA_OPCIONES_EQUIPO = [
+  { value: '', label: 'Sin especificar' },
+  { value: 'femenino', label: 'Femenino' },
+  { value: 'masculino', label: 'Masculino' },
+];
 
 // Paleta acotada de tonos para el color del equipo — mostrar el código hex
 // no le sirve a nadie acá, alcanza con poder tocar un tono y verlo asignado.
@@ -93,7 +113,7 @@ function sugerirLogoUrl(nombre, logos) {
 // blanco sino el nombre/color/logo que el usuario ya había cargado.
 // `onCambio` avisa en cada tecla (nombre/color/logo) para que la vista
 // previa combinada se actualice al toque, con los datos reales.
-const EquipoFicha = forwardRef(function EquipoFicha({ titulo, valorDefecto, equipoActivo, equipos, logos, onLogoSubido, onEquipoCreado, onCambio }, ref) {
+const EquipoFicha = forwardRef(function EquipoFicha({ titulo, valorDefecto, equipoActivo, equipos, logos, onLogoSubido, onEquipoCreado, onCambio, permitirCambiarEquipo = false }, ref) {
   const [nombre, setNombre] = useState(equipoActivo?.nombre || valorDefecto);
   const [color, setColor] = useState(equipoActivo?.color || '#0a84ff');
   const [logoUrl, setLogoUrl] = useState(equipoActivo?.logo_url || '');
@@ -103,6 +123,15 @@ const EquipoFicha = forwardRef(function EquipoFicha({ titulo, valorDefecto, equi
   // editarlo, eso vive en la página Equipos.
   const [codigo, setCodigo] = useState(equipoActivo?.codigo || '');
   const [logoTocado, setLogoTocado] = useState(Boolean(equipoActivo?.logo_url));
+  const [categoria, setCategoria] = useState(equipoActivo?.categoria || '');
+  const [rama, setRama] = useState(equipoActivo?.rama || '');
+  // Si el equipo activo ya trae una categoría que NO está en la lista fija
+  // ni en la de otros equipos guardados (poco probable, pero posible si se
+  // cargó por API o en otro momento), el selector de abajo arranca en modo
+  // "categoría personalizada" con ese valor ya escrito, en vez de perderlo.
+  const [categoriaPersonalizada, setCategoriaPersonalizada] = useState(
+    () => Boolean(equipoActivo?.categoria) && !categoriasDisponibles(equipos).includes(equipoActivo.categoria)
+  );
   const [equipoId, setEquipoId] = useState(equipoActivo?.id || null);
   const [roster, setRoster] = useState([]);
   const [error, setError] = useState('');
@@ -238,6 +267,9 @@ const EquipoFicha = forwardRef(function EquipoFicha({ titulo, valorDefecto, equi
     setColor(equipo.color || color);
     setLogoUrl(equipo.logo_url || '');
     setCodigo(equipo.codigo || '');
+    setCategoria(equipo.categoria || '');
+    setRama(equipo.rama || '');
+    setCategoriaPersonalizada(Boolean(equipo.categoria) && !categoriasDisponibles(equipos).includes(equipo.categoria));
     setEquipoId(equipo.id);
     const { jugadores } = await api.listarJugadores(equipo.id);
     setRoster(jugadores);
@@ -255,7 +287,7 @@ const EquipoFicha = forwardRef(function EquipoFicha({ titulo, valorDefecto, equi
       // "Visita" que YA existía no se encontraba y se creaba un duplicado
       // cada vez, así que la lista de equipos sueltos crecía sin parar.
       const equiposFrescos = await api.listarEquipos().then((d) => d.equipos).catch(() => equipos);
-      const equipo = await resolverOCrearEquipo({ nombre: nombre || valorDefecto, color, logoUrl, equipos: equiposFrescos });
+      const equipo = await resolverOCrearEquipo({ nombre: nombre || valorDefecto, color, logoUrl, categoria, rama, equipos: equiposFrescos });
       if (!equipo) return null;
       return await aplicarEquipo(equipo);
     } catch (err) {
@@ -289,6 +321,30 @@ const EquipoFicha = forwardRef(function EquipoFicha({ titulo, valorDefecto, equi
     }
   };
 
+  // Desengancha esta ficha del equipo que tenía vinculado, volviendo al
+  // estado "en blanco" de antes de resolver() — recién ahí vuelve a
+  // aparecer el desplegable "Elegir equipo guardado" de arriba y se puede
+  // tipear un nombre nuevo sin que termine editando el equipo anterior.
+  // Gateado por `permitirCambiarEquipo` (ver el botón más abajo): fuera del
+  // flujo de "Empezar partido nuevo" no tiene sentido mostrarlo — el
+  // equipo de un partido en curso no debería poder soltarse por accidente.
+  const desvincularEquipo = () => {
+    setEquipoId(null);
+    setNombre(valorDefecto);
+    setColor('#0a84ff');
+    setLogoUrl('');
+    setLogoTocado(false);
+    setCodigo('');
+    setCategoria('');
+    setRama('');
+    setCategoriaPersonalizada(false);
+    setRoster([]);
+    setModoNomina('sin');
+    setEquipoOrigenId('');
+    setNominaTemporal(false);
+    setError('');
+  };
+
   // Mientras haya un equipo vinculado, cualquier edición (nombre, color,
   // logo) se guarda en ESE MISMO equipo — antes, si el nombre tipeado ya
   // coincidía con uno existente, `resolver()` devolvía el equipo viejo tal
@@ -300,7 +356,7 @@ const EquipoFicha = forwardRef(function EquipoFicha({ titulo, valorDefecto, equi
     const limpio = nombre.trim();
     if (!limpio) return;
     try {
-      const { equipo } = await api.actualizarEquipo(equipoId, { nombre: limpio, color, logo_url: logoUrl || null });
+      const { equipo } = await api.actualizarEquipo(equipoId, { nombre: limpio, color, logo_url: logoUrl || null, categoria: categoria || null, rama: rama || null });
       onEquipoCreado(equipo);
     } catch (err) {
       setError(err.message);
@@ -314,7 +370,7 @@ const EquipoFicha = forwardRef(function EquipoFicha({ titulo, valorDefecto, equi
     temporizadorGuardadoRef.current = setTimeout(guardarEquipo, 500);
     return () => clearTimeout(temporizadorGuardadoRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [equipoId, nombre, color, logoUrl]);
+  }, [equipoId, nombre, color, logoUrl, categoria, rama]);
 
   // La vista previa combinada refleja al instante lo que se está tipeando o
   // eligiendo acá (nombre, color, logo), sin esperar a que se guarde nada.
@@ -393,11 +449,18 @@ const EquipoFicha = forwardRef(function EquipoFicha({ titulo, valorDefecto, equi
     // que atarlos.
     flushTemporales,
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [equipoId, nombre, color, logoUrl, roster]);
+  }), [equipoId, nombre, color, logoUrl, categoria, rama, roster]);
 
   return (
     <div className="tarjeta">
-      <h3>{titulo}</h3>
+      <h3 className="fila-form" style={{ margin: 0, justifyContent: 'space-between' }}>
+        {titulo}
+        {equipoId && permitirCambiarEquipo && (
+          <button type="button" className="btn-link" style={{ fontSize: 13 }} onClick={desvincularEquipo}>
+            ↺ Elegir otro equipo
+          </button>
+        )}
+      </h3>
       {error && <p className="mensaje-error">{error}</p>}
 
       {!equipoId && equipos.length > 0 && (
@@ -423,6 +486,45 @@ const EquipoFicha = forwardRef(function EquipoFicha({ titulo, valorDefecto, equi
       </div>
 
       <SelectorColorEquipo color={color} onChange={setColor} />
+
+      <div className="fila-form" style={{ flexWrap: 'wrap' }}>
+        {categoriaPersonalizada ? (
+          <label style={{ flex: 1, minWidth: 160 }}>
+            Categoría nueva
+            <span className="fila-form" style={{ margin: 0 }}>
+              <input
+                value={categoria}
+                onChange={(e) => setCategoria(e.target.value)}
+                placeholder="p. ej. Sub-13"
+                style={{ flex: 1 }}
+                autoFocus
+              />
+              <button type="button" className="btn-link" onClick={() => setCategoriaPersonalizada(false)}>Elegir de la lista</button>
+            </span>
+          </label>
+        ) : (
+          <label style={{ flex: 1, minWidth: 160 }}>
+            Categoría
+            <select
+              value={categoria}
+              onChange={(e) => {
+                if (e.target.value === '__nueva__') { setCategoriaPersonalizada(true); setCategoria(''); return; }
+                setCategoria(e.target.value);
+              }}
+            >
+              <option value="">Sin especificar</option>
+              {categoriasDisponibles(equipos).map((c) => <option key={c} value={c}>{c}</option>)}
+              <option value="__nueva__">+ Agregar categoría nueva…</option>
+            </select>
+          </label>
+        )}
+        <label style={{ flex: 1, minWidth: 140 }}>
+          Rama
+          <select value={rama} onChange={(e) => setRama(e.target.value)}>
+            {RAMA_OPCIONES_EQUIPO.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+        </label>
+      </div>
 
       <div className="modo-nomina-selector">
         <label>

@@ -648,12 +648,33 @@
   border: none;
   border-radius: 18px;
   color: #fff;
-  background: linear-gradient(160deg, #ffbb33 0%, #b5750a 100%);
+  background: linear-gradient(160deg, #ff453a 0%, #a3110a 100%);
   box-shadow: 0 10px 26px rgba(0, 0, 0, .35);
   cursor: pointer;
   display: flex; align-items: center; justify-content: center; gap: 10px;
 }
 .mv-btn-cambio:disabled { opacity: .3; box-shadow: none; cursor: not-allowed; }
+
+/* Modal "¿Quién entra?" (ModalCambio): mismo rojo que el botón de arriba y
+   que las acciones de falta — un cambio también corta el juego, mismo
+   lenguaje de color. El grid de jugadores (.selector-dorsal-grid, igual
+   que "Editar quinteto"/"Convocados") pisa acá su acento azul de siempre
+   por este rojo + letras blancas. */
+.modal-caja-cambio .selector-dorsal-btn {
+  background: linear-gradient(160deg, #ff453a 0%, #a3110a 100%);
+  border-color: transparent;
+  color: #fff;
+}
+.modal-caja-cambio .selector-dorsal-btn:hover,
+.modal-caja-cambio .selector-dorsal-btn:active {
+  background: linear-gradient(160deg, #ff6a60 0%, #c41810 100%);
+}
+.modal-caja-cambio .selector-dorsal-btn .dorsal-chip {
+  background: rgba(255, 255, 255, .2);
+  border-color: rgba(255, 255, 255, .4);
+  color: #fff;
+}
+.modal-caja-cambio .selector-dorsal-nombre { color: #fff; }
 
 /* Ver el comentario en Mesa.jsx — degradé pegado (sticky) al borde inferior
    del panel MIENTRAS haya contenido sin scrollear todavía; al llegar al

@@ -671,6 +671,12 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
   const [partidoEnVivo, setPartidoEnVivo] = useState(null);
   const equipoLocalRef = useRef(null);
   const equipoVisitaRef = useRef(null);
+  // "Empezar partido nuevo" ya no resetea directo con los mismos equipos de
+  // siempre — manda a la pestaña Equipos (donde ya se puede elegir un
+  // equipo guardado, cargar uno nuevo con logo y nómina, o dejar los que
+  // ya están) y muestra este aviso con el botón real de confirmación, para
+  // dejar bien claro qué hay que hacer antes de arrancar.
+  const [preparandoPartidoNuevo, setPreparandoPartidoNuevo] = useState(false);
 
   useEffect(() => { api.listarLogos().then((d) => setLogos(d.logos)).catch(() => {}); }, []);
   useEffect(() => { api.listarEquipos().then((d) => setEquipos(d.equipos)).catch(() => {}); }, []);
@@ -1206,6 +1212,18 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
     } finally {
       setPreparandoPartido(false);
     }
+  };
+
+  // Confirmación del aviso de "Empezar partido nuevo" (ver más abajo, en la
+  // pestaña Equipos) — mismo prepararPartido() de siempre, solo que acá el
+  // usuario ya tuvo la chance de elegir otro equipo guardado, cargar uno
+  // nuevo (con logo y nómina) o dejar los que ya estaban, antes de tocar
+  // este botón. Si sale bien, vuelve solo a "Juego en vivo" a mostrar la
+  // Mesa con el partido ya armado.
+  const confirmarPartidoNuevo = async () => {
+    await prepararPartido();
+    setPreparandoPartidoNuevo(false);
+    setPestanaExterna('jugar');
   };
 
   // "Juego en vivo" nunca debe pedir un click de "crear partido": apenas se
@@ -1855,10 +1873,11 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
                 type="button"
                 className="btn-secundario btn-chico"
                 disabled={preparandoPartido}
-                title="Relee los equipos de la pestaña Equipos — si cambiaste el rival, arranca el marcador en 0-0 con los equipos nuevos. El enlace de OBS es siempre el mismo, no hace falta cambiarlo en OBS."
+                title="Te lleva a Equipos para elegir un equipo guardado, cargar uno nuevo (logo y nómina incluidos) o dejar los mismos, antes de arrancar. El enlace de OBS es siempre el mismo, no hace falta cambiarlo en OBS."
                 onClick={() => {
-                  if (!window.confirm('¿Empezar un partido nuevo? Si cambiaste algún equipo en "Equipos", el marcador arranca en 0-0 con los equipos nuevos (el anterior, si ya tenía jugadas, queda guardado en "Partidos"). El enlace de OBS sigue siendo el mismo de siempre.')) return;
-                  prepararPartido();
+                  setPreparandoPartidoNuevo(true);
+                  setPestanaExterna('personalizar');
+                  setSeccionAbierta('equipos');
                 }}
               >
                 🔄 Empezar partido nuevo
@@ -1949,6 +1968,24 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
             {/* ───────── EQUIPOS ───────── */}
             <div className="grupo-personalizacion" hidden={seccionAbierta !== 'equipos'}>
               <div className="grupo-titulo">👕 Equipos y reglas del partido</div>
+              {preparandoPartidoNuevo && (
+                <div className="tarjeta" style={{ borderColor: 'var(--primario)', marginBottom: 10 }}>
+                  <strong>Vas a empezar un partido nuevo.</strong>
+                  <p className="texto-tenue" style={{ margin: '4px 0 10px' }}>
+                    Elegí un equipo guardado, cargá uno nuevo (con su logo y nómina) o dejá los que ya están abajo —
+                    después confirmá acá. El partido anterior, si ya tenía jugadas, queda guardado en "Partidos" y el
+                    enlace de OBS sigue siendo el mismo.
+                  </p>
+                  <div className="fila-form" style={{ margin: 0 }}>
+                    <button type="button" className="btn-primario" disabled={preparandoPartido} onClick={confirmarPartidoNuevo}>
+                      {preparandoPartido ? 'Preparando…' : '✓ Confirmar y empezar partido nuevo'}
+                    </button>
+                    <button type="button" className="btn-link" onClick={() => { setPreparandoPartidoNuevo(false); setPestanaExterna('jugar'); }}>
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              )}
               <div className="grilla-dos-columnas" style={{ marginBottom: 10 }}>
                 {cargandoEquiposActivos ? (
                   <>
@@ -1967,6 +2004,7 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
                       onLogoSubido={(l) => setLogos((prev) => [l, ...prev])}
                       onEquipoCreado={(eq) => setEquipos((prev) => (prev.some((e) => e.id === eq.id) ? prev.map((e) => (e.id === eq.id ? eq : e)) : [...prev, eq]))}
                       onCambio={setEquipoLocalVivo}
+                      permitirCambiarEquipo={preparandoPartidoNuevo}
                     />
                     <EquipoFicha
                       ref={equipoVisitaRef}
@@ -1978,6 +2016,7 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
                       onLogoSubido={(l) => setLogos((prev) => [l, ...prev])}
                       onEquipoCreado={(eq) => setEquipos((prev) => (prev.some((e) => e.id === eq.id) ? prev.map((e) => (e.id === eq.id ? eq : e)) : [...prev, eq]))}
                       onCambio={setEquipoVisitaVivo}
+                      permitirCambiarEquipo={preparandoPartidoNuevo}
                     />
                   </>
                 )}
