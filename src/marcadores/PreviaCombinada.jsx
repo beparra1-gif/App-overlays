@@ -5,6 +5,7 @@ import VistaEstadisticas from './vistas/VistaEstadisticas';
 import VistaAnuncios from './vistas/VistaAnuncios';
 import LogoMarcaAgua from './LogoMarcaAgua';
 import LogoFlotante from './LogoFlotante';
+import NombreFlotante from './NombreFlotante';
 import TituloMarcador from './TituloMarcador';
 import LogosLibres from './LogosLibres';
 import ElementosLibres from './ElementosLibres';
@@ -191,6 +192,9 @@ export default function PreviaCombinada({
           <LogoMarcaAgua equipoLocal={partido.equipoLocal} equipoVisita={partido.equipoVisita} config={config} caja={caja} />
           <Marcador partido={partido} config={config} />
           <LogoFlotante equipoLocal={partido.equipoLocal} equipoVisita={partido.equipoVisita} config={config} plantillaId={plantillaId} caja={caja} />
+          {plantillaId === 'clasico' && (
+            <NombreFlotante equipoLocal={partido.equipoLocal} equipoVisita={partido.equipoVisita} config={config} plantillaId={plantillaId} caja={caja} prefijo="clasico" />
+          )}
           <TituloMarcador config={config} plantillaId={plantillaId} caja={caja} suprimir={suprimirTitulo} />
           {mostrarDemoPuntos && (
             <PopSumaPuntos

@@ -2,6 +2,7 @@ import { useRef } from 'react';
 import { obtenerPlantilla } from '../registro';
 import LogoMarcaAgua from '../LogoMarcaAgua';
 import LogoFlotante from '../LogoFlotante';
+import NombreFlotante from '../NombreFlotante';
 import PopSumaPuntos from '../PopSumaPuntos';
 import TituloMarcador from '../TituloMarcador';
 import LogosLibres from '../LogosLibres';
@@ -54,6 +55,9 @@ export default function VistaMarcador({ partido, diseno, oculto = false, suprimi
       <LogoMarcaAgua equipoLocal={partido.equipoLocal} equipoVisita={partido.equipoVisita} config={config} caja={caja} />
       <Componente partido={partido} config={config} />
       <LogoFlotante equipoLocal={partido.equipoLocal} equipoVisita={partido.equipoVisita} config={config} plantillaId={plantillaId} caja={caja} />
+      {plantillaId === 'clasico' && (
+        <NombreFlotante equipoLocal={partido.equipoLocal} equipoVisita={partido.equipoVisita} config={config} plantillaId={plantillaId} caja={caja} prefijo="clasico" />
+      )}
       <PopSumaPuntos partido={partido} config={config} caja={caja} />
       <TituloMarcador config={config} plantillaId={plantillaId} caja={caja} suprimir={suprimirTitulo} />
       <LogosLibres config={config} />

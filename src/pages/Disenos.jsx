@@ -2026,6 +2026,78 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
             </>
           )}
 
+          {plantillaBase === 'clasico' && (
+            <>
+              <p className="seccion-titulo">Nombre del equipo</p>
+              <div className="subgrupo">
+                <label>
+                  Posición
+                  <select value={config.clasicoNombrePosicion || 'dentro'} onChange={(e) => cambiarConfig('clasicoNombrePosicion', e.target.value)}>
+                    <option value="dentro">Adentro del marcador (como siempre, junto al logo y el puntaje)</option>
+                    <option value="arriba">Arriba del marcador</option>
+                    <option value="abajo">Abajo del marcador</option>
+                    <option value="costados">A los costados, afuera del marcador</option>
+                    <option value="libre">Posición libre (elegís el punto exacto de cada uno)</option>
+                  </select>
+                </label>
+                {config.clasicoNombrePosicion && config.clasicoNombrePosicion !== 'dentro' && config.clasicoNombrePosicion !== 'libre' && (
+                  <div className="fila-form">
+                    <CampoRango
+                      etiqueta={config.clasicoNombrePosicion === 'costados' ? 'Ajuste fino (afuera del tablero ↔ adentro)' : 'Ajuste fino (izquierda/derecha)'}
+                      valor={Number(config.clasicoNombreOffsetX) || 0}
+                      unidad="px" min={-300} max={300} step={5}
+                      onChange={(v) => cambiarConfig('clasicoNombreOffsetX', v)}
+                      ayuda="Un solo control mueve los dos nombres, reflejados en espejo."
+                    />
+                    <CampoRango
+                      etiqueta="Ajuste fino (arriba/abajo)"
+                      valor={Number(config.clasicoNombreOffsetY) || 0}
+                      unidad="px" min={-200} max={200} step={5}
+                      onChange={(v) => cambiarConfig('clasicoNombreOffsetY', v)}
+                    />
+                  </div>
+                )}
+                {config.clasicoNombrePosicion === 'libre' && (
+                  <>
+                    <p className="texto-tenue" style={{ margin: '0 0 4px', fontSize: 12 }}>Nombre local</p>
+                    <div className="fila-form">
+                      <CampoRango
+                        etiqueta="Horizontal"
+                        valor={Number.isFinite(config.clasicoNombreLocalX) ? config.clasicoNombreLocalX : 50}
+                        unidad="%" min={0} max={100} step={1}
+                        onChange={(v) => cambiarConfig('clasicoNombreLocalX', v)}
+                      />
+                      <CampoRango
+                        etiqueta="Vertical"
+                        valor={Number.isFinite(config.clasicoNombreLocalY) ? config.clasicoNombreLocalY : 12}
+                        unidad="%" min={0} max={100} step={1}
+                        onChange={(v) => cambiarConfig('clasicoNombreLocalY', v)}
+                      />
+                    </div>
+                    <p className="texto-tenue" style={{ margin: '0 0 4px', fontSize: 12 }}>Nombre visita</p>
+                    <div className="fila-form">
+                      <CampoRango
+                        etiqueta="Horizontal"
+                        valor={Number.isFinite(config.clasicoNombreVisitaX) ? config.clasicoNombreVisitaX : 50}
+                        unidad="%" min={0} max={100} step={1}
+                        onChange={(v) => cambiarConfig('clasicoNombreVisitaX', v)}
+                      />
+                      <CampoRango
+                        etiqueta="Vertical"
+                        valor={Number.isFinite(config.clasicoNombreVisitaY) ? config.clasicoNombreVisitaY : 88}
+                        unidad="%" min={0} max={100} step={1}
+                        onChange={(v) => cambiarConfig('clasicoNombreVisitaY', v)}
+                      />
+                    </div>
+                  </>
+                )}
+                <p className="texto-tenue" style={{ margin: 0, fontSize: 12 }}>
+                  Por ahora esto solo está disponible en la plantilla Clásico — el resto sigue con el nombre fijo adentro del marcador.
+                </p>
+              </div>
+            </>
+          )}
+
           <p className="seccion-titulo">Colores</p>
           <div className="fila-form" style={{ alignItems: 'stretch' }}>
             <SelectorColor
