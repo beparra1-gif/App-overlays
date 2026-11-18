@@ -77,6 +77,39 @@ export function hexConAlpha(hex, alphaPct) {
 // pantallas ya tienen su propio layout de pantalla completa fijo, y aplicar
 // el mismo padding/transform pensado para "mover la cajita del marcador" las
 // descolocaría por completo.
+// "Colores según equipo" (Personalizar → Marcador → Colores): toma el color
+// de un equipo — local, visita o el que va GANANDO (cambia solo durante el
+// partido) — y lo aplica al acento o al acento + fondo de TODAS las capas.
+// Solo completa lo que el diseño no fijó a mano en cada capa.
+const HEX6 = /^#[0-9a-f]{6}$/i;
+export function oscurecerHex(hex, cuanto = 0.75) {
+  const n = parseInt(hex.slice(1), 16);
+  const c = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => Math.round(v * (1 - cuanto)));
+  return `#${c.map((v) => v.toString(16).padStart(2, '0')).join('')}`;
+}
+export function equipoParaColores(config, partido) {
+  const modo = config?.coloresEquipo;
+  if (!modo || !partido) return null;
+  if (modo === 'local') return partido.equipoLocal;
+  if (modo === 'visita') return partido.equipoVisita;
+  if (modo === 'ganador') return (partido.ptsVisita ?? 0) > (partido.ptsLocal ?? 0) ? partido.equipoVisita : partido.equipoLocal;
+  return null;
+}
+export function aplicarColoresEquipo(config, partido) {
+  const color = equipoParaColores(config, partido)?.color;
+  if (!config || !HEX6.test(color || '')) return config;
+  const nuevo = { ...config, colorBanner: color, colorBannerAlpha: 100 };
+  if (config.coloresEquipoAlcance === 'acento-fondo') {
+    const fondo = oscurecerHex(color, 0.72);
+    Object.assign(nuevo, { colorTablero: fondo, colorTableroAlpha: 94, colorTexto: '#ffffff', colorTextoAlpha: 100, colorMarcador: '#ffffff', colorMarcadorAlpha: 100 });
+    for (const capa of ['nomina', 'estadisticas', 'intertanto', 'anuncios']) {
+      if (!config[`${capa}ColorFondo`]) { nuevo[`${capa}ColorFondo`] = oscurecerHex(color, 0.78); nuevo[`${capa}ColorFondoAlpha`] = 94; }
+      if (!config[`${capa}ColorTexto`]) nuevo[`${capa}ColorTexto`] = '#ffffff';
+    }
+  }
+  return nuevo;
+}
+
 export function estiloTema(config = {}) {
   const estilo = {};
   if (config?.colorTablero) estilo['--pm-tablero'] = hexConAlpha(config.colorTablero, config.colorTableroAlpha);
@@ -208,10 +241,40 @@ const FAMILIA_POR_PLANTILLA = {
   'diario-deportivo': 'editorial',
   'tablero-madera': 'madera',
   'hud-tactico': 'tactico',
+  // Sistemas con identidad completa propia (ver temasSistemas.css).
+  brutalista: 'sx-brutalista', 'sticker-pop': 'sx-sticker',
+  suizo: 'sx-suizo',
+  'torre-lateral': 'sx-torre', momentum: 'sx-momentum',
+  'media-cancha': 'sx-cancha',
+  terminal: 'sx-terminal',
+  'crossover': 'sx-crossover',
+  'foco-arena': 'sx-foco',
+  'pizarra-tactica': 'sx-pizarra',
+  'ticket-recibo': 'sx-ticket',
+  'cromo-coleccionable': 'sx-cromo',
+  'metro': 'sx-metro',
+  'tablero-paletas': 'sx-paletas',
+  'afiche-riso': 'sx-riso',
+  'noventero': 'sx-noventero',
+  'pulso-partido': 'sx-pulso',
+  'foto-protagonista': 'sx-foto',
+  'gran-titular': 'sx-titular',
+  'apilado-reacciones': 'sx-reacciones',
+  'modular': 'sx-modular',
+  'escudo-torneo': 'sx-torneo',
+  'alas-trapecio': 'sx-trapecio',
+  'cartel-rasgado': 'sx-grunge',
   'creador-libre': 'clasico',
 };
 
-export const familiaDePlantilla = (plantillaId) => FAMILIA_POR_PLANTILLA[plantillaId] || 'clasico';
+// Variantes de un diseño (p. ej. dos "Clásico" para dos ligas distintas):
+// su plantilla_base es `<base>~v<sufijo>` — cada una tiene su propia fila,
+// su enlace de OBS y su config, pero se dibuja con la plantilla <base>.
+export const idBasePlantilla = (id) => (typeof id === 'string' ? id.split('~v')[0] : id);
+export const esVariante = (id) => typeof id === 'string' && id.includes('~v');
+export const nuevoIdVariante = (id) => `${idBasePlantilla(id)}~v${Date.now().toString(36)}`;
+
+export const familiaDePlantilla = (plantillaId) => FAMILIA_POR_PLANTILLA[idBasePlantilla(plantillaId)] || 'clasico';
 
 // La tipografía de cada plantilla de marcador está fija en su propio bloque
 // de plantillas.css (`font-family: var(--pm-fuente, 'X')`) — este mapa
@@ -252,10 +315,34 @@ const FUENTE_POR_PLANTILLA = {
   'anillo-campeones': "'Cinzel', serif",
   'tablero-madera': "'Oswald', sans-serif",
   'hud-tactico': "'Rajdhani', sans-serif",
+  brutalista: "'Dela Gothic One', sans-serif",
+  suizo: "'Inter Tight', sans-serif",
+  'torre-lateral': "'Big Shoulders Display', sans-serif",
+  momentum: "'Space Grotesk', sans-serif",
+  'media-cancha': "'Unbounded', sans-serif",
+  'sticker-pop': "'Lilita One', sans-serif",
+  terminal: "'JetBrains Mono', monospace",
+  'crossover': "'Barlow Condensed', sans-serif",
+  'foco-arena': "'Chakra Petch', sans-serif",
+  'pizarra-tactica': "'Permanent Marker', cursive",
+  'ticket-recibo': "'Big Shoulders Stencil Display', sans-serif",
+  'cromo-coleccionable': "'Alfa Slab One', serif",
+  'metro': "'Overpass', sans-serif",
+  'tablero-paletas': "'Share Tech Mono', monospace",
+  'afiche-riso': "'Archivo Black', sans-serif",
+  'noventero': "'Bowlby One', sans-serif",
+  'pulso-partido': "'IBM Plex Sans Condensed', sans-serif",
+  'foto-protagonista': "'League Gothic', sans-serif",
+  'gran-titular': "'Saira Extra Condensed', sans-serif",
+  'apilado-reacciones': "'Bricolage Grotesque', sans-serif",
+  'modular': "'Kanit', sans-serif",
+  'escudo-torneo': "'Outfit', sans-serif",
+  'alas-trapecio': "'Michroma', sans-serif",
+  'cartel-rasgado': "'Rubik Dirt', sans-serif",
   'creador-libre': "'Oswald', sans-serif",
 };
 
-export const fuenteDePlantilla = (plantillaId) => FUENTE_POR_PLANTILLA[plantillaId] || "'Oswald', sans-serif";
+export const fuenteDePlantilla = (plantillaId) => FUENTE_POR_PLANTILLA[idBasePlantilla(plantillaId)] || "'Oswald', sans-serif";
 
 // Catálogo de tipografías elegibles a mano (config.fuenteMarcador) — todas
 // las familias de Google Fonts que carga plantillas.css (las 13 de las 34
@@ -265,6 +352,18 @@ export const fuenteDePlantilla = (plantillaId) => FUENTE_POR_PLANTILLA[plantilla
 // cargadas siempre.
 export const FUENTES_DISPONIBLES = [
   { id: '', etiqueta: 'Automática (la de la plantilla)' },
+  { id: "'Inter Tight', sans-serif", etiqueta: 'Inter Tight — suiza, editorial' },
+  { id: "'Dela Gothic One', sans-serif", etiqueta: 'Dela Gothic One — maciza, ancha' },
+  { id: "'League Gothic', sans-serif", etiqueta: 'League Gothic — alta y angosta' },
+  { id: "'Michroma', sans-serif", etiqueta: 'Michroma — techno extendida' },
+  { id: "'Overpass', sans-serif", etiqueta: 'Overpass — señalética vial' },
+  { id: "'Kanit', sans-serif", etiqueta: 'Kanit — deportiva geométrica' },
+  { id: "'Big Shoulders Stencil Display', sans-serif", etiqueta: 'Big Shoulders Stencil — esténcil' },
+  { id: "'Rubik Dirt', sans-serif", etiqueta: 'Rubik Dirt — gastada, grunge' },
+  { id: "'Space Grotesk', sans-serif", etiqueta: 'Space Grotesk — moderna, técnica' },
+  { id: "'Unbounded', sans-serif", etiqueta: 'Unbounded — ancha, redonda' },
+  { id: "'Lilita One', sans-serif", etiqueta: 'Lilita One — pop, juvenil' },
+  { id: "'JetBrains Mono', monospace", etiqueta: 'JetBrains Mono — monoespaciada' },
   { id: "'Orbitron', sans-serif", etiqueta: 'Orbitron — digital, angulosa' },
   { id: "'Oswald', sans-serif", etiqueta: 'Oswald — condensada, prolija' },
   { id: "'Bebas Neue', sans-serif", etiqueta: 'Bebas Neue — grande, impactante' },
@@ -430,11 +529,12 @@ export function estiloAnclaAlerta(tema = {}, modo = 'arriba', lado = 'izquierda'
     };
   }
 
-  // 'arriba': pegada al borde superior de la caja, centrada.
+  // 'arriba': pegada al borde superior de la caja, centrada (sin que el
+  // aviso, que se centra en ese punto, se salga por los costados).
   return {
     justifyContent: 'flex-start',
     alignItems: 'flex-start',
-    paddingLeft: `${posX}%`,
+    paddingLeft: `${Math.min(84, Math.max(16, posX))}%`,
     paddingTop: paddingTopDesdeY(Math.max(0, posY - mitad.y)),
   };
 }
@@ -616,29 +716,70 @@ export function usePulso(valor) {
 // Fuera del último minuto se devuelve tal cual `partido.relojSegundos`
 // (entero, sin ningún trabajo extra) — por eso el bucle de animación entero
 // solo corre durante esos últimos 60s de cada período, no el partido entero.
-export function useRelojVivo(partido) {
-  const relojSegundos = partido?.relojSegundos;
-  const corriendo = Boolean(partido?.relojCorriendo);
-  const referenciaEn = partido?.relojReferenciaEn;
-  const base = Number.isFinite(partido?.relojSegundosBase) ? partido.relojSegundosBase : relojSegundos;
-  const activo = corriendo && Number.isFinite(relojSegundos) && relojSegundos < 60 && referenciaEn;
-  const [preciso, setPreciso] = useState(null);
+// Reloj interpolado en el cliente: el servidor manda un estado por segundo,
+// pero el reloj REAL corre continuo — sin esto, la pantalla quedaba atada a
+// la fase de ese tick (hasta ~1 s atrasada, y "tardaba en arrancar" al dar
+// play). Corre desde la referencia exacta (relojSegundosBase +
+// relojReferenciaEn) y corrige la diferencia entre la hora de ESTE
+// dispositivo y la del servidor (servidorAhora): un celular o una PC con la
+// hora corrida unos segundos ya no desfasa el reloj. Devuelve entero
+// (mm:ss) arriba del minuto y con décimas en el último minuto.
+const desfasesServidor = { valor: null };
+function registrarDesfase(servidorAhora) {
+  if (!Number.isFinite(servidorAhora)) return;
+  // La latencia de red solo puede hacerlo parecer MENOR: vale el máximo.
+  const muestra = servidorAhora - Date.now();
+  if (desfasesServidor.valor == null || muestra > desfasesServidor.valor || Math.abs(muestra - desfasesServidor.valor) > 5000) {
+    desfasesServidor.valor = muestra;
+  }
+}
 
+// Interpola un reloj que corre hacia atrás desde (base, referencia) — usado
+// por el reloj de juego y por el de posesión. Por debajo de `umbralDecimales`
+// devuelve fracción (décimas); arriba, entero.
+function useInterpolado(base, referenciaEn, corriendo, valorQuieto, umbralDecimales) {
+  const activo = corriendo && Number.isFinite(base) && referenciaEn;
+  const [preciso, setPreciso] = useState(null);
   useEffect(() => {
     if (!activo) { setPreciso(null); return undefined; }
     const refMs = new Date(referenciaEn).getTime();
-    // 100ms: alcanza de sobra para una décima de segundo visible (no hace
-    // falta requestAnimationFrame a 60fps para mostrar 1 solo decimal) y
-    // re-renderiza el marcador entero muchas menos veces durante todo el
-    // último minuto de cada período.
-    const tick = () => setPreciso(Math.max(0, base - (Date.now() - refMs) / 1000));
+    const calcular = () => Math.max(0, base - (Date.now() + (desfasesServidor.valor || 0) - refMs) / 1000);
+    let id;
+    const tick = () => {
+      const v = calcular();
+      setPreciso(v);
+      // Con décimas: cada 50 ms. Si no, justo cuando cambia el segundo.
+      const espera = v < umbralDecimales + 1 ? 50 : Math.max(20, (v - Math.floor(v)) * 1000 + 15);
+      id = setTimeout(tick, espera);
+    };
     tick();
-    const id = setInterval(tick, 100);
-    return () => clearInterval(id);
-  }, [activo, referenciaEn, base]);
-
-  return activo && preciso != null ? preciso : relojSegundos;
+    return () => clearTimeout(id);
+  }, [activo, referenciaEn, base, umbralDecimales]);
+  if (!activo || preciso == null) return valorQuieto;
+  return preciso < umbralDecimales ? preciso : Math.floor(preciso + 1e-6);
 }
+
+// Reloj de juego interpolado en el cliente (OBS, Mesa): corre continuo desde
+// la referencia exacta, corrigiendo la diferencia de hora con el servidor.
+// Entero arriba del minuto, con décimas en el último minuto.
+export function useRelojVivo(partido) {
+  registrarDesfase(partido?.servidorAhora);
+  const base = Number.isFinite(partido?.relojSegundosBase) ? partido.relojSegundosBase : partido?.relojSegundos;
+  return useInterpolado(base, partido?.relojReferenciaEn, Boolean(partido?.relojCorriendo), partido?.relojSegundos, 60);
+}
+
+// Reloj de posesión (24"): décimas en los últimos 5 segundos (FIBA).
+export function useRelojPosesion(partido) {
+  registrarDesfase(partido?.servidorAhora);
+  const base = Number.isFinite(partido?.posesionSegundosBase) ? partido.posesionSegundosBase : partido?.posesionSegundos;
+  return useInterpolado(base, partido?.posesionReferenciaEn, Boolean(partido?.posesionCorriendo), partido?.posesionSegundos ?? 24, 5);
+}
+
+export const formatearPosesion = (v) => {
+  const n = Math.max(0, Number(v) || 0);
+  if (n < 5 && !Number.isInteger(n)) return (Math.floor(n * 10) / 10).toFixed(1);
+  return String(Math.floor(n));
+};
 
 // `patrocinadores` llega dentro de cada broadcast 'estado' (cada segundo
 // mientras el reloj corre), así que su referencia cambia todo el tiempo

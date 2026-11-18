@@ -1,6 +1,7 @@
 import { estiloTema, estiloTemaCapa, familiaEfectiva, fuenteEfectiva } from '../utils';
 import { urlFotoJugador } from '../../api/client';
 import LogoEquipo from '../LogoEquipo';
+import PresentacionQuinteto from './PresentacionQuinteto';
 import '../nomina.css';
 
 // Titulares (quinteto en cancha) primero, banca después — dentro de cada
@@ -193,8 +194,22 @@ export default function VistaNomina({ partido, modo = 'ambos', claveAnimacion = 
     const actual = presentados[presentados.length - 1];
     const anteriores = presentados.slice(0, -1);
     if (!actual) return null;
+    const formato = config?.presentacionEstilo || 'tarjeta';
+    if (formato !== 'tarjeta') {
+      return (
+        <PresentacionQuinteto
+          formato={formato}
+          equipo={equipoDatos}
+          presentados={presentados}
+          config={config}
+          mostrarFoto={mostrarFoto || config?.presentacionFoto !== false}
+          claseRaiz={`nomina-overlay fam-${familia} nomina-presentacion ${saliendo ? 'nomina-saliendo' : ''}`}
+          estilo={{ ...estilo, justifyContent: 'center', alignItems: 'center' }}
+        />
+      );
+    }
     return (
-      <div className={`nomina-overlay fam-${familia} nomina-presentacion ${saliendo ? 'nomina-saliendo' : ''}`} style={estilo}>
+      <div className={`nomina-overlay fam-${familia} nomina-presentacion ${saliendo ? 'nomina-saliendo' : ''}`} style={{ ...estilo, justifyContent: 'center', alignItems: 'center' }}>
         <div className="np-tarjeta" key={actual.id} style={{ '--color-equipo': equipoDatos.color }}>
           {mostrarLogoCostado && <LogoEquipo equipo={equipoDatos} config={config} className="np-logo-equipo" contexto="nomina" />}
           <span className="np-titulo-equipo">{equipoDatos.nombre}</span>

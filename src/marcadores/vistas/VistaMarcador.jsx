@@ -7,7 +7,7 @@ import PopSumaPuntos from '../PopSumaPuntos';
 import TituloMarcador from '../TituloMarcador';
 import LogosLibres from '../LogosLibres';
 import ElementosLibres from '../ElementosLibres';
-import { useCajaMarcador } from '../utils';
+import { idBasePlantilla, useCajaMarcador } from '../utils';
 
 // Referencia ESTABLE para "sin config" — `diseno?.config || {}` con un
 // literal `{}` crea un objeto NUEVO en cada render; como `config` viaja como
@@ -55,7 +55,7 @@ export default function VistaMarcador({ partido, diseno, oculto = false, suprimi
       <LogoMarcaAgua equipoLocal={partido.equipoLocal} equipoVisita={partido.equipoVisita} config={config} caja={caja} />
       <Componente partido={partido} config={config} />
       <LogoFlotante equipoLocal={partido.equipoLocal} equipoVisita={partido.equipoVisita} config={config} plantillaId={plantillaId} caja={caja} />
-      {plantillaId === 'clasico' && (
+      {idBasePlantilla(plantillaId) === 'clasico' && (
         <NombreFlotante equipoLocal={partido.equipoLocal} equipoVisita={partido.equipoVisita} config={config} plantillaId={plantillaId} caja={caja} prefijo="clasico" />
       )}
       <PopSumaPuntos partido={partido} config={config} caja={caja} />

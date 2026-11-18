@@ -1,0 +1,76 @@
+/* Formatos de Presentación del quinteto (ver PresentacionQuinteto.jsx).
+   Heredan fuente/colores del diseño (--pm-fuente, --nomina-*, --pm-*) y
+   el color del equipo (--color-equipo). */
+.pq-raiz { font-family: var(--nomina-titulo-fuente, var(--sx-titulo, var(--pm-fuente, 'Oswald', sans-serif))); color: var(--nomina-texto, var(--pm-texto, #fff)); }
+.pq-logo { object-fit: contain; opacity: var(--pm-logo-opacidad, 1); }
+.pq-foto-vacia { display: grid; place-items: center; background: var(--color-equipo); color: #fff; font-weight: 800; }
+@keyframes pq-sube { from { opacity: 0; transform: translateY(40px) scale(.9); } to { opacity: 1; transform: none; } }
+@keyframes pq-barre { from { opacity: 0; clip-path: inset(0 100% 0 0); } to { opacity: 1; clip-path: inset(0); } }
+@keyframes pq-pop { 0% { opacity: 0; transform: translate(-50%, -50%) scale(.3); } 70% { opacity: 1; transform: translate(-50%, -50%) scale(1.15); } 100% { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+
+/* ── Retratos en fila ── */
+
+.pq-formato-retratos { flex-direction: column; gap: 18px; }
+.pq-encabezado { display: flex; align-items: center; gap: 12px; padding: 8px 22px; border-radius: 999px; background: var(--nomina-fondo, var(--pm-tablero, rgba(10,12,20,.88))); font-size: calc(26px * var(--nomina-escala-titulo, 1)); text-transform: uppercase; letter-spacing: 2px; }
+.pq-encabezado small { font-size: 14px; color: var(--color-equipo); letter-spacing: 3px; }
+.pq-retratos { display: flex; gap: 14px; align-items: flex-end; }
+.pq-retrato { display: flex; flex-direction: column; align-items: center; width: 190px; padding-bottom: 10px; border-radius: 16px; overflow: hidden; background: var(--nomina-fondo, var(--pm-tablero, rgba(10,12,20,.88))); border-bottom: 6px solid var(--color-equipo); animation: pq-sube .5s cubic-bezier(.2,.9,.3,1.1) both; transition: transform .4s ease, opacity .4s ease; opacity: .78; }
+.pq-retrato-actual { transform: translateY(-24px) scale(1.12); opacity: 1; box-shadow: 0 24px 50px rgba(0,0,0,.5), 0 0 0 3px var(--color-equipo); }
+.pq-retrato-vacio { height: 260px; justify-content: center; opacity: .35; border-bottom-color: rgba(255,255,255,.2); font-size: 60px; animation: none; }
+.pq-retrato-foto { width: 190px; height: 210px; object-fit: cover; object-position: top; font-size: 70px; }
+.pq-retrato-dorsal { margin-top: 6px; font-size: calc(30px * var(--nomina-escala-texto, 1)); font-weight: 800; color: var(--color-equipo); line-height: 1; }
+.pq-retrato-nombre { padding: 0 8px; font-size: calc(17px * var(--nomina-escala-texto, 1)); font-weight: 700; text-transform: uppercase; text-align: center; line-height: 1.1; }
+
+/* ── Gran titular ── */
+.pq-titular-caja { display: flex; align-items: stretch; gap: 0; filter: drop-shadow(0 20px 40px rgba(0,0,0,.45)); }
+.pq-titular-palabra { writing-mode: vertical-rl; transform: rotate(180deg); padding: 12px 6px; background: var(--color-equipo); color: #fff; font-size: 108px; font-weight: 900; line-height: .85; letter-spacing: 2px; animation: pq-barre .6s cubic-bezier(.2,.9,.3,1) both; }
+.pq-titular-lista { display: flex; flex-direction: column; justify-content: center; gap: 8px; padding: 18px 22px; min-width: 560px; background: var(--nomina-fondo, var(--pm-tablero, rgba(10,12,20,.9))); }
+.pq-titular-equipo { display: flex; align-items: center; gap: 10px; font-size: 22px; text-transform: uppercase; letter-spacing: 3px; color: var(--color-equipo); margin-bottom: 4px; }
+.pq-franja { display: flex; align-items: center; gap: 14px; padding: 6px 18px; background: rgba(255,255,255,.08); transform: skewX(-12deg); animation: pq-barre .45s cubic-bezier(.2,.9,.3,1) both; }
+.pq-franja > * { transform: skewX(12deg); }
+.pq-franja-actual { background: #fff; color: #111; padding: 10px 18px; }
+.pq-franja-dorsal { min-width: 46px; font-size: calc(30px * var(--nomina-escala-texto, 1)); font-weight: 900; color: var(--color-equipo); }
+.pq-franja-nombre { font-size: calc(26px * var(--nomina-escala-texto, 1)); font-weight: 800; text-transform: uppercase; }
+.pq-franja-actual .pq-franja-nombre { font-size: calc(36px * var(--nomina-escala-texto, 1)); }
+.pq-franja-foto { margin-left: auto; width: 74px; height: 74px; border-radius: 50%; object-fit: cover; font-size: 28px; }
+
+/* ── Camiseta ── */
+.pq-formato-camiseta { flex-direction: column; gap: 22px; }
+.pq-camiseta { position: relative; width: 360px; height: 414px; display: flex; flex-direction: column; align-items: center; animation: pq-sube .6s cubic-bezier(.2,.9,.3,1.15) both; filter: drop-shadow(0 24px 40px rgba(0,0,0,.5)); }
+.pq-camiseta-forma { position: absolute; inset: 0; width: 100%; height: 100%; }
+.pq-camiseta-forma path { fill: var(--color-equipo); stroke: rgba(255,255,255,.85); stroke-width: 4; }
+.pq-camiseta-apellido { position: relative; margin-top: 92px; font-size: calc(30px * var(--nomina-escala-texto, 1)); font-weight: 800; letter-spacing: 3px; color: #fff; text-shadow: 0 2px 0 rgba(0,0,0,.25); }
+.pq-camiseta-numero { position: relative; font-size: 170px; font-weight: 900; line-height: .95; color: #fff; text-shadow: 0 4px 0 rgba(0,0,0,.25); -webkit-text-stroke: 3px rgba(0,0,0,.15); }
+.pq-camiseta-equipo { position: relative; display: flex; align-items: center; gap: 8px; margin-top: 4px; font-size: 15px; letter-spacing: 3px; text-transform: uppercase; color: rgba(255,255,255,.85); }
+.pq-camisetas-chicas { display: flex; gap: 10px; }
+.pq-camiseta-chica { display: flex; flex-direction: column; align-items: center; min-width: 90px; padding: 6px 10px; border-radius: 10px 10px 24px 24px; background: var(--color-equipo); color: #fff; animation: pq-sube .4s ease both; }
+.pq-camiseta-chica b { font-size: 28px; line-height: 1; }
+.pq-camiseta-chica span { font-size: 11px; letter-spacing: 1px; }
+
+/* ── Cancha táctica ── */
+.pq-cancha-caja { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.pq-cancha-titulo { display: flex; align-items: center; gap: 10px; font-size: calc(26px * var(--nomina-escala-titulo, 1)); text-transform: uppercase; letter-spacing: 2px; }
+.pq-cancha-titulo small { font-size: 14px; color: var(--color-equipo); letter-spacing: 3px; }
+.pq-cancha { position: relative; width: 760px; height: 470px; border-radius: 14px; background: radial-gradient(rgba(255,255,255,.04) 1px, transparent 1.4px) 0 0 / 8px 8px, var(--nomina-fondo, var(--pm-tablero, rgba(10,12,20,.9))); border: 3px solid rgba(255,255,255,.55); box-shadow: 0 24px 50px rgba(0,0,0,.5); overflow: hidden; }
+.pq-cancha-llave { position: absolute; left: 50%; top: 0; width: 200px; height: 220px; transform: translateX(-50%); border: 3px solid rgba(255,255,255,.55); border-top: none; background: color-mix(in srgb, var(--color-equipo) 22%, transparent); }
+.pq-cancha-arco { position: absolute; left: 50%; top: -260px; width: 620px; height: 620px; transform: translateX(-50%); border-radius: 50%; border: 3px solid rgba(255,255,255,.4); }
+.pq-cancha-circulo { position: absolute; left: 50%; bottom: -70px; width: 140px; height: 140px; transform: translateX(-50%); border-radius: 50%; border: 3px solid rgba(255,255,255,.45); }
+.pq-spot { position: absolute; display: flex; flex-direction: column; align-items: center; gap: 6px; transform: translate(-50%, -50%); }
+.pq-spot-foto { width: 74px; height: 74px; border-radius: 50%; object-fit: cover; border: 4px solid rgba(255,255,255,.35); font-size: 30px; }
+.pq-spot .pq-foto-vacia { background: rgba(255,255,255,.08); color: rgba(255,255,255,.4); }
+.pq-spot-lleno { animation: pq-pop .55s cubic-bezier(.3,1.6,.5,1) both; }
+.pq-spot-lleno .pq-spot-foto { border-color: var(--color-equipo); }
+.pq-spot-actual .pq-spot-foto { width: 104px; height: 104px; box-shadow: 0 0 0 6px color-mix(in srgb, var(--color-equipo) 45%, transparent), 0 0 30px var(--color-equipo); }
+.pq-spot-etiqueta { padding: 3px 10px; border-radius: 6px; background: rgba(0,0,0,.6); font-size: calc(15px * var(--nomina-escala-texto, 1)); font-weight: 700; text-transform: uppercase; white-space: nowrap; }
+.pq-spot-actual .pq-spot-etiqueta { background: var(--color-equipo); color: #fff; font-size: calc(19px * var(--nomina-escala-texto, 1)); }
+.pq-cancha-extra { font-size: 15px; opacity: .8; }
+
+/* ── Cine ── */
+.pq-raiz.pq-cine-raiz { padding: 0; flex-direction: column; justify-content: space-between; align-items: stretch; }
+.pq-cine-barra { display: flex; align-items: center; justify-content: center; gap: 26px; height: 130px; background: #000; color: rgba(255,255,255,.7); font-size: 18px; letter-spacing: 3px; animation: pq-barre .5s ease both; }
+.pq-cine-escena { display: flex; align-items: center; gap: 40px; margin: 0 auto; animation: pq-sube .8s cubic-bezier(.2,.9,.3,1) both; }
+.pq-cine-foto { width: 340px; height: 420px; object-fit: cover; object-position: top; border-radius: 4px; box-shadow: 0 30px 60px rgba(0,0,0,.6); font-size: 140px; }
+.pq-cine-texto { display: flex; flex-direction: column; gap: 6px; max-width: 900px; text-shadow: 0 4px 20px rgba(0,0,0,.7); }
+.pq-cine-equipo { display: flex; align-items: center; gap: 10px; font-size: 20px; letter-spacing: 6px; text-transform: uppercase; color: var(--color-equipo); }
+.pq-cine-nombre { font-size: calc(110px * var(--nomina-escala-texto, 1)); font-weight: 900; line-height: .9; text-transform: uppercase; letter-spacing: -1px; }
+.pq-cine-dorsal { font-size: 24px; letter-spacing: 8px; text-transform: uppercase; opacity: .8; }

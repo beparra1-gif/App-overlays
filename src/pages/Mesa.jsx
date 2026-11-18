@@ -2,8 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api, getToken } from '../api/client';
 import { crearSocket } from '../socket';
+import { useRelojVivo, useRelojPosesion, formatearPosesion, formatearReloj as formatearRelojVivo } from '../marcadores/utils';
 import EquipoRoster from '../components/EquipoRoster';
 import TablaEstadisticas from '../components/TablaEstadisticas';
+import PanelMarcadorCamara from '../components/PanelMarcadorCamara';
+import { hayNominas, lideresPartido, tablaPorPeriodo, tituloIntertanto } from '../marcadores/intertanto';
 import './mesa.css';
 
 // Los 4 tipos de falta del reglamento FIBA vigente (personal/técnica/
@@ -123,12 +126,82 @@ function ModalCambio({ banca, onElegir, onCerrar, forzado }) {
   );
 }
 
-function ModalResumen({ partido, onCerrar }) {
+// Resumen para quien maneja la Mesa — la misma información que el
+// Intertanto de la transmisión (puntos por cuarto + líderes, si hay
+// nóminas) más la tabla completa por jugador.
+// Marcador por cámara + "Preguntar quién anotó": cada +1/+2/+3 que llega de
+// la cámara se ofrece acá con las jugadoras en cancha de ese equipo. Si no
+// se elige a nadie en 15 s, se omite (los puntos ya sumaron al marcador).
+const SEGUNDOS_PARA_ASIGNAR = 15;
+function AvisoAnotacion({ pendiente, equipo, jugadoras, restantes, onAsignar, onOmitir }) {
+  return (
+    <div className="mv-anotacion" role="dialog" aria-label="¿Quién anotó?" style={{ '--color-equipo': equipo.color }}>
+      <div className="mv-anotacion-cabeza">
+        <strong>+{pendiente.puntos} {equipo.nombre}</strong>
+        <span>¿Quién anotó? · se omite en {restantes}s</span>
+      </div>
+      <div className="mv-anotacion-jugadoras">
+        {jugadoras.length === 0 && <span className="texto-tenue">No hay quinteto cargado para este equipo.</span>}
+        {jugadoras.map((j) => (
+          <button key={j.id} type="button" className="mv-anotacion-btn" onClick={() => onAsignar(j.id)}>
+            <b>{j.dorsal ?? '–'}</b>{j.nombre && <span>{j.nombre}</span>}
+          </button>
+        ))}
+      </div>
+      <button type="button" className="btn-link" onClick={onOmitir}>Omitir (solo suma al marcador)</button>
+    </div>
+  );
+}
+
+function ModalResumen({ partido, intertantoActivo, onAlternarIntertanto, onCerrar }) {
+  const columnas = tablaPorPeriodo(partido);
+  const lideres = lideresPartido(partido, ['pts', 'reb', 'ast', 'stl']);
+  const { titulo, subtitulo } = tituloIntertanto(partido);
+  const filaEquipo = (lado, equipo, total) => (
+    <tr key={lado}>
+      <th scope="row"><span className="resumen-punto" style={{ background: equipo.color }} />{equipo.nombre}</th>
+      {columnas.map((c) => <td key={c.periodo} className={c[lado] == null ? 'texto-tenue' : ''}>{c[lado] ?? '–'}</td>)}
+      <td className="resumen-total">{total}</td>
+    </tr>
+  );
+  const nombreLider = (dato) => (dato?.sinNomina ? 'Sin nómina' : dato ? `#${dato.jugador.dorsal ?? '–'} ${dato.jugador.nombre || ''} · ${dato.valor}` : '—');
   return (
     <div className="modal-fondo" onClick={onCerrar}>
-      <div className="modal-caja" style={{ width: 'min(640px, 92vw)' }} onClick={(e) => e.stopPropagation()}>
-        <h3>Resumen del partido</h3>
-        <TablaEstadisticas equipoLocal={partido.equipoLocal} equipoVisita={partido.equipoVisita} />
+      <div className="modal-caja modal-resumen" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-resumen-cabecera">
+          <div>
+            <h3 style={{ margin: 0 }}>{titulo}</h3>
+            <span className="texto-tenue">{subtitulo}</span>
+          </div>
+          <button type="button" className={intertantoActivo ? 'btn-peligro-suave' : 'btn-primario'} onClick={onAlternarIntertanto}>
+            {intertantoActivo ? '■ Quitar de la transmisión' : '▶ Mostrar Intertanto en vivo'}
+          </button>
+        </div>
+        <div className="resumen-tabla-scroll">
+          <table className="resumen-cuartos">
+            <thead>
+              <tr><th />{columnas.map((c) => <th key={c.periodo}>{c.etiqueta}</th>)}<th>T</th></tr>
+            </thead>
+            <tbody>
+              {filaEquipo('local', partido.equipoLocal, partido.ptsLocal)}
+              {filaEquipo('visita', partido.equipoVisita, partido.ptsVisita)}
+            </tbody>
+          </table>
+        </div>
+        {hayNominas(partido) ? (
+          <div className="resumen-lideres">
+            {lideres.map((cat) => (
+              <div key={cat.clave} className="resumen-lider">
+                <span className="resumen-lider-cat">{cat.etiqueta}</span>
+                <span>{nombreLider(cat.local)}</span>
+                <span>{nombreLider(cat.visita)}</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="texto-tenue">Cargá las nóminas para ver líderes y estadísticas por jugador — sin nómina, el Intertanto muestra solo el marcador y los puntos por cuarto.</p>
+        )}
+        {hayNominas(partido) && <TablaEstadisticas equipoLocal={partido.equipoLocal} equipoVisita={partido.equipoVisita} />}
         <button className="btn-secundario" onClick={onCerrar}>Cerrar</button>
       </div>
     </div>
@@ -559,7 +632,8 @@ function FaltasCorregibles({ valor, editando, valorEdit, onEmpezar, onCambiarVal
 // arriba, pero compacto para convivir en la línea chica "F: N" del pie de
 // cada caja de equipo en vez de ocupar una línea propia. `enBonus` agrega
 // una clase CSS que resalta la caja (borde/texto de alerta) en cuanto llega
-// a 5 — mismo umbral que ya usa `bonusLocal/bonusVisita` del backend.
+// a 4 (FIBA: penalización desde la 4ª falta de equipo del cuarto) — usa
+// directamente `bonusLocal/bonusVisita` del backend.
 function FaltasEquipoCorregibles({ valor, enBonus, editando, valorEdit, onEmpezar, onCambiarValor, onConfirmar, onCancelar }) {
   if (editando) {
     return (
@@ -741,6 +815,17 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
   // un disparo de una sola vez, se apaga solo, no necesita este estado (ver
   // solicitarTimeout más abajo).
   const [alertaMarcador, setAlertaMarcador] = useState(null);
+  // Intertanto (resumen grande entre cuartos) en la transmisión — el estado
+  // real lo lleva el servidor (se apaga solo al arrancar el reloj), acá se
+  // refleja lo que llega por socket.
+  const [intertantoActivo, setIntertantoActivo] = useState(false);
+  // Marcador por cámara: estado del celular lector (latido + lecturas) y
+  // el panel para activarlo / conectar con QR.
+  const [lectorEstado, setLectorEstado] = useState(null);
+  const [mostrarCamara, setMostrarCamara] = useState(false);
+  // Cola de anotaciones de la cámara esperando "¿quién anotó?".
+  const [anotacionesPendientes, setAnotacionesPendientes] = useState([]);
+  const [segundosAviso, setSegundosAviso] = useState(SEGUNDOS_PARA_ASIGNAR);
   const [mostrarGestionEscenas, setMostrarGestionEscenas] = useState(false);
   const [escenas, setEscenas] = useState([]);
   const [disenos, setDisenos] = useState([]);
@@ -879,6 +964,12 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
   // que ya venía descontando de timeoutsLocal/Visita) ahora TAMBIÉN dispara
   // el cartel en la transmisión, con la MISMA duración que un aviso de
   // Anuncios (autoOcultar) — se apaga solo, no hace falta volver a tocar nada.
+  const alternarIntertanto = () => {
+    const activo = !intertantoActivo;
+    setIntertantoActivo(activo);
+    emitirAccion('INTERTANTO', { activo, ocultarMarcador: true });
+  };
+
   const solicitarTimeout = (equipo) => {
     emitirAccion('TIMEOUT', { equipo });
     emitirAccion('MARCADOR_ALERTA', { texto: 'MINUTO SOLICITADO', equipo, autoOcultar: true });
@@ -936,6 +1027,17 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
         else if (equipoId === equipoVisitaIdRef.current) setRosterVisitaCompleto(jugadores);
       });
       socket.on('jugada', (jugada) => setJugadas((prev) => [jugada, ...prev].slice(0, 30)));
+      // Estado en vivo de la transmisión: el servidor lo recuerda y lo
+      // reenvía al conectarse — así dos Mesas abiertas (o una recargada)
+      // muestran siempre el botón en el estado real.
+      socket.on('intertanto', (d) => setIntertantoActivo(Boolean(d?.activo)));
+      socket.on('lector_estado', (d) => setLectorEstado(d));
+      socket.on('anotacion_pendiente', (d) => setAnotacionesPendientes((prev) => [...prev, d].slice(-6)));
+      socket.on('marcador_visibilidad', ({ oculto }) => setMarcadorOculto(Boolean(oculto)));
+      socket.on('marcador_alerta', (a) => {
+        if (a?.autoOcultar) return;
+        setAlertaMarcador(a?.texto ? { texto: a.texto, equipo: a.equipo || null } : null);
+      });
       socket.on('error_marcador', (payload) => setError(payload.error));
       // Cuántas fuentes (OBS u otro navegador) están mirando el enlace del
       // marcador AHORA — el servidor avisa solo cada vez que alguien entra o
@@ -944,6 +1046,10 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
       socket.on('escena_viewers', ({ escenaToken, cantidad }) => {
         if (escenaToken === escenaMarcadorTokenRef.current) setViewersMarcador(cantidad);
       });
+    }).catch((err) => {
+      // Sin esto, un partido inexistente/sin permiso dejaba "Cargando
+      // partido…" para siempre, sin decir qué pasó.
+      if (activo) setError(err.message || 'No se pudo cargar el partido');
     });
 
     return () => {
@@ -969,6 +1075,9 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
     socketRef.current.emit('accion', { publicToken: partido.publicToken, tipo, token: getToken(), payload });
   };
 
+  // Reloj interpolado (mismo cálculo que OBS): no espera el tick del servidor.
+  const relojVivo = useRelojVivo(partido);
+  const posesionViva = useRelojPosesion(partido);
   const destacarTimeoutLocal = useDestaque(partido?.timeoutsLocal);
   const destacarTimeoutVisita = useDestaque(partido?.timeoutsVisita);
   // Pulso breve cada vez que cambia el marcador (anotó, o se corrigió a
@@ -1125,7 +1234,35 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
     onPartidoCambio?.(partido);
   }, [partido, onPartidoCambio]);
 
+  // Cuenta regresiva del aviso "¿quién anotó?" (el primero de la cola).
+  const anotacionActual = anotacionesPendientes[0];
+  useEffect(() => {
+    if (!anotacionActual) return undefined;
+    const inicio = Date.now();
+    setSegundosAviso(SEGUNDOS_PARA_ASIGNAR);
+    const id = setInterval(() => {
+      const quedan = SEGUNDOS_PARA_ASIGNAR - Math.floor((Date.now() - inicio) / 1000);
+      if (quedan <= 0) {
+        clearInterval(id);
+        const vencido = anotacionActual.eventoId;
+        setAnotacionesPendientes((prev) => prev.filter((p) => p.eventoId !== vencido));
+      } else {
+        setSegundosAviso(quedan);
+      }
+    }, 250);
+    return () => clearInterval(id);
+  }, [anotacionActual?.eventoId]);
+
+  // Los errores de acciones (jugada rechazada, sin permiso…) se muestran un
+  // rato y se van solos — antes quedaban pegados arriba para siempre.
+  useEffect(() => {
+    if (!error || !partido) return undefined;
+    const t = setTimeout(() => setError(''), 6000);
+    return () => clearTimeout(t);
+  }, [error, partido]);
+
   if (!partido) {
+    if (error) return <p className="mensaje-error">{error}</p>;
     return embebido ? <p className="texto-tenue">Cargando partido…</p> : <div className="pagina-centrada">Cargando partido…</div>;
   }
 
@@ -1267,21 +1404,7 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
     setTimeout(() => setCopiadoFooter(null), 2000);
   };
 
-  // El lector de reloj por cámara está pensado para abrirse en OTRO celular
-  // (alguien apunta esa cámara al reloj físico de la cancha mientras vos
-  // seguís con marcador/estadísticas acá) — copiar el enlace es más útil
-  // que un link para abrir en la misma pestaña, ya que hay que mandárselo a
-  // ese otro dispositivo (WhatsApp, etc.). Enlace FIJO por usuario (sin el
-  // id de este partido en la URL) — se resuelve solo al partido en curso más
-  // reciente de la cuenta (ver GET /partidos/activo), así sirve igual para
-  // cualquier otro marcador que se arranque después, sin copiar uno nuevo
-  // cada vez. El segundo celular igual necesita estar logueado con la misma
-  // cuenta (la ruta va protegida, como el resto de la Mesa).
-  const copiarLinkLectorReloj = () => {
-    navigator.clipboard?.writeText(`${window.location.origin}/mesa/reloj-camara`);
-    setCopiadoFooter('reloj-camara');
-    setTimeout(() => setCopiadoFooter(null), 2000);
-  };
+
 
   const escenaMarcadorActual = escenas.find((e) => e.tipo === 'marcador');
 
@@ -1312,7 +1435,7 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
       {error && <p className="mensaje-error">{error}</p>}
 
       <div className="fila-form">
-        <button className="btn-secundario" onClick={() => setMostrarResumen(true)}>Ver resumen / entretiempo</button>
+        <button className="btn-secundario" onClick={() => setMostrarResumen(true)}>📊 Resumen / intertanto</button>
         <button className="btn-secundario" onClick={() => setMostrarGestionEscenas((v) => !v)}>
           {mostrarGestionEscenas ? 'Ocultar gestión de escenas' : 'Gestión avanzada de escenas'}
         </button>
@@ -1336,8 +1459,14 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
                 que se muestra siempre, embebido o no. Antes quedaba escondido
                 acá también, y "Juego en vivo" (el lugar donde de verdad se
                 arma cada partido) es justo donde más falta hace. */}
-            <button className="mv-pill" onClick={copiarLinkLectorReloj} title="Enlace fijo para tu cuenta — abrilo en otro celular para leer el reloj físico con esa cámara. Sirve para cualquier partido que tengas en curso, no hace falta copiar uno nuevo cada vez.">
-              {copiadoFooter === 'reloj-camara' ? '✓ Enlace copiado' : '📷 Copiar enlace del lector de reloj'}
+            <button
+              className={`mv-pill ${partido.sincronizacionCamara?.activo ? (lectorEstado?.conectado ? 'activa' : 'mv-pill-alerta') : ''}`}
+              onClick={() => setMostrarCamara(true)}
+              title="Leer el marcador del estadio (reloj, puntos, cuarto, faltas) con la cámara de un celular, o dejarlo manual"
+            >
+              {!partido.sincronizacionCamara?.activo
+                ? '📷 Marcador: manual'
+                : lectorEstado?.conectado ? '📷 Marcador por cámara ●' : '📷 Cámara sin señal'}
             </button>
             <button className="mv-pill" onClick={alternarPantallaCompleta}>
               {enPantallaCompleta ? '✕ Salir de Pantalla Completa' : '⛶ Pantalla Completa'}
@@ -1351,6 +1480,13 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
               onClick={() => dispararAlertaMarcador('ENTRETIEMPO')}
             >
               {alertaMarcador?.texto === 'ENTRETIEMPO' ? '🚫 Quitar Entretiempo' : '⏸ Entretiempo'}
+            </button>
+            <button
+              className={`mv-pill ${intertantoActivo ? 'mv-pill-alerta' : 'mv-pill-destacada'}`}
+              title="Muestra en la transmisión el resumen entre cuartos: marcador, puntos por cuarto y, si hay nóminas, comparativa y líderes. Se quita solo al volver a arrancar el reloj."
+              onClick={alternarIntertanto}
+            >
+              {intertantoActivo ? '■ Quitar Intertanto' : '📊 Intertanto'}
             </button>
             {escenaMarcadorActual && (
               <button className="mv-pill" onClick={() => copiarLinkFooter(escenaMarcadorActual.public_token)}>
@@ -1490,7 +1626,7 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
               <div className="mv-equipo-pie">
                 <FaltasEquipoCorregibles
                   valor={partido.faltasPeriodoLocal}
-                  enBonus={partido.faltasPeriodoLocal >= 5}
+                  enBonus={Boolean(partido.bonusLocal)}
                   editando={editandoFaltasEquipo === 'local'}
                   valorEdit={valorFaltasEquipoEdit}
                   onEmpezar={() => empezarCorreccionFaltasEquipo('local')}
@@ -1507,7 +1643,7 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
                   subir/bajar rápido) vive debajo de "Control de Partido",
                   más grande y pensado para el dedo, no para leer de reojo. */}
               <span className={`mv-reloj-lectura ${partido.relojCorriendo ? 'corriendo' : ''}`}>
-                {formatearReloj(partido.relojSegundos)}
+                {formatearRelojVivo(relojVivo)}
               </span>
               <h4 className="mv-periodo-label">{etiquetaPeriodo(partido.periodo)}</h4>
               <button className="mv-btn-posesion" onClick={() => emitirAccion('POSESION_TOGGLE')} title="Cambiar posesión">⇄</button>
@@ -1535,7 +1671,7 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
               <div className="mv-equipo-pie">
                 <FaltasEquipoCorregibles
                   valor={partido.faltasPeriodoVisita}
-                  enBonus={partido.faltasPeriodoVisita >= 5}
+                  enBonus={Boolean(partido.bonusVisita)}
                   editando={editandoFaltasEquipo === 'visita'}
                   valorEdit={valorFaltasEquipoEdit}
                   onEmpezar={() => empezarCorreccionFaltasEquipo('visita')}
@@ -1605,7 +1741,7 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
               </div>
 
               <RuedaReloj
-                segundos={partido.relojSegundos}
+                segundos={Math.floor(relojVivo || 0)}
                 corriendo={partido.relojCorriendo}
                 editando={editandoReloj}
                 minutosEdit={minutosRelojEdit}
@@ -1618,6 +1754,16 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
                 onAjustar={(delta) => emitirAccion('RELOJ_AJUSTAR', { segundos: delta })}
                 onReiniciar={() => emitirAccion('RELOJ_REINICIAR')}
               />
+
+              {/* Reloj de posesión (FIBA): 24 al cambiar la posesión, 14 tras
+                  falta/patada en campo de ataque. Corre con el reloj de juego. */}
+              <div className="mv-posesion24" aria-label="Reloj de posesión">
+                <span className={`mv-posesion24-valor ${posesionViva < 5 ? 'alerta' : ''} ${partido.posesionCorriendo ? 'corriendo' : ''}`}>{formatearPosesion(posesionViva)}</span>
+                <button type="button" className="mv-pill" onClick={() => emitirAccion('POSESION_FIJAR', { segundos: 24 })}>24</button>
+                <button type="button" className="mv-pill" onClick={() => emitirAccion('POSESION_FIJAR', { segundos: 14 })}>14</button>
+                <button type="button" className="mv-pill mv-pill-chico" title="Restar un segundo" onClick={() => emitirAccion('POSESION_FIJAR', { segundos: Math.max(0, Math.floor(posesionViva) - 1) })}>−1</button>
+                <button type="button" className="mv-pill mv-pill-chico" title="Sumar un segundo" onClick={() => emitirAccion('POSESION_FIJAR', { segundos: Math.min(24, Math.floor(posesionViva) + 1) })}>+1</button>
+              </div>
 
               {/* Con plantel, tocar cualquier jugador/a ya elige el equipo activo
                   solo (ver elegirJugador) — estos botones quedaban de adorno,
@@ -1736,7 +1882,28 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
         />
       )}
 
-      {mostrarResumen && <ModalResumen partido={partido} onCerrar={() => setMostrarResumen(false)} />}
+      {anotacionActual && (
+        <AvisoAnotacion
+          pendiente={anotacionActual}
+          equipo={anotacionActual.equipo === 'visita' ? partido.equipoVisita : partido.equipoLocal}
+          jugadoras={enCanchaDelEquipo(anotacionActual.equipo)}
+          restantes={segundosAviso}
+          onAsignar={(jugadorId) => {
+            emitirAccion('ASIGNAR_ANOTACION', { eventoId: anotacionActual.eventoId, jugadorId });
+            setAnotacionesPendientes((prev) => prev.filter((p) => p.eventoId !== anotacionActual.eventoId));
+          }}
+          onOmitir={() => setAnotacionesPendientes((prev) => prev.filter((p) => p.eventoId !== anotacionActual.eventoId))}
+        />
+      )}
+      {mostrarCamara && (
+        <PanelMarcadorCamara
+          partido={partido}
+          lector={lectorEstado}
+          onCambiar={(config) => emitirAccion('SINCRONIZACION_CAMARA', config)}
+          onCerrar={() => setMostrarCamara(false)}
+        />
+      )}
+      {mostrarResumen && <ModalResumen partido={partido} intertantoActivo={intertantoActivo} onAlternarIntertanto={alternarIntertanto} onCerrar={() => setMostrarResumen(false)} />}
 
       {modalNomina && (
         <ModalRoster onCerrar={() => { setModalNomina(null); setModalElegirEquipo(false); }}>

@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
 :root {
   --texto: #1f2430;
@@ -1378,3 +1379,421 @@ select {
 }
 
 /* El marcador público y sus plantillas viven en src/marcadores/plantillas.css */
+
+/* ════════════════════════════════════════════════════════════════════
+   Diseño v2 — refresco visual de la app de gestión (no toca los overlays
+   de transmisión: esos viven en src/marcadores). Va al FINAL a propósito:
+   pisa tokens y componentes base sin tener que reescribir cada regla.
+   ════════════════════════════════════════════════════════════════════ */
+:root {
+  --texto: #0f172a;
+  --texto-tenue: #64748b;
+  --fondo: #f4f6fb;
+  --tarjeta: #ffffff;
+  --superficie-2: #f8fafc;
+  --borde: #e3e8f0;
+  --primario: #2563eb;
+  --primario-2: #7c3aed;
+  --primario-texto: #ffffff;
+  --peligro: #e5484d;
+  --exito: #16a34a;
+  --radio: 14px;
+  --radio-chico: 10px;
+  --sombra-1: 0 1px 2px rgba(15, 23, 42, .05), 0 1px 3px rgba(15, 23, 42, .06);
+  --sombra-2: 0 10px 30px -12px rgba(15, 23, 42, .18), 0 2px 6px rgba(15, 23, 42, .05);
+  --anillo: 0 0 0 3px color-mix(in srgb, var(--primario) 28%, transparent);
+}
+:root[data-tema='oscuro'] {
+  --texto: #e6eaf2;
+  --texto-tenue: #8b95a8;
+  --fondo: #0b0f17;
+  --tarjeta: #121826;
+  --superficie-2: #171e2e;
+  --borde: #243047;
+  --primario: #4f8cff;
+  --primario-2: #a78bfa;
+  --sombra-1: 0 1px 2px rgba(0, 0, 0, .4);
+  --sombra-2: 0 18px 40px -18px rgba(0, 0, 0, .7), 0 2px 6px rgba(0, 0, 0, .35);
+}
+:root[data-tema='claro'] {
+  --texto: #0f172a;
+  --texto-tenue: #64748b;
+  --fondo: #f4f6fb;
+  --tarjeta: #ffffff;
+  --borde: #e3e8f0;
+}
+
+body {
+  font-family: 'Inter', system-ui, 'Segoe UI', Roboto, sans-serif;
+  font-feature-settings: 'cv11', 'ss01';
+  -webkit-font-smoothing: antialiased;
+  background:
+    radial-gradient(1200px 500px at 85% -10%, color-mix(in srgb, var(--primario-2) 7%, transparent), transparent 70%),
+    radial-gradient(1000px 480px at 0% -10%, color-mix(in srgb, var(--primario) 8%, transparent), transparent 70%),
+    var(--fondo);
+  background-attachment: fixed;
+  line-height: 1.45;
+}
+h1, h2, h3 { letter-spacing: -0.02em; }
+h1 { font-size: 30px; font-weight: 800; }
+::selection { background: color-mix(in srgb, var(--primario) 25%, transparent); }
+
+:focus-visible { outline: 2px solid var(--primario); outline-offset: 2px; }
+input:focus-visible, select:focus-visible, textarea:focus-visible { outline: none; }
+
+/* Navbar: fija arriba, translúcida, con el link activo como "píldora". */
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  gap: 6px;
+  padding: 10px 24px;
+  background: color-mix(in srgb, var(--tarjeta) 78%, transparent);
+  backdrop-filter: saturate(1.6) blur(14px);
+  -webkit-backdrop-filter: saturate(1.6) blur(14px);
+  border-bottom: 1px solid color-mix(in srgb, var(--borde) 80%, transparent);
+}
+.navbar-marca {
+  margin-right: 14px;
+  font-size: 16px;
+  background: linear-gradient(120deg, var(--primario), var(--primario-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.navbar-link {
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background .15s ease, color .15s ease;
+}
+.navbar-link:hover { color: var(--texto); background: color-mix(in srgb, var(--texto) 6%, transparent); }
+.navbar-link.active { color: var(--primario); background: color-mix(in srgb, var(--primario) 12%, transparent); font-weight: 600; }
+
+.pagina { max-width: 1180px; padding: 28px 24px 48px; }
+.pagina-ancha { max-width: 1720px; }
+
+/* Controles base */
+input, select, textarea {
+  font: inherit;
+  font-size: 14px;
+  color: var(--texto);
+  background: var(--tarjeta);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-chico);
+  padding: 8px 11px;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+input:hover, select:hover, textarea:hover { border-color: color-mix(in srgb, var(--primario) 35%, var(--borde)); }
+input:focus, select:focus, textarea:focus { outline: none; border-color: var(--primario); box-shadow: var(--anillo); }
+input[type='color'] { padding: 2px; height: 34px; cursor: pointer; }
+input[type='range'] { padding: 0; border: none; background: transparent; accent-color: var(--primario); box-shadow: none; }
+input[type='checkbox'], input[type='radio'] { accent-color: var(--primario); }
+
+.btn-primario, .btn-secundario, .btn-link {
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: var(--radio-chico);
+  transition: transform .08s ease, box-shadow .15s ease, background .15s ease, border-color .15s ease, filter .15s ease;
+}
+.btn-primario {
+  background: linear-gradient(135deg, var(--primario), color-mix(in srgb, var(--primario) 70%, var(--primario-2)));
+  box-shadow: 0 6px 16px -8px color-mix(in srgb, var(--primario) 80%, transparent), inset 0 1px 0 rgba(255, 255, 255, .18);
+}
+.btn-primario:hover:not(:disabled) { filter: brightness(1.06); box-shadow: 0 10px 22px -10px color-mix(in srgb, var(--primario) 90%, transparent); }
+.btn-primario:active:not(:disabled), .btn-secundario:active:not(:disabled) { transform: translateY(1px) scale(.99); }
+.btn-secundario { background: var(--tarjeta); box-shadow: var(--sombra-1); gap: 6px; }
+.btn-secundario:hover:not(:disabled) { border-color: color-mix(in srgb, var(--primario) 45%, var(--borde)); background: color-mix(in srgb, var(--primario) 5%, var(--tarjeta)); }
+.btn-secundario:disabled { opacity: .45; cursor: not-allowed; box-shadow: none; }
+.btn-chico { font-size: 12.5px; padding: 6px 11px; }
+.btn-link { font-weight: 500; text-underline-offset: 3px; }
+.btn-link:hover { filter: brightness(1.15); }
+
+.mensaje-error {
+  padding: 10px 14px;
+  border-radius: var(--radio-chico);
+  background: color-mix(in srgb, var(--peligro) 9%, transparent);
+  border: 1px solid color-mix(in srgb, var(--peligro) 30%, transparent);
+}
+
+/* Tarjetas */
+.tarjeta {
+  border-radius: var(--radio);
+  box-shadow: var(--sombra-1);
+  transition: box-shadow .2s ease, transform .2s ease, border-color .2s ease;
+}
+.grilla-tarjetas { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 18px; }
+.tarjeta-plantilla {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 12px 14px;
+  border-left-width: 1px;
+}
+.tarjeta-plantilla:hover { transform: translateY(-3px); box-shadow: var(--sombra-2); border-color: color-mix(in srgb, var(--primario) 35%, var(--borde)); }
+.tarjeta-plantilla strong { font-size: 15px; padding: 0 2px; }
+.tarjeta-plantilla .tarjeta-acciones { margin-top: auto; align-items: center; }
+
+/* Pestañas como control segmentado */
+.pestanas-personalizacion {
+  gap: 4px;
+  padding: 4px;
+  background: color-mix(in srgb, var(--texto) 5%, transparent);
+  border: 1px solid var(--borde);
+  border-radius: 14px;
+}
+.pestana-btn {
+  min-width: 0;
+  border: none;
+  background: transparent;
+  border-radius: 10px;
+  padding: 9px 12px;
+  font-weight: 600;
+  transition: background .15s ease, color .15s ease, box-shadow .15s ease;
+}
+.pestana-btn:hover:not(.activa) { color: var(--texto); background: color-mix(in srgb, var(--tarjeta) 70%, transparent); }
+.pestana-btn.activa {
+  background: var(--tarjeta);
+  color: var(--primario);
+  box-shadow: var(--sombra-1), 0 0 0 1px color-mix(in srgb, var(--primario) 25%, transparent);
+}
+
+.grupo-personalizacion {
+  background: var(--tarjeta);
+  border-radius: 16px;
+  box-shadow: var(--sombra-1);
+  padding: 16px 18px 18px;
+}
+.grupo-personalizacion .grupo-titulo { font-size: 16px; font-weight: 700; }
+.grupo-personalizacion .subgrupo { border-left-color: color-mix(in srgb, var(--primario) 30%, var(--borde)); }
+.seccion-titulo { font-size: 11.5px; letter-spacing: .08em; margin-top: 16px; }
+.toggle-switch input { transition: background .2s ease, box-shadow .2s ease; }
+.toggle-switch input:checked { background: linear-gradient(135deg, var(--primario), var(--primario-2)); }
+.selector-color { background: var(--superficie-2); border-radius: 12px; }
+
+/* Modales */
+.modal-fondo { backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); animation: v2-aparecer .18s ease; }
+.modal-caja { border-radius: 18px; box-shadow: 0 30px 80px -20px rgba(0, 0, 0, .45); animation: v2-modal-in .22s cubic-bezier(.2, .9, .3, 1.15); }
+@keyframes v2-aparecer { from { opacity: 0; } }
+@keyframes v2-modal-in { from { opacity: 0; transform: translateY(10px) scale(.98); } }
+
+/* Diseñador: en pantallas anchas, previsualización fija a la izquierda y
+   controles a la derecha — antes la previa (16:9 a todo el ancho) quedaba
+   arriba y al bajar a los controles se perdía de vista: cada cambio
+   obligaba a subir y bajar para ver cómo quedaba. */
+.disenador-layout { display: flex; flex-direction: column; gap: 18px; }
+.disenador-layout[hidden] { display: none; }
+.disenador-previa { min-width: 0; }
+.disenador-controles { min-width: 0; display: flex; flex-direction: column; gap: 6px; container-type: inline-size; }
+@media (min-width: 1200px) {
+  .disenador-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.45fr) minmax(420px, 1fr);
+    align-items: start;
+    gap: 24px;
+  }
+  .disenador-layout[hidden] { display: none; }
+  .disenador-previa {
+    position: sticky;
+    top: 72px;
+    padding: 14px;
+    border-radius: 18px;
+    background: var(--tarjeta);
+    border: 1px solid var(--borde);
+    box-shadow: var(--sombra-2);
+  }
+  .disenador-previa .mini-preview-grande { max-width: none; }
+  .disenador-controles .pestanas-personalizacion { position: sticky; top: 64px; z-index: 5; backdrop-filter: blur(12px); background: color-mix(in srgb, var(--fondo) 85%, transparent); }
+}
+@container (max-width: 640px) {
+  .disenador-controles .grilla-dos-columnas { grid-template-columns: 1fr; }
+  .disenador-controles .pestana-btn { flex: 1 1 calc(33% - 4px); font-size: 12.5px; padding: 8px 6px; }
+}
+
+/* Control segmentado chico (fondo de la previa) */
+.segmentado {
+  display: inline-flex;
+  padding: 3px;
+  gap: 2px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--texto) 6%, transparent);
+  border: 1px solid var(--borde);
+}
+.segmentado button {
+  border: none;
+  background: transparent;
+  color: var(--texto-tenue);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 7px;
+  cursor: pointer;
+}
+.segmentado button.activo { background: var(--tarjeta); color: var(--texto); box-shadow: var(--sombra-1); }
+
+/* Chips de opción (multi-selección) */
+.chips-opciones { display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 0 6px; }
+.chip-opcion {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--borde);
+  background: var(--tarjeta);
+  color: var(--texto-tenue);
+  cursor: pointer;
+  transition: all .15s ease;
+}
+.chip-opcion.activa {
+  color: var(--primario);
+  border-color: color-mix(in srgb, var(--primario) 55%, transparent);
+  background: color-mix(in srgb, var(--primario) 10%, var(--tarjeta));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+
+/* En celular la navbar se envuelve en varias filas: fija ocuparía media
+   pantalla, así que ahí vuelve a desplazarse con la página. */
+@media (max-width: 720px) {
+  .navbar { position: static; padding: 8px 12px; }
+  .navbar-link { padding: 5px 9px; }
+}
+
+/* Diseñador: nombre editable, variantes, "Mis diseños" */
+.editor-cabecera { gap: 10px; }
+.editor-nombre {
+  flex: 1 1 260px;
+  min-width: 0;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  border-color: transparent;
+  background: transparent;
+  padding: 6px 10px;
+  margin-left: -10px;
+}
+.editor-nombre:hover { border-color: var(--borde); }
+.editor-copiar-estilo { max-width: 200px; font-size: 13px; padding: 6px 10px; }
+.chip-variante {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--primario-2);
+  background: color-mix(in srgb, var(--primario-2) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--primario-2) 40%, transparent);
+  border-radius: 999px;
+  padding: 1px 8px;
+  margin-left: 8px;
+}
+.catalogo-barra { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 8px 0 12px; }
+.catalogo-barra h2, .catalogo-titulo { font-size: 20px; margin: 0; }
+.catalogo-titulo { margin: 34px 0 14px; }
+.grilla-mis-disenos { margin-bottom: 8px; }
+.tarjeta-titulo { display: flex; align-items: center; justify-content: space-between; gap: 6px; min-width: 0; }
+.tarjeta-titulo strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tarjeta-chips { display: flex; gap: 4px; flex: none; }
+.tarjeta-chips .chip-en-uso, .tarjeta-chips .chip-variante { margin-left: 0; }
+.tarjeta-sub { font-size: 12.5px; margin-top: -6px; padding: 0 2px; }
+.tarjeta-plantilla .tarjeta-acciones .btn-chico { padding: 6px 10px; }
+.chip-nuevo {
+  display: inline-block; margin-left: 8px; vertical-align: 2px;
+  font-size: 10.5px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase;
+  padding: 2px 8px; border-radius: 999px;
+  color: #fff; background: linear-gradient(135deg, var(--primario), var(--primario-2));
+}
+
+/* ── Panel de personalización: bloques plegables ───────────────────── */
+.bloque-ajuste {
+  border: 1px solid var(--borde); border-radius: var(--radio, 12px);
+  background: var(--tarjeta); overflow: hidden;
+  transition: border-color .2s, box-shadow .2s;
+}
+.bloque-ajuste + .bloque-ajuste { margin-top: 2px; }
+.bloque-ajuste.abierto { border-color: color-mix(in srgb, var(--primario) 45%, var(--borde)); box-shadow: 0 6px 22px -14px color-mix(in srgb, var(--primario) 60%, transparent); }
+.bloque-ajuste-cabecera {
+  all: unset; box-sizing: border-box; width: 100%; cursor: pointer;
+  display: flex; align-items: center; gap: 12px; padding: 12px 14px;
+}
+.bloque-ajuste-cabecera:hover { background: color-mix(in srgb, var(--primario) 5%, transparent); }
+.bloque-ajuste-cabecera:focus-visible { box-shadow: inset var(--anillo, 0 0 0 2px var(--primario)); }
+.bloque-ajuste-icono {
+  flex: none; width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; font-size: 17px;
+  background: color-mix(in srgb, var(--primario) 10%, var(--fondo));
+}
+.bloque-ajuste.abierto .bloque-ajuste-icono { background: color-mix(in srgb, var(--primario) 20%, var(--fondo)); }
+.bloque-ajuste-textos { display: flex; flex-direction: column; min-width: 0; flex: 1; gap: 2px; }
+.bloque-ajuste-titulo { font-weight: 700; font-size: 14.5px; color: var(--texto); }
+.bloque-ajuste-resumen {
+  font-size: 12.5px; color: var(--texto-tenue); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  display: flex; align-items: center; gap: 4px;
+}
+.bloque-ajuste-flecha { flex: none; color: var(--texto-tenue); font-size: 18px; line-height: 1; transition: transform .2s; }
+.bloque-ajuste.abierto .bloque-ajuste-flecha { transform: rotate(180deg); color: var(--primario); }
+.bloque-ajuste-cuerpo {
+  display: flex; flex-direction: column; gap: 10px; padding: 4px 14px 16px 60px;
+  animation: bloque-entrar .18s ease-out;
+}
+@container (max-width: 460px) { .bloque-ajuste-cuerpo { padding-left: 14px; } }
+@keyframes bloque-entrar { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+.bloque-ajuste-cuerpo > .fila-form, .bloque-ajuste-cuerpo > label { margin: 0; }
+.bloque-ajuste-cuerpo .seccion-titulo { margin: 6px 0 -2px; }
+.bloque-nota { margin: -4px 0 0 !important; font-size: 12px; }
+.bloque-restablecer { align-self: flex-start; font-size: 12.5px; margin-top: 2px; }
+
+.bloque-muestras { display: inline-flex; gap: 3px; margin-right: 2px; }
+.bloque-muestras i { width: 12px; height: 12px; border-radius: 4px; border: 1px solid color-mix(in srgb, var(--texto) 18%, transparent); }
+.bloque-muestras i.vacia { background: repeating-linear-gradient(45deg, transparent 0 3px, color-mix(in srgb, var(--texto) 15%, transparent) 3px 4px) !important; }
+
+/* Rejilla 3×3 para ubicar el marcador (posiciones rápidas). */
+.rejilla-posiciones {
+  display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 38px); gap: 6px;
+  padding: 8px; border-radius: 12px; aspect-ratio: auto;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--texto) 6%, var(--fondo)), var(--fondo));
+  border: 1px dashed var(--borde);
+}
+.rejilla-posicion {
+  all: unset; box-sizing: border-box; cursor: pointer; border-radius: 8px; display: grid; place-items: center;
+  font-size: 12px; font-weight: 600; color: var(--texto-tenue);
+  border: 1px solid var(--borde); background: var(--tarjeta); transition: all .15s;
+}
+.rejilla-posicion:hover { color: var(--texto); border-color: color-mix(in srgb, var(--primario) 50%, var(--borde)); }
+.rejilla-posicion:focus-visible { box-shadow: var(--anillo); }
+.rejilla-posicion.activa { color: var(--primario-texto); background: var(--primario); border-color: var(--primario); }
+
+.paso-numero { display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; }
+.paso-numero input { width: 76px; text-align: center; }
+.paso-numero .btn-secundario { min-width: 34px; padding: 6px 0; }
+.paso-numero small { color: var(--texto-tenue); }
+
+.chip-guardado { display: inline-flex; border: 1px solid var(--borde); border-radius: 999px; overflow: hidden; background: var(--tarjeta); }
+.chip-guardado button { all: unset; cursor: pointer; padding: 5px 10px; font-size: 12.5px; }
+.chip-guardado button:first-child:hover { background: color-mix(in srgb, var(--primario) 10%, transparent); }
+.chip-guardado button + button { padding: 5px 9px; color: var(--texto-tenue); border-left: 1px solid var(--borde); }
+.chip-guardado button + button:hover { color: var(--peligro); }
+
+.segmentado-ancho { display: flex; width: 100%; }
+.segmentado-ancho > button { flex: 1; }
+
+.opciones-tarjetas { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
+.opcion-tarjeta {
+  all: unset; box-sizing: border-box; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 10px 6px; border-radius: 10px; border: 1px solid var(--borde); background: var(--fondo);
+  font-size: 12.5px; font-weight: 600; text-align: center; color: var(--texto); transition: all .15s;
+}
+.opcion-tarjeta > span { font-size: 20px; }
+.opcion-tarjeta:hover { border-color: color-mix(in srgb, var(--primario) 50%, var(--borde)); }
+.opcion-tarjeta:focus-visible { box-shadow: var(--anillo); }
+.opcion-tarjeta.activa { border-color: var(--primario); background: color-mix(in srgb, var(--primario) 12%, var(--tarjeta)); box-shadow: inset 0 0 0 1px var(--primario); }
+
+.color-opcional { display: flex; flex-direction: column; gap: 4px; flex: 1 1 160px; font-size: 13px; }
+.color-opcional-fila { display: flex; align-items: center; gap: 8px; }
+.color-opcional input[type=color] { width: 38px; height: 30px; padding: 0; border-radius: 8px; }
+.color-opcional input[type=color].apagado { opacity: .45; }
+.bloque-ajuste-cuerpo .fila-form > label:not(.campo-rango):not(.toggle-switch) { display: flex; flex-direction: column; gap: 4px; font-size: 13px; flex: 1 1 150px; }
+.bloque-ajuste-cuerpo > label:not(.campo-rango):not(.toggle-switch) { font-size: 13px; }

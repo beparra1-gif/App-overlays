@@ -1,0 +1,24 @@
+.reloj-posesion {
+  position: fixed;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1.15 / 1;
+  min-width: calc(var(--rp-alto) * 1.15);
+  padding: 0 .3em;
+  border-radius: 10px;
+  background: var(--pm-tablero, rgba(8, 10, 14, .92));
+  border: 2px solid var(--pm-banner, #ffb000);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, .4);
+  color: var(--pm-banner, #ffb000);
+  font-family: var(--pm-fuente, 'Oswald', sans-serif);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+  transition: opacity .35s ease;
+  z-index: 6;
+}
+.rp-valor { font-size: calc(var(--rp-alto) * .62); line-height: 1; }
+.rp-alerta { color: #ff3b30; border-color: #ff3b30; }
+.rp-cero { color: #fff; background: #d0021b; border-color: #fff; animation: rp-bocina .5s ease-in-out 4; }
+.rp-oculto { opacity: 0; }
+@keyframes rp-bocina { 50% { transform: var(--rp-tf, none) scale(1.12); filter: brightness(1.4); } }

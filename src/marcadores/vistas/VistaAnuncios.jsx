@@ -96,7 +96,7 @@ export default function VistaAnuncios({
   let claseModoExtra = '';
   let estiloPosicion;
   if (conTitulo) {
-    const anclaX = caja.left + caja.width / 2;
+    const anclaX = Math.min(84, Math.max(16, caja.left + caja.width / 2));
     if (modoTituloAnuncio === 'debajo-marcador') {
       claseModo = 'modo-abajo-caja';
       estiloPosicion = { justifyContent: 'flex-start', alignItems: 'flex-start', paddingLeft: `${anclaX}%`, paddingTop: `${caja.top + caja.height}%` };
@@ -111,6 +111,11 @@ export default function VistaAnuncios({
       claseModoExtra = 'anuncios-compacto';
       estiloPosicion = { justifyContent: 'flex-start', alignItems: 'flex-start', paddingLeft: `${anclaX}%`, paddingTop: `${Math.max(0, caja.top - 5)}%` };
     }
+  } else if (modoAlerta === 'arriba' && caja && caja.topAlto < 20) {
+    // Marcador pegado ARRIBA de la pantalla (Torre, Terminal, Paletas,
+    // Escudo…): "arriba" lo sacaba fuera del cuadro — se cuelga debajo.
+    claseModo = 'modo-abajo-caja';
+    estiloPosicion = { justifyContent: 'flex-start', alignItems: 'flex-start', paddingLeft: `${Math.min(84, Math.max(16, caja.left + caja.width / 2))}%`, paddingTop: `${caja.top + caja.height}%` };
   } else {
     // `caja` (la del marcador, ya medida de verdad) reemplaza la
     // aproximación fija de estiloAnclaAlerta cuando está disponible — ver

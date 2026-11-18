@@ -53,6 +53,12 @@ export const PARTIDO_DEMO = {
     totales: { pts: 55, reb: 20, ast: 11, stl: 4, to: 6, faltas: 6 },
   },
   patrocinadores: [],
+  // Suma = 58-55 (el marcador de arriba), cuarto 3 en juego.
+  puntosPorPeriodo: [
+    { periodo: 1, local: 18, visita: 14 },
+    { periodo: 2, local: 20, visita: 22 },
+    { periodo: 3, local: 20, visita: 19 },
+  ],
 };
 
 export const JUGADAS_DEMO = [

@@ -51,6 +51,20 @@ app.use('/api/posiciones', posicionesRoutes);
 app.use('/api/plantillas-personalizadas', plantillasPersonalizadasRoutes);
 app.use('/api/admin', adminRoutes);
 
+// Red de seguridad: cualquier error que se escape de una ruta responde 500
+// en vez de dejar la petición colgada.
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  console.error('[express]', err);
+  if (!res.headersSent) res.status(500).json({ error: 'Error interno del servidor' });
+});
+
+// Un `await` sin try/catch en una ruta async (Express 4 no los atrapa) o en
+// un handler de socket era un unhandled rejection: en Node moderno eso
+// TUMBA el proceso — en pleno partido, se caía el marcador de todos. Se
+// registra y se sigue.
+process.on('unhandledRejection', (razon) => console.error('[unhandledRejection]', razon));
+
 const io = new Server(server, { cors: corsOptions });
 app.locals.io = io;
 registrarSocketPartidos(io);

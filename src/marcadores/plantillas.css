@@ -81,7 +81,9 @@ html:has(.plantilla-marcador) {
 .pc-faltas { color: #ff453a; font-size: 10px; font-weight: 700; }
 .pc-centro { display: flex; flex-direction: column; align-items: center; }
 .pc-reloj { background: rgba(255,255,255,.08); padding: 4px 12px; border-radius: 8px; font-size: 17px; font-weight: 900; }
-.pc-periodo { margin-top: 3px; font-size: 11px; color: #cfd3dc; }
+.pc-periodo { margin-top: 3px; font-size: 11px; color: #cfd3dc; display: inline-flex; align-items: center; gap: 5px; }
+.pc-posesion { font-size: 9px; opacity: 0; transition: opacity .25s; color: var(--pm-banner, #ffb703); }
+.pc-posesion.activa { opacity: 1; }
 .pc-patrocinador { margin-top: 10px; background: rgba(10,12,20,.8); border-radius: 10px; padding: 6px 12px; }
 .pc-patrocinador img { max-height: 40px; max-width: 220px; }
 

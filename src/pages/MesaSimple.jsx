@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api, getToken } from '../api/client';
 import { crearSocket } from '../socket';
-import { formatearReloj, etiquetaPeriodo } from '../marcadores/utils';
+import { useRelojVivo, useRelojPosesion, formatearPosesion, formatearReloj as formatearRelojVivo } from '../marcadores/utils';
+import { etiquetaPeriodo } from '../marcadores/utils';
 import './mesaSimple.css';
 
 const PERIODOS_DISPONIBLES = [1, 2, 3, 4, 5, 6, 7];
@@ -26,8 +27,18 @@ export default function MesaSimple({ partidoId: partidoIdProp, embebido = false,
   const [editandoReloj, setEditandoReloj] = useState(false);
   const [minutosRelojEdit, setMinutosRelojEdit] = useState('');
   const [segundosRelojEdit, setSegundosRelojEdit] = useState('');
+  const [intertantoActivo, setIntertantoActivo] = useState(false);
   const socketRef = useRef(null);
   const wrapRef = useRef(null);
+
+  // Un error de una acción puntual (p. ej. una jugada rechazada) ya no
+  // reemplaza la Mesa entera — antes quedaba bloqueada mostrando solo el
+  // mensaje hasta recargar. Ahora es un aviso que se va solo.
+  useEffect(() => {
+    if (!error) return undefined;
+    const t = setTimeout(() => setError(''), 5000);
+    return () => clearTimeout(t);
+  }, [error]);
 
   useEffect(() => {
     let activo = true;
@@ -38,13 +49,17 @@ export default function MesaSimple({ partidoId: partidoIdProp, embebido = false,
       socketRef.current = socket;
       socket.on('connect', () => socket.emit('unirse_mesa', { publicToken: d.partido.publicToken }));
       socket.on('estado', (estado) => setPartido(estado));
+      socket.on('intertanto', (d) => setIntertantoActivo(Boolean(d?.activo)));
       socket.on('error_marcador', (payload) => setError(payload.error));
-    });
+    }).catch((err) => activo && setError(err.message || 'No se pudo cargar el partido'));
     return () => {
       activo = false;
       socketRef.current?.disconnect();
     };
   }, [id]);
+
+  const relojVivo = useRelojVivo(partido);
+  const posesionViva = useRelojPosesion(partido);
 
   useEffect(() => {
     if (partido) onPartidoCambio?.(partido);
@@ -94,8 +109,7 @@ export default function MesaSimple({ partidoId: partidoIdProp, embebido = false,
     emitirAccion('ESTADO_PARTIDO', { estado: 'finalizado' });
   };
 
-  if (error) return <p className="mensaje-error">{error}</p>;
-  if (!partido) return <p className="texto-tenue">Cargando…</p>;
+  if (!partido) return error ? <p className="mensaje-error">{error}</p> : <p className="texto-tenue">Cargando…</p>;
 
   if (partido.estado === 'finalizado') {
     return (
@@ -108,10 +122,18 @@ export default function MesaSimple({ partidoId: partidoIdProp, embebido = false,
 
   return (
     <div className={`ms-wrap ${enPantallaCompleta ? 'ms-pantalla-completa' : ''}`} ref={wrapRef}>
+      {error && <p className="mensaje-error" role="alert">{error}</p>}
       <div className="ms-topbar">
         {!embebido && <Link className="ms-pill" to={`/mesa/${id}`}>📋 Mesa amplia</Link>}
         <button className="ms-pill" onClick={alternarPantallaCompleta}>
           {enPantallaCompleta ? '✕ Salir de Pantalla Completa' : '⛶ Pantalla Completa'}
+        </button>
+        <button
+          className={`ms-pill ${intertantoActivo ? 'ms-peligro' : ''}`}
+          title="Resumen entre cuartos en la transmisión (se quita solo al arrancar el reloj)"
+          onClick={() => { const activo = !intertantoActivo; setIntertantoActivo(activo); emitirAccion('INTERTANTO', { activo, ocultarMarcador: true }); }}
+        >
+          {intertantoActivo ? '■ Quitar Intertanto' : '📊 Intertanto'}
         </button>
         <span className="ms-topbar-separador" />
         <button className="ms-pill" onClick={reiniciarPartido}>↺ Reiniciar</button>
@@ -159,7 +181,7 @@ export default function MesaSimple({ partidoId: partidoIdProp, embebido = false,
               </span>
             ) : (
               <button type="button" className="ms-reloj" onClick={empezarEdicionReloj} title="Tocar para editar el reloj a mano">
-                {formatearReloj(partido.relojSegundos)}
+                {formatearRelojVivo(relojVivo)}
               </button>
             )}
           </div>
@@ -191,6 +213,9 @@ export default function MesaSimple({ partidoId: partidoIdProp, embebido = false,
           <button className="ms-pill" onClick={() => emitirAccion('RELOJ_AJUSTAR', { segundos: 60 })}>+1:00</button>
           <button className="ms-pill" onClick={() => emitirAccion('RELOJ_AJUSTAR', { segundos: -60 })}>-1:00</button>
           <button className="ms-pill" onClick={() => emitirAccion('RELOJ_REINICIAR')}>↺ Reiniciar reloj</button>
+          <span className="ms-posesion24" title="Reloj de posesión">{formatearPosesion(posesionViva)}</span>
+          <button className="ms-pill" onClick={() => emitirAccion('POSESION_FIJAR', { segundos: 24 })}>24</button>
+          <button className="ms-pill" onClick={() => emitirAccion('POSESION_FIJAR', { segundos: 14 })}>14</button>
           <select
             className="ms-pill ms-select-periodo"
             value={partido.periodo}

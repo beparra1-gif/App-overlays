@@ -23,7 +23,11 @@ export default function Clasico({ partido, config }) {
         </div>
         <div className="pc-centro">
           {mostrar(config, 'mostrarReloj') && <span className="pc-reloj">{formatearReloj(partido.relojSegundos)}</span>}
-          <span className="pc-periodo">{etiquetaPeriodo(partido.periodo)}</span>
+          <span className="pc-periodo">
+            {mostrar(config, 'mostrarPosesion') && <span className={`pc-posesion ${partido.posesion === 'local' ? 'activa' : ''}`} aria-hidden>◀</span>}
+            {etiquetaPeriodo(partido.periodo)}
+            {mostrar(config, 'mostrarPosesion') && <span className={`pc-posesion ${partido.posesion === 'visita' ? 'activa' : ''}`} aria-hidden>▶</span>}
+          </span>
         </div>
         <div className="pc-equipo">
           <LogoEquipo equipo={partido.equipoVisita} config={config} className="pc-logo" />

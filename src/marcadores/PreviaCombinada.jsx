@@ -3,6 +3,7 @@ import { obtenerPlantilla } from './registro';
 import VistaNomina from './vistas/VistaNomina';
 import VistaEstadisticas from './vistas/VistaEstadisticas';
 import VistaAnuncios from './vistas/VistaAnuncios';
+import VistaIntertanto from './vistas/VistaIntertanto';
 import LogoMarcaAgua from './LogoMarcaAgua';
 import LogoFlotante from './LogoFlotante';
 import NombreFlotante from './NombreFlotante';
@@ -10,8 +11,9 @@ import TituloMarcador from './TituloMarcador';
 import LogosLibres from './LogosLibres';
 import ElementosLibres from './ElementosLibres';
 import PopSumaPuntos from './PopSumaPuntos';
+import RelojPosesion from './RelojPosesion';
 import { PARTIDO_DEMO, JUGADAS_DEMO } from './datosDemo';
-import { useCajaMarcador, useEscalaLienzo } from './utils';
+import { aplicarColoresEquipo, idBasePlantilla, useCajaMarcador, useEscalaLienzo } from './utils';
 import './miniPreview.css';
 
 // Opacidad de una capa que NO es la que se está editando ahora mismo — se
@@ -76,7 +78,7 @@ const OPACIDAD_CONTEXTO = 0.14;
 //   el marcador queda de fondo, tenue, como referencia de alineación.
 // - 'anuncios': el anuncio a opacidad plena, marcador de fondo tenue.
 export default function PreviaCombinada({
-  plantillaId, config, equipoLocalPreview, equipoVisitaPreview, partidoReal, modo = 'general',
+  plantillaId, config, equipoLocalPreview, equipoVisitaPreview, partidoReal, modo = 'general', fondo = 'damero',
   logosLibresEditable = false, onArrastrarLogoLibre,
   elementosLibresEditable = false, onArrastrarElementoLibre, onCambiarElementoLibre, elementosSeleccionadosIds, onSeleccionarElemento,
   zoomCreador = 1, panCreador, modoPanCreador = false, onPanearCreador,
@@ -92,6 +94,10 @@ export default function PreviaCombinada({
   // completa, en la mayoría de las pantallas, la escala se acerca mucho más
   // a 1:1.
   pantallaCompleta = false,
+  // Zoom automático sobre la caja del marcador (pestañas Equipos/Marcador):
+  // a escala de pantalla completa el marcador queda chico y no se aprecian
+  // los detalles que se están ajustando.
+  enfocarMarcador = false,
   onCerrarPantallaCompleta,
 }) {
   const { Componente: Marcador } = obtenerPlantilla(plantillaId);
@@ -121,7 +127,21 @@ export default function PreviaCombinada({
   // coordenadas). Las manijas y el arrastre de ElementosLibres reciben
   // esta escala ya combinada, así su matemática ni se entera de que hay
   // zoom: sigue viendo "la escala del lienzo", nada más.
-  const escalaEfectiva = escalaLienzo * (zoomCreador || 1);
+  let escalaEfectiva = escalaLienzo * (zoomCreador || 1);
+  let panEfectivo = panCreador;
+  if (enfocarMarcador && (zoomCreador || 1) === 1 && caja && caja.width > 0 && caja.heightAlto > 0) {
+    // Margen generoso alrededor para que entren también el título, los
+    // logos flotantes y las animaciones de puntos que viven al costado.
+    const zoom = Math.min(3, Math.max(1, 0.6 / Math.max(caja.width / 100, caja.heightAlto / 100)));
+    const cx = (caja.left + caja.width / 2) / 100;
+    const cy = (caja.topAlto + caja.heightAlto / 2) / 100;
+    const ancho = escalaLienzo * 1920;
+    const alto = escalaLienzo * 1080;
+    // Sin salirse del lienzo (no mostrar "afuera" de la pantalla real).
+    const limitar = (v, tam) => Math.min(0, Math.max(tam - tam * zoom, v));
+    escalaEfectiva = escalaLienzo * zoom;
+    panEfectivo = { x: limitar(ancho * (0.5 - zoom * cx), ancho), y: limitar(alto * (0.5 - zoom * cy), alto) };
+  }
 
   const base = partidoReal || PARTIDO_DEMO;
   const partido = (equipoLocalPreview || equipoVisitaPreview)
@@ -153,9 +173,12 @@ export default function PreviaCombinada({
   // transmisión real SÍ queda montado todo el partido (anima cada jugada
   // sola, ver VistaAnuncios) mientras el diseño la tenga habilitada, así
   // que ahí sí se mantiene el criterio anterior.
+  // Colores según equipo, igual que en la escena real.
+  config = aplicarColoresEquipo(config, partido);
   const conNomina = modo === 'nomina' || modo === 'general';
   const conEstadisticas = modo === 'estadisticas' || modo === 'general';
   const conAnuncios = modo === 'anuncios' || Boolean(config?.anunciarJugadas);
+  const conIntertanto = modo === 'intertanto';
   // La animación de sumar puntos solo se dispara con un cambio de puntaje
   // real — sin esto la pestaña Marcador nunca la mostraba, así que se
   // ajustaba a ciegas. Se fuerza visible (2 y 3 puntos, uno por lado)
@@ -175,7 +198,7 @@ export default function PreviaCombinada({
   return (
     <>
       {pantallaCompleta && <div className="mini-preview-fondo" onClick={onCerrarPantallaCompleta} />}
-      <div className={`mini-preview-marco mini-preview-grande ${pantallaCompleta ? 'mini-preview-pantalla-completa' : ''}`} ref={marcoRef}>
+      <div className={`mini-preview-marco mini-preview-grande mini-preview-fondo-${fondo} ${pantallaCompleta ? 'mini-preview-pantalla-completa' : ''}`} ref={marcoRef}>
         {pantallaCompleta && (
           <button type="button" className="mini-preview-cerrar" onClick={onCerrarPantallaCompleta} title="Salir de pantalla completa">✕</button>
         )}
@@ -184,18 +207,19 @@ export default function PreviaCombinada({
           ref={lienzoRef}
           style={{
             '--escala-lienzo': escalaEfectiva,
-            '--pan-x': `${panCreador?.x || 0}px`,
-            '--pan-y': `${panCreador?.y || 0}px`,
+            '--pan-x': `${panEfectivo?.x || 0}px`,
+            '--pan-y': `${panEfectivo?.y || 0}px`,
           }}
         >
         <div style={{ opacity: opacidadMarcador, transition: 'opacity .25s ease', pointerEvents: opacidadMarcador === 1 ? 'auto' : 'none' }}>
           <LogoMarcaAgua equipoLocal={partido.equipoLocal} equipoVisita={partido.equipoVisita} config={config} caja={caja} />
           <Marcador partido={partido} config={config} />
           <LogoFlotante equipoLocal={partido.equipoLocal} equipoVisita={partido.equipoVisita} config={config} plantillaId={plantillaId} caja={caja} />
-          {plantillaId === 'clasico' && (
+          {idBasePlantilla(plantillaId) === 'clasico' && (
             <NombreFlotante equipoLocal={partido.equipoLocal} equipoVisita={partido.equipoVisita} config={config} plantillaId={plantillaId} caja={caja} prefijo="clasico" />
           )}
           <TituloMarcador config={config} plantillaId={plantillaId} caja={caja} suprimir={suprimirTitulo} />
+          <RelojPosesion partido={partido} config={config} caja={caja} demo={!partidoReal} relojJuego={partido.relojSegundos} />
           {mostrarDemoPuntos && (
             <PopSumaPuntos
               partido={partido}
@@ -217,6 +241,11 @@ export default function PreviaCombinada({
           <div style={{ opacity: opacidadDe('estadisticas'), transition: 'opacity .25s ease', pointerEvents: opacidadDe('estadisticas') === 1 ? 'auto' : 'none' }}>
             <VistaEstadisticas partido={partido} config={{ modo: 'equipo', equipo: 'local' }} tema={config} plantillaId={plantillaId} />
           </div>
+        )}
+        {conIntertanto && (
+          // En la previa, sin partido real, se simula el cierre de un
+          // cuarto (reloj en 0) para que se vea el título real que tendrá.
+          <VistaIntertanto partido={partidoReal ? partido : { ...partido, relojSegundos: 0 }} tema={config} plantillaId={plantillaId} />
         )}
         {conAnuncios && (
           <div style={{ opacity: opacidadDe('anuncios'), transition: 'opacity .25s ease', pointerEvents: opacidadDe('anuncios') === 1 ? 'auto' : 'none' }}>

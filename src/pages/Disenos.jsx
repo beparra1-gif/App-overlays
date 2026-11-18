@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { api, urlLogo } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { PLANTILLAS_MARCADOR } from '../marcadores/registro';
-import { PRESETS_POSICION, mostrar, FUENTES_DISPONIBLES } from '../marcadores/utils';
+import { PRESETS_POSICION, mostrar, FUENTES_DISPONIBLES, idBasePlantilla, esVariante, nuevoIdVariante } from '../marcadores/utils';
+import { soporteDePlantilla } from '../marcadores/soporte';
 import MiniPreviewMarcador from '../marcadores/MiniPreviewMarcador';
 import { CATALOGO_ICONOS, IconoSvg } from '../marcadores/iconosLibres';
 import { CATALOGO_FORMAS, clipPathDeForma } from '../marcadores/ElementosLibres';
@@ -155,6 +156,34 @@ function Toggle({ etiqueta, checked, onChange, title }) {
       <span>{etiqueta}</span>
       <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
     </label>
+  );
+}
+
+// Bloque plegable del panel de personalización: cabecera con ícono, título
+// y un resumen de cómo está configurado ahora (así no hace falta abrirlo
+// para saberlo). Solo uno abierto por pestaña.
+function Bloque({ id, abierto, onAlternar, icono, titulo, resumen, children }) {
+  const esta = abierto === id;
+  return (
+    <section className={`bloque-ajuste ${esta ? 'abierto' : ''}`}>
+      <button type="button" className="bloque-ajuste-cabecera" aria-expanded={esta} onClick={() => onAlternar(esta ? null : id)}>
+        <span className="bloque-ajuste-icono" aria-hidden>{icono}</span>
+        <span className="bloque-ajuste-textos">
+          <span className="bloque-ajuste-titulo">{titulo}</span>
+          {resumen && <span className="bloque-ajuste-resumen">{resumen}</span>}
+        </span>
+        <svg className="bloque-ajuste-flecha" viewBox="0 0 24 24" width="18" height="18" aria-hidden><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+      </button>
+      {esta && <div className="bloque-ajuste-cuerpo">{children}</div>}
+    </section>
+  );
+}
+
+function Muestras({ colores }) {
+  return (
+    <span className="bloque-muestras">
+      {colores.map((c, i) => <i key={i} style={{ background: c || 'transparent' }} className={c ? '' : 'vacia'} />)}
+    </span>
   );
 }
 
@@ -335,6 +364,7 @@ const PESTANAS_PERSONALIZACION = [
   { id: 'marcador', etiqueta: 'Marcador', icono: '🏀' },
   { id: 'nomina', etiqueta: 'Nómina', icono: '👥' },
   { id: 'estadisticas', etiqueta: 'Estadísticas', icono: '📊' },
+  { id: 'intertanto', etiqueta: 'Intertanto', icono: '⏱️' },
   { id: 'anuncios', etiqueta: 'Anuncios', icono: '📣' },
   { id: 'logos', etiqueta: 'Logos libres', icono: '🖼️' },
   { id: 'creador', etiqueta: 'Creador', icono: '🎨' },
@@ -452,8 +482,25 @@ function SelectorFuente({ value, onChange, incluirAutomatica = true, fuentePorDe
 // tablero), así que su vista previa es siempre el lienzo completo ('general'),
 // para poder ver y arrastrar sin que el zoom automático del marcador tape el
 // resto del encuadre.
-const PREVIA_MODO_POR_SECCION = { equipos: 'marcador', marcador: 'marcador', nomina: 'nomina', estadisticas: 'estadisticas', anuncios: 'anuncios', logos: 'general', creador: 'marcador' };
-const PREVIA_ETIQUETA = { general: 'Vista general', marcador: 'Marcador', nomina: 'Nómina', estadisticas: 'Estadísticas', anuncios: 'Anuncios' };
+const PREVIA_MODO_POR_SECCION = { equipos: 'marcador', marcador: 'marcador', nomina: 'nomina', estadisticas: 'estadisticas', intertanto: 'intertanto', anuncios: 'anuncios', logos: 'general', creador: 'marcador' };
+const PREVIA_ETIQUETA = { general: 'Vista general', marcador: 'Marcador', nomina: 'Nómina', estadisticas: 'Estadísticas', intertanto: 'Intertanto', anuncios: 'Anuncios' };
+
+// Fondo de la previsualización: el lienzo real es transparente (OBS pone la
+// cámara debajo), pero diseñar sobre un damero gris no deja juzgar
+// contraste — se puede simular una cancha o un fondo claro/oscuro.
+const FONDOS_PREVIA = [
+  { id: 'damero', etiqueta: 'Transparente' },
+  { id: 'cancha', etiqueta: 'Cancha' },
+  { id: 'oscuro', etiqueta: 'Oscuro' },
+  { id: 'claro', etiqueta: 'Claro' },
+];
+
+const CATEGORIAS_LIDERES_OPCIONES = [
+  { clave: 'pts', etiqueta: 'Puntos' },
+  { clave: 'reb', etiqueta: 'Rebotes' },
+  { clave: 'ast', etiqueta: 'Asistencias' },
+  { clave: 'stl', etiqueta: 'Robos' },
+];
 
 // Selector de color "que se entienda": swatch grande (clickeable, abre el
 // picker nativo), el valor hex a la vista y una transparencia PROPIA de ese
@@ -482,6 +529,30 @@ const OPCIONES_ANIMACION_FAMILIA = [
   { id: 'neon', etiqueta: 'Neón' },
   { id: 'streetball', etiqueta: 'Streetball' },
   { id: 'cristal', etiqueta: 'Cristal' },
+  { id: 'sx-crossover', etiqueta: 'Crossover' },
+  { id: 'sx-foco', etiqueta: 'Foco de arena' },
+  { id: 'sx-pizarra', etiqueta: 'Pizarra táctica' },
+  { id: 'sx-ticket', etiqueta: 'Ticket y recibo' },
+  { id: 'sx-cromo', etiqueta: 'Cromo coleccionable' },
+  { id: 'sx-metro', etiqueta: 'Metro' },
+  { id: 'sx-paletas', etiqueta: 'Tablero de paletas' },
+  { id: 'sx-riso', etiqueta: 'Afiche riso' },
+  { id: 'sx-noventero', etiqueta: 'Noventero' },
+  { id: 'sx-pulso', etiqueta: 'Pulso del partido' },
+  { id: 'sx-foto', etiqueta: 'Foto protagonista' },
+  { id: 'sx-titular', etiqueta: 'Gran titular' },
+  { id: 'sx-reacciones', etiqueta: 'Apilado y reacciones' },
+  { id: 'sx-modular', etiqueta: 'Marcador modular' },
+  { id: 'sx-torneo', etiqueta: 'Escudo del torneo' },
+  { id: 'sx-trapecio', etiqueta: 'Alas en trapecio' },
+  { id: 'sx-grunge', etiqueta: 'Cartel rasgado' },
+  { id: 'sx-brutalista', etiqueta: 'Brutalista' },
+  { id: 'sx-suizo', etiqueta: 'Suizo tipográfico' },
+  { id: 'sx-torre', etiqueta: 'Torre lateral' },
+  { id: 'sx-momentum', etiqueta: 'Momentum' },
+  { id: 'sx-cancha', etiqueta: 'Media cancha' },
+  { id: 'sx-sticker', etiqueta: 'Sticker pop' },
+  { id: 'sx-terminal', etiqueta: 'Terminal' },
 ];
 
 // Bloque de controles compartido por Nómina/Estadísticas/Anuncios: tamaño,
@@ -536,6 +607,36 @@ function SeccionEstiloCapa({ prefijo, config, cambiarConfig, tituloSeparado = tr
   );
 }
 
+// Resumen de una línea del estilo de una capa, para la cabecera del bloque.
+function resumenEstiloCapa(config, prefijo) {
+  const escala = Number.isFinite(config[`${prefijo}Escala`]) ? config[`${prefijo}Escala`] : 100;
+  const animacion = OPCIONES_ANIMACION_FAMILIA.find((o) => o.id === (config[`${prefijo}EstiloAnimacion`] || ''))?.etiqueta || '';
+  const propio = config[`${prefijo}ColorFondo`] || config[`${prefijo}ColorTexto`] || config[`${prefijo}ColorTitulo`];
+  return (
+    <>
+      <Muestras colores={[config[`${prefijo}ColorFondo`], config[`${prefijo}ColorTexto`], config[`${prefijo}ColorTitulo`]]} />
+      {` ${escala}% · ${propio ? 'colores propios' : 'colores del marcador'} · ${animacion.startsWith('Automática') ? 'animación del diseño' : animacion}`}
+    </>
+  );
+}
+
+// Color que puede quedar "sin elegir" (usa el automático del diseño):
+// apagado = '', encendido = un hex.
+function ColorOpcional({ etiqueta, valor, vacio, onChange }) {
+  const activo = Boolean(valor);
+  return (
+    <div className="color-opcional">
+      <span className="color-opcional-etiqueta">{etiqueta}</span>
+      <span className="color-opcional-fila">
+        <input type="color" value={/^#/.test(valor || '') ? valor : '#ffffff'} onChange={(e) => onChange(e.target.value)} aria-label={etiqueta} className={activo ? '' : 'apagado'} />
+        {activo
+          ? <button type="button" className="btn-link" onClick={() => onChange('')}>Usar {vacio}</button>
+          : <span className="texto-tenue">Usa {vacio}</span>}
+      </span>
+    </div>
+  );
+}
+
 // "Eliminar definitivamente" un diseño ANTES hacía un DELETE de verdad —
 // como la fila desaparecía, cualquier escena que lo tuviera asignado
 // (escenas.diseno_id, ON DELETE SET NULL) se quedaba sin diseño, y el
@@ -555,8 +656,40 @@ function mensajeConfirmarRestablecer(diseno) {
   return `¿Restablecer "${diseno.nombre}" a los valores de fábrica de la plantilla? Esta acción no se puede deshacer (pero el enlace de OBS no cambia).`;
 }
 
+// Exportar/importar un diseño como archivo .json — para pasarlo a otra
+// cuenta, guardar un respaldo o arrancar un overlay nuevo desde uno ya hecho.
+const FORMATO_EXPORTACION = 'app-overlays-diseno';
+function descargarDiseno(nombre, plantillaBase, config) {
+  const datos = { formato: FORMATO_EXPORTACION, version: 1, nombre, plantilla_base: idBasePlantilla(plantillaBase), config };
+  const blob = new Blob([JSON.stringify(datos, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${(nombre || 'diseno').replace(/[^\w\-áéíóúñ ]+/gi, '').trim().replace(/\s+/g, '-') || 'diseno'}.overlay.json`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+async function leerArchivoDiseno(archivo) {
+  const datos = JSON.parse(await archivo.text());
+  if (datos?.formato !== FORMATO_EXPORTACION || typeof datos.config !== 'object' || !datos.plantilla_base) {
+    throw new Error('El archivo no es un diseño exportado desde App-overlays');
+  }
+  return datos;
+}
+
+// "Copiar estilo de otro diseño": solo la identidad visual (colores,
+// tipografías, tamaños, animaciones de cada capa) — no posiciones ni
+// interruptores, que dependen de la forma de cada plantilla.
+const ES_CLAVE_DE_ESTILO = /(^color|Color|Fuente|fuente|TituloNegrita|EstiloAnimacion|TamanoTexto|TamanoTitulo|^tamanoTexto|logoOpacidad|logoTamano)/;
+const ES_CLAVE_DE_POSICION = /(Posicion|OffsetY|^x$|^y$|Percent|^posicion)/;
+function extraerEstilo(config = {}) {
+  return Object.fromEntries(Object.entries(config).filter(([k]) => ES_CLAVE_DE_ESTILO.test(k) && !ES_CLAVE_DE_POSICION.test(k)));
+}
+
+const nombreDePlantilla = (id) => PLANTILLAS_MARCADOR.find((p) => p.id === idBasePlantilla(id))?.nombre;
+
 function nombreAutomatico(plantillaBase) {
-  const nombrePlantilla = PLANTILLAS_MARCADOR.find((p) => p.id === plantillaBase)?.nombre || 'Diseño';
+  const nombrePlantilla = nombreDePlantilla(plantillaBase) || 'Diseño';
   const fecha = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
   return `${nombrePlantilla} — ${fecha}`;
 }
@@ -580,6 +713,20 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
   // cada vez. Arranca visible (el comportamiento de siempre) pero ahora se
   // puede plegar cuando no hace falta mirarla.
   const [mostrarPrevia, setMostrarPrevia] = useState(true);
+  const [fondoPrevia, setFondoPrevia] = useState(() => {
+    try { return localStorage.getItem('app_overlays_fondo_previa') || 'cancha'; } catch { return 'cancha'; }
+  });
+  const [zoomMarcador, setZoomMarcador] = useState(() => {
+    try { return localStorage.getItem('app_overlays_zoom_marcador') !== 'no'; } catch { return true; }
+  });
+  const elegirZoomMarcador = (v) => {
+    setZoomMarcador(v);
+    try { localStorage.setItem('app_overlays_zoom_marcador', v ? 'si' : 'no'); } catch { /* solo esta sesión */ }
+  };
+  const elegirFondoPrevia = (id) => {
+    setFondoPrevia(id);
+    try { localStorage.setItem('app_overlays_fondo_previa', id); } catch { /* sin storage, solo esta sesión */ }
+  };
   // Pantalla completa: mismo recuadro 16:9 de siempre, pero usando todo el
   // viewport en vez del ancho acotado del panel — la escala real que
   // termina mostrando (useEscalaLienzo, ver PreviaCombinada.jsx) queda
@@ -1051,7 +1198,6 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
   const escalaActual = Number.isFinite(config.escala) ? config.escala : 1;
   const estiramientoAnchoActual = Number.isFinite(config.estiramientoAncho) ? config.estiramientoAncho : 100;
   const estiramientoAltoActual = Number.isFinite(config.estiramientoAlto) ? config.estiramientoAlto : 100;
-  const centrado = Math.abs(posX - 50) < 3 && Math.abs(posY - 50) < 3;
   const restablecerPosicion = () => setConfig((c) => {
     const { posX: _x, posY: _y, escala: _e, estiramientoAncho: _ea, estiramientoAlto: _eal, ...resto } = c;
     return resto;
@@ -1062,6 +1208,16 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
     colorTableroAlpha: 100, colorBannerAlpha: 100, colorMarcadorAlpha: 100, colorTextoAlpha: 100,
   }));
   const restablecerTamanosTexto = () => setConfig((c) => ({ ...c, tamanoTextoMarcador: 100, tamanoTextoNombre: 100 }));
+  const soporte = soporteDePlantilla(plantillaBase);
+  const presetActual = PRESETS_POSICION.find((p) => Math.abs(p.x - posX) < 1.5 && Math.abs(p.y - posY) < 1.5);
+  const nombreFuente = (FUENTES_DISPONIBLES.find((f) => f.id && f.id === config.fuenteMarcador)?.etiqueta || 'la del diseño').split(' — ')[0];
+  // Un bloque abierto por pestaña (acordeón): el panel queda corto y
+  // ordenado, y cada pestaña recuerda cuál estabas tocando.
+  const [bloquesAbiertos, setBloquesAbiertos] = useState({ marcador: 'tamano', nomina: 'ubicacion', estadisticas: 'ubicacion', intertanto: 'cuando', anuncios: 'ubicacion' });
+  const bloque = (pestana) => ({
+    abierto: bloquesAbiertos[pestana],
+    onAlternar: (id) => setBloquesAbiertos((b) => ({ ...b, [pestana]: id })),
+  });
 
   // Referencia fija de 1920×1080 (Full HD, el tamaño típico de canvas en
   // OBS) solo para traducir el arrastre en % a píxeles legibles y viceversa
@@ -1118,6 +1274,36 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
   // el diseño duplicado.
   const configRef = useRef(config);
   configRef.current = config;
+  // Nombre editable del diseño (antes era fijo: el de la plantilla).
+  const [nombreDiseno, setNombreDiseno] = useState(inicial?.nombre || nombreAutomatico(inicial?.plantilla_base || PLANTILLAS_MARCADOR[0].id));
+  const nombreRef = useRef(nombreDiseno);
+  nombreRef.current = nombreDiseno;
+  // Otros diseños guardados, para "Copiar estilo de…".
+  const [otrosDisenos, setOtrosDisenos] = useState([]);
+  useEffect(() => {
+    api.listarDisenos().then((d) => setOtrosDisenos(d.disenos.filter((x) => x.id !== inicial?.id))).catch(() => {});
+  }, [inicial?.id]);
+  const importarRef = useRef(null);
+  const [avisoEditor, setAvisoEditor] = useState('');
+  const avisar = (texto) => { setAvisoEditor(texto); setTimeout(() => setAvisoEditor(''), 3500); };
+  const copiarEstiloDe = (id) => {
+    const origen = otrosDisenos.find((d) => String(d.id) === String(id));
+    if (!origen) return;
+    const estilo = extraerEstilo(origen.config);
+    if (!Object.keys(estilo).length) { avisar(`"${origen.nombre}" no tiene colores ni tipografías propias para copiar.`); return; }
+    setConfig((c) => ({ ...c, ...estilo }));
+    avisar(`✓ Estilo copiado de "${origen.nombre}" (${Object.keys(estilo).length} ajustes). Se puede deshacer con ↶.`);
+  };
+  const importarConfig = async (archivo) => {
+    try {
+      const datos = await leerArchivoDiseno(archivo);
+      if (!window.confirm(`¿Reemplazar la personalización de este diseño por la de "${datos.nombre || 'el archivo'}"? Se puede deshacer con ↶.`)) return;
+      setConfig(() => ({ ...datos.config }));
+      avisar('✓ Diseño importado.');
+    } catch (err) {
+      setError(err.message);
+    }
+  };
   const guardadoEnVueloRef = useRef(null);
   const [guardando, setGuardando] = useState(false);
   const [guardadoOk, setGuardadoOk] = useState(false);
@@ -1127,7 +1313,7 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
       setGuardando(true);
       setError('');
       try {
-        const diseno = await onGuardar({ nombre: inicial?.nombre || nombreAutomatico(plantillaBase), plantilla_base: plantillaBase, config: configRef.current });
+        const diseno = await onGuardar({ nombre: nombreRef.current.trim() || nombreAutomatico(plantillaBase), plantilla_base: plantillaBase, config: configRef.current });
         setGuardadoOk(true);
         setTimeout(() => setGuardadoOk(false), 1500);
         return diseno;
@@ -1261,7 +1447,7 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
         <div className="creador-workspace-top">
           <button type="button" className="btn-link" onClick={() => setSeccionAbierta('marcador')}>← Salir del Creador</button>
           <strong className="creador-workspace-titulo">
-            {PLANTILLAS_MARCADOR.find((p) => p.id === plantillaBase)?.nombre || inicial?._nombrePlantilla || 'Plantilla propia (Creador)'}
+            {nombreDePlantilla(plantillaBase) || inicial?._nombrePlantilla || 'Plantilla propia (Creador)'}
           </strong>
           <span className="creador-workspace-spacer" />
           <div className="creador-herramientas" style={{ margin: 0 }}>
@@ -1836,9 +2022,31 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
 
   return (
     <div className="tarjeta" style={{ marginBottom: 20 }}>
-      <div className="fila-form" style={{ justifyContent: 'space-between' }}>
-        <h3 style={{ margin: 0 }}>{inicial?.id ? 'Editar diseño' : 'Personalizar diseño'}</h3>
+      <div className="fila-form editor-cabecera" style={{ justifyContent: 'space-between' }}>
+        <input
+          className="editor-nombre"
+          value={nombreDiseno}
+          onChange={(e) => setNombreDiseno(e.target.value)}
+          onBlur={() => { if (inicial?.id && nombreDiseno.trim() && nombreDiseno.trim() !== inicial?.nombre) guardarAhora().catch(() => {}); }}
+          onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+          aria-label="Nombre del diseño"
+          title="Tocá para cambiarle el nombre"
+          maxLength={80}
+        />
         <div className="fila-form" style={{ margin: 0 }}>
+          <select
+            className="editor-copiar-estilo"
+            value=""
+            onChange={(e) => { copiarEstiloDe(e.target.value); e.target.value = ''; }}
+            title="Copia colores, tipografías y tamaños de otro de tus diseños (no las posiciones)"
+            disabled={otrosDisenos.length === 0}
+          >
+            <option value="">🎨 Copiar estilo de…</option>
+            {otrosDisenos.map((d) => <option key={d.id} value={d.id}>{d.nombre}</option>)}
+          </select>
+          <button type="button" className="btn-secundario btn-chico" title="Descarga este diseño como archivo .json (respaldo o para usarlo en otra cuenta)" onClick={() => descargarDiseno(nombreDiseno, plantillaBase, config)}>⬇ Exportar</button>
+          <button type="button" className="btn-secundario btn-chico" title="Trae la personalización desde un archivo .json exportado" onClick={() => importarRef.current?.click()}>⬆ Importar</button>
+          <input ref={importarRef} type="file" accept="application/json,.json" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) importarConfig(f); e.target.value = ''; }} />
           <span className="texto-tenue" style={{ fontSize: 13, minWidth: 76, textAlign: 'right' }}>
             {guardando ? 'Guardando…' : guardadoOk ? 'Guardado ✓' : ''}
           </span>
@@ -1848,7 +2056,8 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
         </div>
       </div>
       {error && <p className="mensaje-error">{error}</p>}
-      <p className="texto-tenue" style={{ margin: '0 0 10px', fontSize: 12 }}>Se guarda solo, sin botón.</p>
+      {avisoEditor && <p className="mensaje-exito">{avisoEditor}</p>}
+      <p className="texto-tenue" style={{ margin: '0 0 10px', fontSize: 12 }}>Se guarda solo, sin botón. Tocá el nombre para cambiarlo.</p>
 
       <div className="pestanas-personalizacion" style={{ marginBottom: 16 }}>
         <button type="button" className={`pestana-btn ${pestanaExterna === 'personalizar' ? 'activa' : ''}`} onClick={() => setPestanaExterna('personalizar')}>
@@ -1904,16 +2113,29 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
         {partidoId && mesaModo === 'simple' && <MesaSimple partidoId={partidoId} embebido onPartidoCambio={setPartidoEnVivo} />}
       </div>
 
-      <div hidden={pestanaExterna !== 'personalizar'}>
-        <div style={{ marginBottom: 18 }}>
+      <div hidden={pestanaExterna !== 'personalizar'} className="disenador-layout">
+        <div className="disenador-previa">
           <div className="previa-cabecera">
             <span className="previa-etiqueta">
               {mostrarPrevia ? (previaGeneral ? 'Vista general' : PREVIA_ETIQUETA[PREVIA_MODO_POR_SECCION[seccionAbierta]]) : 'Previsualización oculta'}
               {partidoEnVivo && <span className="chip-en-uso" style={{ marginLeft: 8 }}>● en vivo</span>}
             </span>
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div className="previa-acciones">
               {mostrarPrevia && (
                 <>
+                  <div className="segmentado" role="group" aria-label="Fondo de la previsualización">
+                    {FONDOS_PREVIA.map((f) => (
+                      <button key={f.id} type="button" className={fondoPrevia === f.id ? 'activo' : ''} aria-pressed={fondoPrevia === f.id} onClick={() => elegirFondoPrevia(f.id)}>
+                        {f.etiqueta}
+                      </button>
+                    ))}
+                  </div>
+                  {!previaGeneral && PREVIA_MODO_POR_SECCION[seccionAbierta] === 'marcador' && (
+                    <div className="segmentado" role="group" aria-label="Encuadre de la previsualización">
+                      <button type="button" className={zoomMarcador ? 'activo' : ''} aria-pressed={zoomMarcador} onClick={() => elegirZoomMarcador(true)} title="Acerca la vista al marcador">🔍 Marcador</button>
+                      <button type="button" className={!zoomMarcador ? 'activo' : ''} aria-pressed={!zoomMarcador} onClick={() => elegirZoomMarcador(false)} title="Toda la pantalla, como en OBS">Pantalla</button>
+                    </div>
+                  )}
                   <button type="button" className="btn-secundario btn-chico" onClick={() => setPreviaGeneral((v) => !v)}>
                     {previaGeneral ? 'Ver solo esto' : 'Ver todo junto'}
                   </button>
@@ -1934,6 +2156,8 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
               equipoLocalPreview={equipoLocalVivo}
               equipoVisitaPreview={equipoVisitaVivo}
               partidoReal={partidoEnVivo}
+              fondo={fondoPrevia}
+              enfocarMarcador={zoomMarcador && !previaGeneral && PREVIA_MODO_POR_SECCION[seccionAbierta] === 'marcador'}
               modo={previaGeneral ? 'general' : PREVIA_MODO_POR_SECCION[seccionAbierta]}
               pantallaCompleta={previaPantallaCompleta}
               onCerrarPantallaCompleta={() => setPreviaPantallaCompleta(false)}
@@ -1947,9 +2171,10 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
           )}
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div className="disenador-controles">
           <p className="texto-tenue" style={{ margin: '0 0 10px' }}>
-            Plantilla: <strong>{PLANTILLAS_MARCADOR.find((p) => p.id === plantillaBase)?.nombre || inicial?._nombrePlantilla || 'Plantilla propia (Creador)'}</strong>
+            Plantilla: <strong>{nombreDePlantilla(plantillaBase) || inicial?._nombrePlantilla || 'Plantilla propia (Creador)'}</strong>
+            {esVariante(plantillaBase) && <span className="chip-variante">variante</span>}
           </p>
 
             <div className="pestanas-personalizacion">
@@ -2030,19 +2255,18 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
         <div className="grupo-personalizacion" hidden={seccionAbierta !== 'marcador'}>
           <div className="grupo-titulo">🏀 Marcador</div>
 
-          {plantillaBase === 'personalizado' && (
-            <>
-              <p className="seccion-titulo">Forma</p>
-              <div className="subgrupo">
-                <label>
+          {soporte.formaPropia && (
+            <Bloque id="forma" {...bloque('marcador')} icono="🧩" titulo="Forma del marcador" resumen={`${config.personalizadoForma || 'redondeada'} · borde ${config.personalizadoBorde || 'fino'}`}>
+              <div className="fila-form">
+                <label style={{ flex: '1 1 160px' }}>
                   Forma de la caja
                   <select value={config.personalizadoForma || 'redondeada'} onChange={(e) => cambiarConfig('personalizadoForma', e.target.value)}>
                     <option value="redondeada">Redondeada</option>
                     <option value="cuadrada">Cuadrada</option>
-                    <option value="pildora">Píldora (bien redondeada en los extremos)</option>
+                    <option value="pildora">Píldora</option>
                   </select>
                 </label>
-                <label>
+                <label style={{ flex: '1 1 160px' }}>
                   Borde
                   <select value={config.personalizadoBorde || 'fino'} onChange={(e) => cambiarConfig('personalizadoBorde', e.target.value)}>
                     <option value="ninguno">Sin borde</option>
@@ -2051,748 +2275,591 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
                     <option value="glow">Con brillo (glow)</option>
                   </select>
                 </label>
-                <label>
-                  Nombre del equipo
-                  <select value={config.personalizadoDisposicionNombre || 'arriba'} onChange={(e) => cambiarConfig('personalizadoDisposicionNombre', e.target.value)}>
-                    <option value="arriba">Arriba del puntaje (como siempre)</option>
-                    <option value="costado">Al costado del puntaje (en la misma línea)</option>
-                  </select>
-                </label>
-                <p className="texto-tenue" style={{ margin: 0, fontSize: 12 }}>
-                  El resto (colores, fuente, tamaños, logo, posición) se ajusta igual que en cualquier otra plantilla, más abajo.
-                </p>
               </div>
-            </>
+              <label>
+                Nombre del equipo
+                <select value={config.personalizadoDisposicionNombre || 'arriba'} onChange={(e) => cambiarConfig('personalizadoDisposicionNombre', e.target.value)}>
+                  <option value="arriba">Arriba del puntaje</option>
+                  <option value="costado">Al costado del puntaje</option>
+                </select>
+              </label>
+            </Bloque>
           )}
 
-          {plantillaBase === 'clasico' && (
-            <>
-              <p className="seccion-titulo">Nombre del equipo</p>
-              <div className="subgrupo">
+          <Bloque
+            id="tamano" {...bloque('marcador')} icono="📐" titulo="Tamaño y posición"
+            resumen={soporte.posicionLibre ? `${Math.round(escalaActual * 100)}% · ${presetActual ? presetActual.etiqueta : `${pxIzquierda}×${pxAbajo}px`}` : 'Barra de ancho completo'}
+          >
+            {soporte.posicionLibre ? (
+              <>
+                <CampoRango
+                  etiqueta="Tamaño general"
+                  valor={Math.round(escalaActual * 100)}
+                  min={5} max={260} step={5}
+                  onChange={(v) => cambiarConfig('escala', v / 100)}
+                  ayuda="100% = tamaño de transmisión. Todos los diseños vienen igualados al Clásico al 90%."
+                />
+                <div className="rejilla-posiciones" role="group" aria-label="Ubicación rápida">
+                  {PRESETS_POSICION.map((p) => (
+                    <button
+                      key={p.id} type="button"
+                      className={`rejilla-posicion ${presetActual?.id === p.id ? 'activa' : ''}`}
+                      style={{ gridColumn: p.x < 30 ? 1 : p.x > 70 ? 3 : 2, gridRow: p.y < 30 ? 1 : p.y > 70 ? 3 : 2 }}
+                      aria-pressed={presetActual?.id === p.id}
+                      title={p.etiqueta}
+                      onClick={() => setConfig((c) => ({ ...c, posX: p.x, posY: p.y }))}
+                    >
+                      <span>{p.etiqueta}</span>
+                    </button>
+                  ))}
+                </div>
+                <div className="fila-form">
+                  <label>Desde la izquierda
+                    <span className="paso-numero">
+                      <button type="button" className="btn-secundario" onClick={() => moverPx(-10, 0)} aria-label="Mover a la izquierda">−</button>
+                      <input type="number" value={pxIzquierda} onChange={(e) => fijarPx(e.target.value === '' ? pxIzquierda : Number(e.target.value), undefined)} />
+                      <button type="button" className="btn-secundario" onClick={() => moverPx(10, 0)} aria-label="Mover a la derecha">+</button>
+                      <small>px</small>
+                    </span>
+                  </label>
+                  <label>Desde abajo
+                    <span className="paso-numero">
+                      <button type="button" className="btn-secundario" onClick={() => moverPx(0, -10)} aria-label="Bajar">−</button>
+                      <input type="number" value={pxAbajo} onChange={(e) => fijarPx(undefined, e.target.value === '' ? pxAbajo : Number(e.target.value))} />
+                      <button type="button" className="btn-secundario" onClick={() => moverPx(0, 10)} aria-label="Subir">+</button>
+                      <small>px</small>
+                    </span>
+                  </label>
+                </div>
+                <div className="fila-form">
+                  <CampoRango etiqueta="Ancho" valor={estiramientoAnchoActual} min={5} max={200} onChange={(v) => cambiarConfig('estiramientoAncho', v)} />
+                  <CampoRango etiqueta="Alto" valor={estiramientoAltoActual} min={5} max={200} onChange={(v) => cambiarConfig('estiramientoAlto', v)} />
+                </div>
+                <p className="seccion-titulo">Posiciones guardadas</p>
+                {posiciones.length > 0 && (
+                  <div className="chips-opciones" style={{ marginBottom: 6 }}>
+                    {posiciones.map((p) => (
+                      <span key={p.id} className="chip-guardado">
+                        <button type="button" title="Aplicar esta posición y tamaño" onClick={() => aplicarPreset(p)}>{p.nombre}</button>
+                        <button type="button" title="Eliminar" aria-label={`Eliminar ${p.nombre}`} onClick={() => eliminarPreset(p.id)}>✕</button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <div className="fila-form" style={{ margin: 0 }}>
+                  <input placeholder="Nombre (ej: Cancha 2, cámara alta)" value={nombrePreset} onChange={(e) => setNombrePreset(e.target.value)} style={{ flex: 1, minWidth: 160 }} />
+                  <button type="button" className="btn-secundario" disabled={!nombrePreset.trim() || guardandoPreset} onClick={guardarPresetActual}>
+                    {guardandoPreset ? 'Guardando…' : 'Guardar'}
+                  </button>
+                </div>
+                <button type="button" className="btn-link bloque-restablecer" onClick={restablecerPosicion}>↺ Restablecer tamaño y posición</button>
+              </>
+            ) : (
+              <p className="texto-tenue" style={{ margin: 0 }}>Este diseño es una barra de ancho completo: siempre ocupa el borde de la pantalla, así que no se mueve ni se escala.</p>
+            )}
+          </Bloque>
+
+          <Bloque
+            id="colores" {...bloque('marcador')} icono="🎨" titulo="Colores"
+            resumen={<><Muestras colores={[config.colorTablero, config.colorBanner, config.colorMarcador, config.colorTexto]} />{config.coloresEquipo ? ` según ${config.coloresEquipo === 'ganador' ? 'quien gana' : `el ${config.coloresEquipo}`}` : (config.colorTablero || config.colorBanner || config.colorMarcador || config.colorTexto) ? ' personalizados' : ' los del diseño'}</>}
+          >
+            <div className="fila-form" style={{ margin: 0 }}>
+              <label style={{ flex: '1 1 200px' }}>
+                Tomar el color del equipo
+                <select value={config.coloresEquipo || ''} onChange={(e) => cambiarConfig('coloresEquipo', e.target.value)}>
+                  <option value="">No (los colores del diseño)</option>
+                  <option value="local">Local</option>
+                  <option value="visita">Visita</option>
+                  <option value="ganador">El que va ganando</option>
+                </select>
+              </label>
+              {config.coloresEquipo && (
+                <label style={{ flex: '1 1 200px' }}>
+                  Aplicarlo a
+                  <select value={config.coloresEquipoAlcance || 'acento'} onChange={(e) => cambiarConfig('coloresEquipoAlcance', e.target.value)}>
+                    <option value="acento">Solo el acento</option>
+                    <option value="acento-fondo">Acento y fondo</option>
+                  </select>
+                </label>
+              )}
+            </div>
+            <div className="fila-form" style={{ alignItems: 'stretch' }}>
+              <SelectorColor etiqueta="Tablero" valor={config.colorTablero} alpha={config.colorTableroAlpha} porDefecto="#0a0c12" onCambiarColor={(v) => cambiarConfig('colorTablero', v)} onCambiarAlpha={(v) => cambiarConfig('colorTableroAlpha', v)} />
+              <SelectorColor etiqueta="Acento" valor={config.colorBanner} alpha={config.colorBannerAlpha} porDefecto="#ffb703" onCambiarColor={(v) => cambiarConfig('colorBanner', v)} onCambiarAlpha={(v) => cambiarConfig('colorBannerAlpha', v)} />
+              <SelectorColor etiqueta="Números" valor={config.colorMarcador} alpha={config.colorMarcadorAlpha} porDefecto="#ffffff" onCambiarColor={(v) => cambiarConfig('colorMarcador', v)} onCambiarAlpha={(v) => cambiarConfig('colorMarcadorAlpha', v)} />
+              <SelectorColor etiqueta="Textos" valor={config.colorTexto} alpha={config.colorTextoAlpha} porDefecto="#ffffff" onCambiarColor={(v) => cambiarConfig('colorTexto', v)} onCambiarAlpha={(v) => cambiarConfig('colorTextoAlpha', v)} />
+            </div>
+            <p className="texto-tenue bloque-nota">Se aplican a todas las capas (nómina, estadísticas, intertanto y anuncios), salvo que una capa tenga su propio color.</p>
+            <button type="button" className="btn-link bloque-restablecer" onClick={restablecerColores}>↺ Volver a los colores del diseño</button>
+          </Bloque>
+
+          <Bloque
+            id="letras" {...bloque('marcador')} icono="🔤" titulo="Tipografía"
+            resumen={`${nombreFuente} · números ${Number.isFinite(config.tamanoTextoMarcador) ? config.tamanoTextoMarcador : 100}% · nombres ${Number.isFinite(config.tamanoTextoNombre) ? config.tamanoTextoNombre : 100}%`}
+          >
+            <label>
+              Tipo de letra (se usa también en nómina, estadísticas y anuncios)
+              <SelectorFuente value={config.fuenteMarcador} onChange={(v) => cambiarConfig('fuenteMarcador', v)} />
+            </label>
+            <div className="fila-form">
+              <CampoRango etiqueta="Números" valor={Number.isFinite(config.tamanoTextoMarcador) ? config.tamanoTextoMarcador : 100} min={5} max={220} onChange={(v) => cambiarConfig('tamanoTextoMarcador', v)} />
+              <CampoRango etiqueta="Nombres" valor={Number.isFinite(config.tamanoTextoNombre) ? config.tamanoTextoNombre : 100} min={5} max={220} onChange={(v) => cambiarConfig('tamanoTextoNombre', v)} />
+            </div>
+            {soporte.nombreFlotante && (
+              <>
                 <label>
-                  Posición
+                  Dónde va el nombre del equipo
                   <select value={config.clasicoNombrePosicion || 'dentro'} onChange={(e) => cambiarConfig('clasicoNombrePosicion', e.target.value)}>
-                    <option value="dentro">Adentro del marcador (como siempre, junto al logo y el puntaje)</option>
+                    <option value="dentro">Adentro, junto al logo y el puntaje</option>
                     <option value="arriba">Arriba del marcador</option>
                     <option value="abajo">Abajo del marcador</option>
-                    <option value="costados">A los costados, afuera del marcador</option>
-                    <option value="libre">Posición libre (elegís el punto exacto de cada uno)</option>
+                    <option value="costados">A los costados, afuera</option>
+                    <option value="libre">Posición libre</option>
                   </select>
                 </label>
                 {config.clasicoNombrePosicion && config.clasicoNombrePosicion !== 'dentro' && config.clasicoNombrePosicion !== 'libre' && (
                   <div className="fila-form">
                     <CampoRango
-                      etiqueta={config.clasicoNombrePosicion === 'costados' ? 'Ajuste fino (afuera del tablero ↔ adentro)' : 'Ajuste fino (izquierda/derecha)'}
-                      valor={Number(config.clasicoNombreOffsetX) || 0}
-                      unidad="px" min={-300} max={300} step={5}
+                      etiqueta={config.clasicoNombrePosicion === 'costados' ? 'Separación del tablero' : 'Corrimiento horizontal'}
+                      valor={Number(config.clasicoNombreOffsetX) || 0} unidad="px" min={-300} max={300} step={5}
                       onChange={(v) => cambiarConfig('clasicoNombreOffsetX', v)}
-                      ayuda="Un solo control mueve los dos nombres, reflejados en espejo."
                     />
-                    <CampoRango
-                      etiqueta="Ajuste fino (arriba/abajo)"
-                      valor={Number(config.clasicoNombreOffsetY) || 0}
-                      unidad="px" min={-200} max={200} step={5}
-                      onChange={(v) => cambiarConfig('clasicoNombreOffsetY', v)}
-                    />
+                    <CampoRango etiqueta="Corrimiento vertical" valor={Number(config.clasicoNombreOffsetY) || 0} unidad="px" min={-200} max={200} step={5} onChange={(v) => cambiarConfig('clasicoNombreOffsetY', v)} />
                   </div>
                 )}
                 {config.clasicoNombrePosicion === 'libre' && (
+                  <div className="fila-form">
+                    <CampoRango etiqueta="Local ↔" valor={Number.isFinite(config.clasicoNombreLocalX) ? config.clasicoNombreLocalX : 50} min={0} max={100} onChange={(v) => cambiarConfig('clasicoNombreLocalX', v)} />
+                    <CampoRango etiqueta="Local ↕" valor={Number.isFinite(config.clasicoNombreLocalY) ? config.clasicoNombreLocalY : 12} min={0} max={100} onChange={(v) => cambiarConfig('clasicoNombreLocalY', v)} />
+                    <CampoRango etiqueta="Visita ↔" valor={Number.isFinite(config.clasicoNombreVisitaX) ? config.clasicoNombreVisitaX : 50} min={0} max={100} onChange={(v) => cambiarConfig('clasicoNombreVisitaX', v)} />
+                    <CampoRango etiqueta="Visita ↕" valor={Number.isFinite(config.clasicoNombreVisitaY) ? config.clasicoNombreVisitaY : 88} min={0} max={100} onChange={(v) => cambiarConfig('clasicoNombreVisitaY', v)} />
+                  </div>
+                )}
+              </>
+            )}
+            <button type="button" className="btn-link bloque-restablecer" onClick={restablecerTamanosTexto}>↺ Tamaños de texto al 100%</button>
+          </Bloque>
+
+          <Bloque
+            id="logo" {...bloque('marcador')} icono="🛡️" titulo="Escudos de los equipos"
+            resumen={soporte.logo === 'ninguno' ? 'Este diseño no usa escudos' : !config.mostrarLogo ? 'Ocultos' : soporte.logo === 'fijo' ? 'Visibles, en su lugar del diseño' : ({ costado: 'Dentro del marcador', arriba: 'Arriba', abajo: 'Abajo', costados: 'A los costados', fondo: 'Marca de agua' })[config.logoPosicion || 'costado']}
+          >
+            {soporte.logo === 'ninguno' ? (
+              <p className="texto-tenue" style={{ margin: 0 }}>Este diseño identifica a cada equipo con su sigla y su color (o con el escudo de la competencia), así que no dibuja escudos. Para sumar un logo usá la pestaña <strong>Logos libres</strong>.</p>
+            ) : (
+              <>
+                <Toggle etiqueta="Mostrar escudos" checked={config.mostrarLogo} onChange={(v) => cambiarConfig('mostrarLogo', v)} />
+                {config.mostrarLogo && (
                   <>
-                    <p className="texto-tenue" style={{ margin: '0 0 4px', fontSize: 12 }}>Nombre local</p>
                     <div className="fila-form">
-                      <CampoRango
-                        etiqueta="Horizontal"
-                        valor={Number.isFinite(config.clasicoNombreLocalX) ? config.clasicoNombreLocalX : 50}
-                        unidad="%" min={0} max={100} step={1}
-                        onChange={(v) => cambiarConfig('clasicoNombreLocalX', v)}
-                      />
-                      <CampoRango
-                        etiqueta="Vertical"
-                        valor={Number.isFinite(config.clasicoNombreLocalY) ? config.clasicoNombreLocalY : 12}
-                        unidad="%" min={0} max={100} step={1}
-                        onChange={(v) => cambiarConfig('clasicoNombreLocalY', v)}
-                      />
+                      <CampoRango etiqueta="Tamaño" valor={config.logoTamanoMarcador} unidad="px" min={20} max={180} onChange={(v) => cambiarConfig('logoTamanoMarcador', v)} />
+                      <CampoRango etiqueta="Opacidad" valor={config.logoOpacidadMarcador} min={10} max={100} onChange={(v) => cambiarConfig('logoOpacidadMarcador', v)} />
                     </div>
-                    <p className="texto-tenue" style={{ margin: '0 0 4px', fontSize: 12 }}>Nombre visita</p>
-                    <div className="fila-form">
-                      <CampoRango
-                        etiqueta="Horizontal"
-                        valor={Number.isFinite(config.clasicoNombreVisitaX) ? config.clasicoNombreVisitaX : 50}
-                        unidad="%" min={0} max={100} step={1}
-                        onChange={(v) => cambiarConfig('clasicoNombreVisitaX', v)}
-                      />
-                      <CampoRango
-                        etiqueta="Vertical"
-                        valor={Number.isFinite(config.clasicoNombreVisitaY) ? config.clasicoNombreVisitaY : 88}
-                        unidad="%" min={0} max={100} step={1}
-                        onChange={(v) => cambiarConfig('clasicoNombreVisitaY', v)}
-                      />
-                    </div>
+                    {soporte.logo === 'fijo' ? (
+                      <p className="texto-tenue bloque-nota">En este diseño el escudo tiene un lugar fijo dentro de su forma.</p>
+                    ) : (
+                      <>
+                        <label>
+                          Ubicación
+                          <select value={config.logoPosicion || 'costado'} onChange={(e) => cambiarConfig('logoPosicion', e.target.value)}>
+                            <option value="costado">Dentro del marcador</option>
+                            <option value="arriba">Arriba del marcador</option>
+                            <option value="abajo">Abajo del marcador</option>
+                            <option value="costados">A los costados (uno a cada lado)</option>
+                            <option value="fondo">Marca de agua detrás del marcador</option>
+                          </select>
+                        </label>
+                        {['arriba', 'abajo', 'costados'].includes(config.logoPosicion) && (
+                          <>
+                            <div className="segmentado segmentado-ancho" role="group" aria-label="Cómo se ve el escudo">
+                              <button type="button" className={(config.logoCajaModo || 'dentro') === 'dentro' ? 'activo' : ''} onClick={() => cambiarConfig('logoCajaModo', 'dentro')}>Pegado a la caja</button>
+                              <button type="button" className={config.logoCajaModo === 'fuera' ? 'activo' : ''} onClick={() => cambiarConfig('logoCajaModo', 'fuera')}>Flotando, sin fondo</button>
+                            </div>
+                            {config.logoPosicion === 'costados' && (config.logoCajaModo || 'dentro') === 'dentro' && (
+                              <CampoRango etiqueta="Tamaño de la burbuja" valor={Number.isFinite(config.logoCostadoTamano) ? config.logoCostadoTamano : 100} min={5} max={200} step={5} onChange={(v) => cambiarConfig('logoCostadoTamano', v)} />
+                            )}
+                            <div className="fila-form">
+                              <CampoRango
+                                etiqueta={config.logoPosicion === 'costados' ? 'Separación del tablero' : 'Corrimiento horizontal'}
+                                valor={Number.isFinite(config.logoFlotanteOffsetX) ? config.logoFlotanteOffsetX : 0} unidad="px" min={-300} max={300} step={5}
+                                onChange={(v) => cambiarConfig('logoFlotanteOffsetX', v)}
+                              />
+                              <CampoRango etiqueta="Corrimiento vertical" valor={Number.isFinite(config.logoFlotanteOffsetY) ? config.logoFlotanteOffsetY : 0} unidad="px" min={-200} max={200} step={5} onChange={(v) => cambiarConfig('logoFlotanteOffsetY', v)} />
+                            </div>
+                          </>
+                        )}
+                        {config.logoPosicion === 'fondo' && (
+                          <CampoRango etiqueta="Tamaño de la marca de agua" valor={config.logoTamanoFondo} min={5} max={90} onChange={(v) => cambiarConfig('logoTamanoFondo', v)} ayuda="Si tapa los números, bajá la opacidad a 30-40%." />
+                        )}
+                      </>
+                    )}
                   </>
                 )}
-                <p className="texto-tenue" style={{ margin: 0, fontSize: 12 }}>
-                  Por ahora esto solo está disponible en la plantilla Clásico — el resto sigue con el nombre fijo adentro del marcador.
-                </p>
-              </div>
-            </>
-          )}
+              </>
+            )}
+          </Bloque>
 
-          <p className="seccion-titulo">Colores</p>
-          <div className="fila-form" style={{ alignItems: 'stretch' }}>
-            <SelectorColor
-              etiqueta="Tablero"
-              valor={config.colorTablero}
-              alpha={config.colorTableroAlpha}
-              porDefecto="#0a0c12"
-              onCambiarColor={(v) => cambiarConfig('colorTablero', v)}
-              onCambiarAlpha={(v) => cambiarConfig('colorTableroAlpha', v)}
-            />
-            <SelectorColor
-              etiqueta="Banner"
-              valor={config.colorBanner}
-              alpha={config.colorBannerAlpha}
-              porDefecto="#ffb703"
-              onCambiarColor={(v) => cambiarConfig('colorBanner', v)}
-              onCambiarAlpha={(v) => cambiarConfig('colorBannerAlpha', v)}
-            />
-            <SelectorColor
-              etiqueta="Marcador"
-              valor={config.colorMarcador}
-              alpha={config.colorMarcadorAlpha}
-              porDefecto="#ffffff"
-              onCambiarColor={(v) => cambiarConfig('colorMarcador', v)}
-              onCambiarAlpha={(v) => cambiarConfig('colorMarcadorAlpha', v)}
-            />
-            <SelectorColor
-              etiqueta="Texto"
-              valor={config.colorTexto}
-              alpha={config.colorTextoAlpha}
-              porDefecto="#ffffff"
-              onCambiarColor={(v) => cambiarConfig('colorTexto', v)}
-              onCambiarAlpha={(v) => cambiarConfig('colorTextoAlpha', v)}
-            />
-          </div>
-          <button type="button" className="btn-link" style={{ alignSelf: 'flex-start', margin: '0 0 10px' }} onClick={restablecerColores}>
-            Restablecer colores
-          </button>
-
-          <p className="seccion-titulo">Tipografía</p>
-          <label>
-            Tipo de letra del marcador (y de nómina/estadísticas/anuncios, para que todo combine)
-            <SelectorFuente value={config.fuenteMarcador} onChange={(v) => cambiarConfig('fuenteMarcador', v)} />
-          </label>
-
-          <p className="seccion-titulo">Tamaño de los textos</p>
-          <div className="fila-form">
-            <CampoRango etiqueta="Números del marcador" valor={config.tamanoTextoMarcador} min={5} max={220} onChange={(v) => cambiarConfig('tamanoTextoMarcador', v)} />
-            <CampoRango etiqueta="Nombre de los equipos" valor={config.tamanoTextoNombre} min={5} max={220} onChange={(v) => cambiarConfig('tamanoTextoNombre', v)} />
-          </div>
-          <button type="button" className="btn-link" style={{ alignSelf: 'flex-start', margin: '0 0 10px' }} onClick={restablecerTamanosTexto}>
-            Restablecer tamaños de texto
-          </button>
-
-          <p className="seccion-titulo">Título del marcador</p>
-          <Toggle etiqueta="Mostrar título" checked={config.mostrarTitulo} onChange={(v) => cambiarConfig('mostrarTitulo', v)} />
-          {config.mostrarTitulo && (
-            <div className="subgrupo">
-              <label>
-                Texto del título
-                <input
-                  value={config.tituloTexto || ''}
-                  onChange={(e) => cambiarConfig('tituloTexto', e.target.value)}
-                  placeholder="Ej: Semifinal — Liga Regional 2026"
-                  maxLength={60}
-                />
+          <Bloque
+            id="datos" {...bloque('marcador')} icono="⏱️" titulo="Reloj y datos del partido"
+            resumen={[
+              mostrar(config, 'mostrarReloj') && `reloj ${Number.isFinite(config.minutosPeriodo) ? config.minutosPeriodo : 10}'`,
+              soporte.faltas && mostrar(config, 'mostrarFaltas') && 'faltas',
+              soporte.posesion && mostrar(config, 'mostrarPosesion') && 'posesión',
+              config.mostrarRelojPosesion && '24"',
+            ].filter(Boolean).join(' · ') || 'Solo el marcador'}
+          >
+            <Toggle etiqueta="Reloj de juego" checked={mostrar(config, 'mostrarReloj')} onChange={(v) => cambiarConfig('mostrarReloj', v)} />
+            <div className="fila-form">
+              <label>Minutos por cuarto
+                <input type="number" min={1} max={20} value={Number.isFinite(config.minutosPeriodo) ? config.minutosPeriodo : 10} onChange={(e) => cambiarConfig('minutosPeriodo', Math.max(1, Number(e.target.value) || 1))} style={{ width: 80 }} />
               </label>
-              <CampoRango
-                etiqueta="Tamaño de la pestaña"
-                valor={Number.isFinite(config.tituloTamano) ? config.tituloTamano : 100}
-                min={5} max={200}
-                onChange={(v) => cambiarConfig('tituloTamano', v)}
-              />
-              <div className="fila-form" style={{ alignItems: 'stretch' }}>
-                <SelectorColor
-                  etiqueta="Fondo de la pestaña"
-                  valor={config.colorTitulo}
-                  alpha={config.colorTituloAlpha}
-                  porDefecto="#ffb703"
-                  onCambiarColor={(v) => cambiarConfig('colorTitulo', v)}
-                  onCambiarAlpha={(v) => cambiarConfig('colorTituloAlpha', v)}
-                />
-                <SelectorColor
-                  etiqueta="Letras"
-                  valor={config.colorTituloTexto}
-                  alpha={config.colorTituloTextoAlpha}
-                  porDefecto="#0a0c12"
-                  onCambiarColor={(v) => cambiarConfig('colorTituloTexto', v)}
-                  onCambiarAlpha={(v) => cambiarConfig('colorTituloTextoAlpha', v)}
-                />
-              </div>
-              <p className="texto-tenue" style={{ margin: 0 }}>Si no tocás el color, usa el mismo tono del Banner de arriba.</p>
+              <label>Minutos por alargue
+                <input type="number" min={1} max={20} value={Number.isFinite(config.minutosProrroga) ? config.minutosProrroga : 5} onChange={(e) => cambiarConfig('minutosProrroga', Math.max(1, Number(e.target.value) || 1))} style={{ width: 80 }} />
+              </label>
             </div>
-          )}
-
-          <p className="seccion-titulo">Reloj de juego</p>
-          <Toggle etiqueta="Mostrar reloj" checked={config.mostrarReloj} onChange={(v) => cambiarConfig('mostrarReloj', v)} />
-          <div className="fila-form" style={{ marginTop: 8 }}>
-            <label>Minutos por período
-              <input
-                type="number"
-                min={1}
-                max={20}
-                value={Number.isFinite(config.minutosPeriodo) ? config.minutosPeriodo : 10}
-                onChange={(e) => cambiarConfig('minutosPeriodo', Math.max(1, Number(e.target.value) || 1))}
-                style={{ width: 70 }}
-              />
-            </label>
-            <label>Minutos por tiempo extra
-              <input
-                type="number"
-                min={1}
-                max={20}
-                value={Number.isFinite(config.minutosProrroga) ? config.minutosProrroga : 5}
-                onChange={(e) => cambiarConfig('minutosProrroga', Math.max(1, Number(e.target.value) || 1))}
-                style={{ width: 70 }}
-              />
-            </label>
-          </div>
-          <p className="texto-tenue" style={{ margin: '6px 0 0' }}>Define la duración real del reloj, no solo la apariencia.</p>
-
-          <p className="seccion-titulo">Logo en el marcador</p>
-          <Toggle etiqueta="Logo del equipo" checked={config.mostrarLogo} onChange={(v) => cambiarConfig('mostrarLogo', v)} />
-          {config.mostrarLogo && (
-            <div className="subgrupo">
-              <div className="fila-form">
-                <CampoRango etiqueta="Tamaño" valor={config.logoTamanoMarcador} unidad="px" min={20} max={180} onChange={(v) => cambiarConfig('logoTamanoMarcador', v)} />
-                <CampoRango etiqueta="Transparencia" valor={config.logoOpacidadMarcador} min={10} max={100} onChange={(v) => cambiarConfig('logoOpacidadMarcador', v)} />
+            <p className="texto-tenue bloque-nota">FIBA: 10 y 5 minutos. Es la duración real del reloj, no solo cómo se ve.</p>
+            <Toggle etiqueta='Reloj de posesión (24")' checked={Boolean(config.mostrarRelojPosesion)} onChange={(v) => cambiarConfig('mostrarRelojPosesion', v)} />
+            {config.mostrarRelojPosesion && (
+              <div className="segmentado segmentado-ancho" role="group" aria-label="Ubicación del reloj de posesión">
+                {[{ id: 'izquierda', etiqueta: '◀ Izquierda' }, { id: 'abajo', etiqueta: 'Debajo' }, { id: 'derecha', etiqueta: 'Derecha ▶' }].map((o) => (
+                  <button key={o.id} type="button" className={(config.posesionUbicacion || 'derecha') === o.id ? 'activo' : ''} onClick={() => cambiarConfig('posesionUbicacion', o.id)}>{o.etiqueta}</button>
+                ))}
               </div>
-              <label>
-                Posición del logo en el marcador
-                <select value={config.logoPosicion || 'costado'} onChange={(e) => cambiarConfig('logoPosicion', e.target.value)}>
-                  <option value="costado">Dentro del marcador (junto al nombre del equipo)</option>
-                  <option value="arriba">Arriba del marcador</option>
-                  <option value="abajo">Abajo del marcador</option>
-                  <option value="costados">A los costados, afuera del marcador (uno a cada lado)</option>
-                  <option value="fondo">Marca de agua, detrás de todo el marcador</option>
-                </select>
-              </label>
-              {(config.logoPosicion === 'arriba' || config.logoPosicion === 'abajo' || config.logoPosicion === 'costados') && (
+            )}
+            {soporte.faltas ? (
+              <>
+                <Toggle etiqueta="Faltas de equipo (y BONUS)" checked={mostrar(config, 'mostrarFaltas')} onChange={(v) => cambiarConfig('mostrarFaltas', v)} />
+                {mostrar(config, 'mostrarFaltas') && soporte.estiloFaltas && (
+                  <div className="segmentado segmentado-ancho" role="group" aria-label="Cómo se muestran las faltas">
+                    {[{ id: 'numero', etiqueta: '3' }, { id: 'puntos', etiqueta: '●●●' }, { id: 'lineas', etiqueta: '|||' }].map((o) => (
+                      <button key={o.id} type="button" className={(config.estiloFaltas || 'numero') === o.id ? 'activo' : ''} onClick={() => cambiarConfig('estiloFaltas', o.id)}>{o.etiqueta}</button>
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : (
+              <p className="texto-tenue bloque-nota">Este diseño no tiene lugar para las faltas.</p>
+            )}
+            {soporte.posesion
+              ? <Toggle etiqueta="Flecha de posesión" checked={mostrar(config, 'mostrarPosesion')} onChange={(v) => cambiarConfig('mostrarPosesion', v)} />
+              : <p className="texto-tenue bloque-nota">Este diseño no muestra la flecha de posesión.</p>}
+          </Bloque>
+
+          <Bloque id="titulo" {...bloque('marcador')} icono="🏷️" titulo="Título del partido" resumen={config.mostrarTitulo ? (config.tituloTexto || 'Sin texto') : 'Oculto'}>
+            <Toggle etiqueta="Mostrar título" checked={Boolean(config.mostrarTitulo)} onChange={(v) => cambiarConfig('mostrarTitulo', v)} />
+            {config.mostrarTitulo && (
+              <>
                 <label>
-                  Cómo se ve
-                  <select value={config.logoCajaModo || 'dentro'} onChange={(e) => cambiarConfig('logoCajaModo', e.target.value)}>
-                    <option value="dentro">Dentro de la caja (el marcador se ve más alto, pegado)</option>
-                    <option value="fuera">Fuera de la caja (flotando cerca, sin fondo)</option>
+                  Texto
+                  <input value={config.tituloTexto || ''} onChange={(e) => cambiarConfig('tituloTexto', e.target.value)} placeholder="Ej: Semifinal — Liga Regional 2026" maxLength={60} />
+                </label>
+                <CampoRango etiqueta="Tamaño" valor={Number.isFinite(config.tituloTamano) ? config.tituloTamano : 100} min={5} max={200} onChange={(v) => cambiarConfig('tituloTamano', v)} />
+                <div className="fila-form" style={{ alignItems: 'stretch' }}>
+                  <SelectorColor etiqueta="Fondo" valor={config.colorTitulo} alpha={config.colorTituloAlpha} porDefecto="#ffb703" onCambiarColor={(v) => cambiarConfig('colorTitulo', v)} onCambiarAlpha={(v) => cambiarConfig('colorTituloAlpha', v)} />
+                  <SelectorColor etiqueta="Letras" valor={config.colorTituloTexto} alpha={config.colorTituloTextoAlpha} porDefecto="#0a0c12" onCambiarColor={(v) => cambiarConfig('colorTituloTexto', v)} onCambiarAlpha={(v) => cambiarConfig('colorTituloTextoAlpha', v)} />
+                </div>
+              </>
+            )}
+          </Bloque>
+
+          <Bloque
+            id="animacion" {...bloque('marcador')} icono="✨" titulo="Animación al anotar"
+            resumen={mostrar(config, 'mostrarAnimacionPuntos') ? `${({ clasica: 'Clásica', rebote: 'Rebote', deslizar: 'Deslizar', destello: 'Destello' })[config.animacionPuntosEstilo || 'clasica']} · ${({ costado: 'al costado', arriba: 'arriba', centro: 'al centro', libre: 'posición libre' })[config.animacionPuntosPosicion || 'costado']}` : 'Apagada'}
+          >
+            <Toggle etiqueta="Mostrar +1 / +2 / +3 al sumar" checked={mostrar(config, 'mostrarAnimacionPuntos')} onChange={(v) => cambiarConfig('mostrarAnimacionPuntos', v)} />
+            {mostrar(config, 'mostrarAnimacionPuntos') && (
+              <>
+                <div className="fila-form">
+                  <label style={{ flex: '1 1 160px' }}>
+                    Estilo
+                    <select value={config.animacionPuntosEstilo || 'clasica'} onChange={(e) => cambiarConfig('animacionPuntosEstilo', e.target.value)}>
+                      <option value="clasica">Clásica (giro y flota)</option>
+                      <option value="rebote">Rebote</option>
+                      <option value="deslizar">Deslizar desde el equipo</option>
+                      <option value="destello">Destello neón</option>
+                    </select>
+                  </label>
+                  <label style={{ flex: '1 1 160px' }}>
+                    Cómo se ve
+                    <select value={config.animacionPuntosIcono || 'numero'} onChange={(e) => cambiarConfig('animacionPuntosIcono', e.target.value)}>
+                      <option value="numero">+1 / +2 / +3</option>
+                      <option value="numero-dedos">Número con manito (✌️ +2)</option>
+                      <option value="dedos">Solo dedos (☝️ ✌️ 🤟)</option>
+                      <option value="estrellas">Estrellas ⭐</option>
+                      <option value="balones">Balones 🏀</option>
+                    </select>
+                  </label>
+                </div>
+                <label>
+                  Dónde aparece
+                  <select value={config.animacionPuntosPosicion || 'costado'} onChange={(e) => cambiarConfig('animacionPuntosPosicion', e.target.value)}>
+                    <option value="costado">Al costado de cada equipo</option>
+                    <option value="arriba">Arriba del marcador</option>
+                    <option value="centro">Centro de la pantalla</option>
+                    <option value="libre">Posición libre (arrastrá el punto azul en la vista previa)</option>
                   </select>
                 </label>
-              )}
-              {config.logoPosicion === 'costados' && (config.logoCajaModo || 'dentro') === 'dentro' && (
-                <CampoRango
-                  etiqueta="Tamaño de la burbuja del costado"
-                  valor={Number.isFinite(config.logoCostadoTamano) ? config.logoCostadoTamano : 100}
-                  min={5} max={200} step={5}
-                  onChange={(v) => cambiarConfig('logoCostadoTamano', v)}
-                />
-              )}
-              {(config.logoPosicion === 'arriba' || config.logoPosicion === 'abajo' || config.logoPosicion === 'costados') && (
-                <div className="fila-form">
-                  <CampoRango
-                    etiqueta={config.logoPosicion === 'costados' ? 'Ajuste fino (afuera del tablero ↔ adentro)' : 'Ajuste fino (izquierda/derecha)'}
-                    valor={Number.isFinite(config.logoFlotanteOffsetX) ? config.logoFlotanteOffsetX : 0}
-                    unidad="px" min={-300} max={300} step={5}
-                    onChange={(v) => cambiarConfig('logoFlotanteOffsetX', v)}
-                    ayuda={config.logoPosicion === 'costados' ? 'Un solo control mueve los dos escudos, reflejados en espejo — positivo los separa del tablero, negativo los acerca.' : undefined}
-                  />
-                  <CampoRango
-                    etiqueta="Ajuste fino (arriba/abajo)"
-                    valor={Number.isFinite(config.logoFlotanteOffsetY) ? config.logoFlotanteOffsetY : 0}
-                    unidad="px" min={-200} max={200} step={5}
-                    onChange={(v) => cambiarConfig('logoFlotanteOffsetY', v)}
-                  />
-                </div>
-              )}
-              {config.logoPosicion === 'fondo' && (
-                <>
-                  <CampoRango
-                    etiqueta="Tamaño de la marca de agua"
-                    valor={config.logoTamanoFondo}
-                    min={5} max={90}
-                    onChange={(v) => cambiarConfig('logoTamanoFondo', v)}
-                    ayuda="Si tapa los números, bajá la transparencia (30-40%)."
-                  />
-                </>
-              )}
-            </div>
-          )}
-
-          <p className="seccion-titulo">Posición y tamaño del marcador</p>
-          <p className="texto-tenue" style={{ margin: '0 0 4px' }}>Px desde la esquina inferior izquierda (1920×1080).</p>
-          <div className="fila-form">
-            <label>Desde la izquierda (px)
-              <div className="fila-form" style={{ gap: 4 }}>
-                <button type="button" className="btn-secundario" onClick={() => moverPx(-10, 0)}>−</button>
-                <input
-                  type="number"
-                  value={pxIzquierda}
-                  onChange={(e) => fijarPx(e.target.value === '' ? pxIzquierda : Number(e.target.value), undefined)}
-                  style={{ width: 70 }}
-                />
-                <button type="button" className="btn-secundario" onClick={() => moverPx(10, 0)}>+</button>
-              </div>
-            </label>
-            <label>Desde abajo (px)
-              <div className="fila-form" style={{ gap: 4 }}>
-                <button type="button" className="btn-secundario" onClick={() => moverPx(0, -10)}>−</button>
-                <input
-                  type="number"
-                  value={pxAbajo}
-                  onChange={(e) => fijarPx(undefined, e.target.value === '' ? pxAbajo : Number(e.target.value))}
-                  style={{ width: 70 }}
-                />
-                <button type="button" className="btn-secundario" onClick={() => moverPx(0, 10)}>+</button>
-              </div>
-            </label>
-          </div>
-          <CampoRango
-            etiqueta="Tamaño general"
-            valor={Math.round(escalaActual * 100)}
-            min={5} max={260} step={5}
-            onChange={(v) => cambiarConfig('escala', v / 100)}
-          />
-          <div className="fila-form">
-            <CampoRango etiqueta="Ensanchar (ancho)" valor={estiramientoAnchoActual} min={5} max={200} onChange={(v) => cambiarConfig('estiramientoAncho', v)} />
-            <CampoRango etiqueta="Alargar (alto)" valor={estiramientoAltoActual} min={5} max={200} onChange={(v) => cambiarConfig('estiramientoAlto', v)} />
-          </div>
-          <div className="fila-form" style={{ margin: '4px 0' }}>
-            <span className="texto-tenue">{centrado && 'Centrado ✓'}</span>
-            {PRESETS_POSICION.map((p) => (
-              <button key={p.id} type="button" className="btn-secundario" onClick={() => setConfig((c) => ({ ...c, posX: p.x, posY: p.y }))}>
-                {p.etiqueta}
-              </button>
-            ))}
-            <button type="button" className="btn-link" onClick={restablecerPosicion}>Restablecer</button>
-          </div>
-
-          {posiciones.length > 0 && (
-            <div className="fila-form" style={{ flexWrap: 'wrap', margin: '0 0 4px' }}>
-              {posiciones.map((p) => (
-                <span key={p.id} className="fila-form" style={{ gap: 2, margin: 0 }}>
-                  <button type="button" className="btn-secundario" title="Aplicar esta posición y tamaño guardados" onClick={() => aplicarPreset(p)}>{p.nombre}</button>
-                  <button type="button" className="btn-link" title="Eliminar este preset" onClick={() => eliminarPreset(p.id)}>✕</button>
-                </span>
-              ))}
-            </div>
-          )}
-          <div className="fila-form" style={{ margin: '0 0 6px' }}>
-            <input
-              placeholder="Nombre para guardar esta posición y tamaño"
-              value={nombrePreset}
-              onChange={(e) => setNombrePreset(e.target.value)}
-              style={{ flex: 1, minWidth: 180 }}
-            />
-            <button type="button" className="btn-secundario" disabled={!nombrePreset.trim() || guardandoPreset} onClick={guardarPresetActual}>
-              {guardandoPreset ? 'Guardando…' : 'Guardar como preset'}
-            </button>
-          </div>
-          <p className="texto-tenue" style={{ margin: '0 0 10px' }}>
-            "Ticker", "ESPN Ticker" y "Broadcast Bonus" son barras de ancho completo — posición/tamaño no aplica.
-          </p>
-
-          <p className="seccion-titulo">Información en el tablero</p>
-          <Toggle etiqueta="Mostrar faltas" checked={config.mostrarFaltas} onChange={(v) => cambiarConfig('mostrarFaltas', v)} />
-          {config.mostrarFaltas && (
-            <label className="subgrupo">
-              Cómo se muestran las faltas
-              <select value={config.estiloFaltas || 'numero'} onChange={(e) => cambiarConfig('estiloFaltas', e.target.value)}>
-                <option value="numero">Número (suma total)</option>
-                <option value="puntos">Puntos (●●●)</option>
-                <option value="lineas">Líneas (tarjas)</option>
-              </select>
-            </label>
-          )}
-          <Toggle etiqueta="Flecha de posesión" checked={config.mostrarPosesion} onChange={(v) => cambiarConfig('mostrarPosesion', v)} />
-
-          <p className="seccion-titulo">Animación de puntos (+1 / +2 / +3)</p>
-          <Toggle
-            etiqueta="Animación al sumar puntos"
-            checked={mostrar(config, 'mostrarAnimacionPuntos')}
-            onChange={(v) => cambiarConfig('mostrarAnimacionPuntos', v)}
-          />
-          {mostrar(config, 'mostrarAnimacionPuntos') && (
-            <div className="subgrupo">
-              <label>
-                Dónde aparece
-                <select
-                  value={config.animacionPuntosPosicion || 'costado'}
-                  onChange={(e) => cambiarConfig('animacionPuntosPosicion', e.target.value)}
-                >
-                  <option value="costado">Al costado del marcador (local izquierda, visita derecha)</option>
-                  <option value="arriba">Arriba del marcador</option>
-                  <option value="centro">Centro de la pantalla</option>
-                  <option value="libre">Posición libre (elegís el punto exacto)</option>
-                </select>
-              </label>
-              {config.animacionPuntosPosicion === 'libre' && (
-                <>
+                {config.animacionPuntosPosicion === 'libre' && (
                   <div className="fila-form">
-                    <CampoRango
-                      etiqueta="Posición horizontal"
-                      valor={Math.round(Number.isFinite(config.animacionPuntosX) ? config.animacionPuntosX : 50)}
-                      min={0} max={100}
-                      onChange={(v) => cambiarConfig('animacionPuntosX', v)}
-                    />
-                    <CampoRango
-                      etiqueta="Posición vertical"
-                      valor={Math.round(Number.isFinite(config.animacionPuntosY) ? config.animacionPuntosY : 50)}
-                      min={0} max={100}
-                      onChange={(v) => cambiarConfig('animacionPuntosY', v)}
-                    />
+                    <CampoRango etiqueta="Horizontal" valor={Math.round(Number.isFinite(config.animacionPuntosX) ? config.animacionPuntosX : 50)} min={0} max={100} onChange={(v) => cambiarConfig('animacionPuntosX', v)} />
+                    <CampoRango etiqueta="Vertical" valor={Math.round(Number.isFinite(config.animacionPuntosY) ? config.animacionPuntosY : 50)} min={0} max={100} onChange={(v) => cambiarConfig('animacionPuntosY', v)} />
                   </div>
-                  <p className="texto-tenue" style={{ margin: 0, fontSize: 12 }}>
-                    O arrastrá el punto azul directo en la vista previa de arriba.
-                  </p>
-                </>
-              )}
-              <CampoRango
-                etiqueta="Tamaño"
-                valor={Number.isFinite(config.animacionPuntosTamano) ? config.animacionPuntosTamano : 100}
-                min={5} max={200} step={5}
-                onChange={(v) => cambiarConfig('animacionPuntosTamano', v)}
-              />
-              <label>
-                Estilo de animación
-                <select
-                  value={config.animacionPuntosEstilo || 'clasica'}
-                  onChange={(e) => cambiarConfig('animacionPuntosEstilo', e.target.value)}
-                >
-                  <option value="clasica">Clásica (aparece con un giro y flota hacia arriba)</option>
-                  <option value="rebote">Rebote (entra con un pique elástico)</option>
-                  <option value="deslizar">Deslizar (entra desde el costado del equipo)</option>
-                  <option value="destello">Destello (pulsa brillo, tipo neón)</option>
-                </select>
-              </label>
-              <label>
-                Cómo se anuncia
-                <select
-                  value={config.animacionPuntosIcono || 'numero'}
-                  onChange={(e) => cambiarConfig('animacionPuntosIcono', e.target.value)}
-                >
-                  <option value="numero">Números (+1 / +2 / +3)</option>
-                  <option value="numero-dedos">Números con manito (✌️ +2)</option>
-                  <option value="dedos">Solo con los dedos (☝️ / ✌️ / 🤟)</option>
-                  <option value="estrellas">Estrellas (⭐ por punto)</option>
-                  <option value="balones">Balones de básquet (🏀 por punto)</option>
-                </select>
-              </label>
-              {(config.animacionPuntosIcono === 'dedos' || config.animacionPuntosIcono === 'numero-dedos') && (
-                <p className="texto-tenue" style={{ margin: 0, fontSize: 12 }}>
-                  No existe un emoji "3 dedos" exacto — para el triple se usa 🤟, la aproximación más parecida.
-                </p>
-              )}
-            </div>
-          )}
+                )}
+                <CampoRango etiqueta="Tamaño" valor={Number.isFinite(config.animacionPuntosTamano) ? config.animacionPuntosTamano : 100} min={5} max={200} step={5} onChange={(v) => cambiarConfig('animacionPuntosTamano', v)} />
+              </>
+            )}
+          </Bloque>
         </div>
 
         {/* ───────── NÓMINA ───────── */}
         <div className="grupo-personalizacion" hidden={seccionAbierta !== 'nomina'}>
-          <div className="grupo-titulo">👥 Nómina</div>
-          <Toggle etiqueta="Mostrar nómina" checked={config.mostrarNomina} onChange={(v) => cambiarConfig('mostrarNomina', v)} />
+          <div className="grupo-titulo">👥 Nómina y presentación</div>
+          <Toggle etiqueta="Usar nómina en este diseño" checked={Boolean(config.mostrarNomina)} onChange={(v) => cambiarConfig('mostrarNomina', v)} />
           {config.mostrarNomina && (
-            <div className="subgrupo">
-              <div className="fila-form">
-                <SelectorUbicacion etiqueta="Costado en pantalla" valor={config.nominaPosicion} onChange={(v) => cambiarConfig('nominaPosicion', v)} opciones={OPCIONES_UBICACION_NOMINA} />
-                <SelectorUbicacion
-                  etiqueta="Altura en pantalla"
-                  valor={config.nominaPosicionVertical || 'arriba'}
-                  onChange={(v) => cambiarConfig('nominaPosicionVertical', v)}
-                  opciones={[{ id: 'arriba', etiqueta: 'Arriba' }, { id: 'centro', etiqueta: 'Centro' }, { id: 'abajo', etiqueta: 'Abajo' }]}
-                />
-              </div>
-              <CampoRango
-                etiqueta="Ajuste fino de altura (arriba/abajo)"
-                valor={Number.isFinite(config.nominaOffsetY) ? config.nominaOffsetY : 0}
-                unidad="px" min={-300} max={300} step={5}
-                onChange={(v) => cambiarConfig('nominaOffsetY', v)}
-                ayuda="Corre la nómina de a poco, sin cambiar la ubicación general de arriba."
-              />
-              <Toggle etiqueta="Logo del equipo" checked={config.logoEnNomina} onChange={(v) => cambiarConfig('logoEnNomina', v)} />
-              {config.logoEnNomina && (
-                <div className="subgrupo">
-                  <label>
-                    Dónde va el logo
-                    <select value={config.nominaLogoPosicion || 'costado'} onChange={(e) => cambiarConfig('nominaLogoPosicion', e.target.value)}>
-                      <option value="costado">Chico, junto al nombre del equipo</option>
-                      <option value="fondo">Grande, de fondo detrás de toda la nómina</option>
-                      <option value="ambos">Los dos: chico junto al nombre Y grande de fondo</option>
-                    </select>
-                  </label>
-                  {(config.nominaLogoPosicion === 'costado' || config.nominaLogoPosicion === 'ambos') && (
-                    <CampoRango etiqueta="Tamaño (junto al nombre)" valor={config.logoTamanoNomina} unidad="px" min={10} max={140} onChange={(v) => cambiarConfig('logoTamanoNomina', v)} />
-                  )}
-                  {(config.nominaLogoPosicion === 'fondo' || config.nominaLogoPosicion === 'ambos') && (
-                    <>
-                      <CampoRango
-                        etiqueta="Tamaño (de fondo)"
-                        valor={Number.isFinite(config.nominaLogoFondoTamano) ? config.nominaLogoFondoTamano : 130}
-                        min={5} max={500}
-                        onChange={(v) => cambiarConfig('nominaLogoFondoTamano', v)}
-                        ayuda="Siempre arranca pegado justo abajo del título, sea cual sea el largo del plantel. Achicalo o agrandalo como quieras — a tamaños grandes puede salirse de pantalla o superponerse con el otro equipo; usá el ajuste fino de posición de abajo para corregirlo."
-                      />
-                      <div className="fila-form">
-                        <CampoRango
-                          etiqueta="Ajuste fino izquierda/derecha"
-                          valor={Number.isFinite(config.nominaLogoFondoOffsetX) ? config.nominaLogoFondoOffsetX : 0}
-                          unidad="px" min={-400} max={400} step={5}
-                          onChange={(v) => cambiarConfig('nominaLogoFondoOffsetX', v)}
-                          ayuda="Un solo control mueve los DOS logos, reflejados en espejo — separa (o acerca) los dos escudos del centro por igual, sin tener que ajustar cada lado por separado."
-                        />
-                        <CampoRango
-                          etiqueta="Ajuste fino arriba/abajo"
-                          valor={Number.isFinite(config.nominaLogoFondoOffsetY) ? config.nominaLogoFondoOffsetY : 0}
-                          unidad="px" min={-300} max={300} step={5}
-                          onChange={(v) => cambiarConfig('nominaLogoFondoOffsetY', v)}
-                        />
-                      </div>
-                      <Toggle
-                        etiqueta="Usar logo alternativo (blanco y negro) en el fondo"
-                        checked={config.nominaUsarLogoFondoAlternativo}
-                        onChange={(v) => cambiarConfig('nominaUsarLogoFondoAlternativo', v)}
-                      />
-                      {config.nominaUsarLogoFondoAlternativo && (
-                        <p className="texto-tenue" style={{ margin: '-8px 0 0', fontSize: 12 }}>
-                          Busca en "Logos → Logos de fondo" uno con el MISMO título que el escudo de cada equipo — si no
-                          encuentra ninguno para ese club, sigue mostrando el logo de siempre.
-                        </p>
-                      )}
-                    </>
-                  )}
-                  <CampoRango etiqueta="Transparencia" valor={config.logoOpacidadNomina} min={10} max={100} onChange={(v) => cambiarConfig('logoOpacidadNomina', v)} />
+            <>
+              <Bloque
+                id="ubicacion" {...bloque('nomina')} icono="📍" titulo="Ubicación y duración"
+                resumen={`${OPCIONES_UBICACION_NOMINA.find((o) => o.id === (config.nominaPosicion || 'centro'))?.etiqueta || 'Centro'} · ${config.nominaPosicionVertical || 'arriba'} · ${Number.isFinite(config.nominaDuracionSeg) ? config.nominaDuracionSeg : 6}s`}
+              >
+                <div className="fila-form">
+                  <SelectorUbicacion etiqueta="Costado" valor={config.nominaPosicion} onChange={(v) => cambiarConfig('nominaPosicion', v)} opciones={OPCIONES_UBICACION_NOMINA} />
+                  <SelectorUbicacion etiqueta="Altura" valor={config.nominaPosicionVertical || 'arriba'} onChange={(v) => cambiarConfig('nominaPosicionVertical', v)} opciones={[{ id: 'arriba', etiqueta: 'Arriba' }, { id: 'centro', etiqueta: 'Centro' }, { id: 'abajo', etiqueta: 'Abajo' }]} />
                 </div>
-              )}
-              <Toggle etiqueta="Centrar nombre del equipo" checked={config.nominaTituloCentrado} onChange={(v) => cambiarConfig('nominaTituloCentrado', v)} />
-              <Toggle etiqueta="Estadísticas por jugador" checked={config.nominaConEstadisticas} onChange={(v) => cambiarConfig('nominaConEstadisticas', v)} />
-              <Toggle
-                etiqueta="Mostrar foto de jugador"
-                checked={config.nominaMostrarFoto}
-                onChange={(v) => cambiarConfig('nominaMostrarFoto', v)}
-                title="La foto se carga por jugador en Equipos → Nómina. Sin foto cargada, se ve un círculo con el dorsal en su lugar."
-              />
-              {config.nominaMostrarFoto && (
-                <>
-                  <p className="texto-tenue" style={{ margin: '-8px 0 0', fontSize: 12 }}>
-                    Cargá la foto de cada jugador en "Equipos → Nómina" (📷 junto al nombre). También habilita la
-                    "Presentación uno por uno" en la Mesa de control, para mostrar a cada titular con una ficha grande
-                    al entrar.
-                  </p>
-                  <div className="fila-form">
-                    <CampoRango
-                      etiqueta="Tamaño de la foto (lista)"
-                      valor={Number.isFinite(config.nominaFotoTamano) ? config.nominaFotoTamano : 34}
-                      unidad="px" min={20} max={90} step={1}
-                      onChange={(v) => cambiarConfig('nominaFotoTamano', v)}
-                    />
-                  </div>
-                  <div className="fila-form">
-                    <CampoRango
-                      etiqueta="Recorte: horizontal"
-                      valor={Number.isFinite(config.nominaFotoPosX) ? config.nominaFotoPosX : 50}
-                      unidad="%" min={0} max={100} step={1}
-                      onChange={(v) => cambiarConfig('nominaFotoPosX', v)}
-                      ayuda="Si la cara no quedó centrada en la foto subida, movés qué parte de la imagen se ve dentro del círculo."
-                    />
-                    <CampoRango
-                      etiqueta="Recorte: vertical"
-                      valor={Number.isFinite(config.nominaFotoPosY) ? config.nominaFotoPosY : 50}
-                      unidad="%" min={0} max={100} step={1}
-                      onChange={(v) => cambiarConfig('nominaFotoPosY', v)}
-                    />
-                  </div>
-                  <div className="fila-form">
-                    <CampoRango
-                      etiqueta="Grosor del borde (lista)"
-                      valor={Number.isFinite(config.nominaFotoBordeAncho) ? config.nominaFotoBordeAncho : 2}
-                      unidad="px" min={0} max={12} step={1}
-                      onChange={(v) => cambiarConfig('nominaFotoBordeAncho', v)}
-                    />
-                  </div>
-                  <Toggle
-                    etiqueta="Color de borde personalizado (lista)"
-                    checked={!!config.nominaFotoBordeColor}
-                    onChange={(v) => cambiarConfig('nominaFotoBordeColor', v ? '#ffffff' : '')}
-                    title="Apagado: usa el color de banner del diseño, como siempre."
-                  />
-                  {config.nominaFotoBordeColor && (
-                    <input
-                      type="color"
-                      value={/^#/.test(config.nominaFotoBordeColor) ? config.nominaFotoBordeColor : '#ffffff'}
-                      onChange={(e) => cambiarConfig('nominaFotoBordeColor', e.target.value)}
-                    />
-                  )}
-                  <p className="texto-tenue" style={{ margin: '-4px 0 0', fontSize: 12 }}>
-                    Esto es para la foto chica de la lista. La ficha grande de "Presentación uno por uno" tiene su
-                    propio tamaño, recorte y borde, más abajo.
-                  </p>
-                  <div className="fila-form">
-                    <CampoRango
-                      etiqueta="Tamaño de la foto (Presentación)"
-                      valor={Number.isFinite(config.nominaPresentacionFotoTamano) ? config.nominaPresentacionFotoTamano : 170}
-                      unidad="px" min={80} max={320} step={5}
-                      onChange={(v) => cambiarConfig('nominaPresentacionFotoTamano', v)}
-                    />
-                  </div>
-                  <div className="fila-form">
-                    <CampoRango
-                      etiqueta="Recorte (Presentación): horizontal"
-                      valor={Number.isFinite(config.nominaPresentacionFotoPosX) ? config.nominaPresentacionFotoPosX : 50}
-                      unidad="%" min={0} max={100} step={1}
-                      onChange={(v) => cambiarConfig('nominaPresentacionFotoPosX', v)}
-                    />
-                    <CampoRango
-                      etiqueta="Recorte (Presentación): vertical"
-                      valor={Number.isFinite(config.nominaPresentacionFotoPosY) ? config.nominaPresentacionFotoPosY : 50}
-                      unidad="%" min={0} max={100} step={1}
-                      onChange={(v) => cambiarConfig('nominaPresentacionFotoPosY', v)}
-                    />
-                  </div>
-                  <div className="fila-form">
-                    <CampoRango
-                      etiqueta="Grosor del borde (Presentación)"
-                      valor={Number.isFinite(config.nominaPresentacionFotoBordeAncho) ? config.nominaPresentacionFotoBordeAncho : 4}
-                      unidad="px" min={0} max={16} step={1}
-                      onChange={(v) => cambiarConfig('nominaPresentacionFotoBordeAncho', v)}
-                    />
-                  </div>
-                  <Toggle
-                    etiqueta="Color de borde personalizado (Presentación)"
-                    checked={!!config.nominaPresentacionFotoBordeColor}
-                    onChange={(v) => cambiarConfig('nominaPresentacionFotoBordeColor', v ? '#ffffff' : '')}
-                    title="Apagado: usa el color del equipo, como siempre."
-                  />
-                  {config.nominaPresentacionFotoBordeColor && (
-                    <input
-                      type="color"
-                      value={/^#/.test(config.nominaPresentacionFotoBordeColor) ? config.nominaPresentacionFotoBordeColor : '#ffffff'}
-                      onChange={(e) => cambiarConfig('nominaPresentacionFotoBordeColor', e.target.value)}
-                    />
-                  )}
-                  <div className="fila-form">
-                    <CampoRango
-                      etiqueta="Tamaño de los chips ya presentados"
-                      valor={Number.isFinite(config.nominaPresentacionChipFotoTamano) ? config.nominaPresentacionChipFotoTamano : 32}
-                      unidad="px" min={16} max={70} step={1}
-                      onChange={(v) => cambiarConfig('nominaPresentacionChipFotoTamano', v)}
-                      ayuda="La fila chica de abajo con quienes ya pasaron por la ficha grande."
-                    />
-                  </div>
-                </>
-              )}
-              <SelectorDuracion etiqueta="Segundos visible al dispararla" valor={config.nominaDuracionSeg} porDefecto={6} onChange={(v) => cambiarConfig('nominaDuracionSeg', v)} />
-              <SeccionEstiloCapa prefijo="nomina" config={config} cambiarConfig={cambiarConfig} etiquetaTitulo="Título" />
-              <p className="texto-tenue" style={{ margin: '-4px 0 0', fontSize: 12 }}>
-                El color del nombre de cada equipo sale del color del propio equipo por defecto — elegí un color acá
-                arriba, en "Colores → Título", para usar el mismo en los dos en vez del color de cada equipo.
-              </p>
-            </div>
+                <CampoRango etiqueta="Corrimiento vertical" valor={Number.isFinite(config.nominaOffsetY) ? config.nominaOffsetY : 0} unidad="px" min={-300} max={300} step={5} onChange={(v) => cambiarConfig('nominaOffsetY', v)} />
+                <SelectorDuracion etiqueta="Segundos visible" valor={config.nominaDuracionSeg} porDefecto={6} onChange={(v) => cambiarConfig('nominaDuracionSeg', v)} />
+                <Toggle etiqueta="Nombre del equipo centrado" checked={Boolean(config.nominaTituloCentrado)} onChange={(v) => cambiarConfig('nominaTituloCentrado', v)} />
+                <Toggle etiqueta="Estadísticas de cada jugadora" checked={Boolean(config.nominaConEstadisticas)} onChange={(v) => cambiarConfig('nominaConEstadisticas', v)} />
+              </Bloque>
+
+              <Bloque
+                id="presentacion" {...bloque('nomina')} icono="🎬" titulo="Presentación del quinteto"
+                resumen={({ tarjeta: 'Tarjeta central', retratos: 'Retratos en fila', titular: 'Gran titular', camiseta: 'Camiseta', cancha: 'Cancha táctica', cine: 'Cine' })[config.presentacionEstilo || 'tarjeta']}
+              >
+                <div className="opciones-tarjetas" role="group" aria-label="Estilo de la presentación">
+                  {[
+                    { id: 'tarjeta', icono: '🪪', etiqueta: 'Tarjeta central' },
+                    { id: 'retratos', icono: '🧍', etiqueta: 'Retratos en fila' },
+                    { id: 'titular', icono: '📰', etiqueta: 'Gran titular' },
+                    { id: 'camiseta', icono: '👕', etiqueta: 'Camiseta' },
+                    { id: 'cancha', icono: '🏟️', etiqueta: 'Cancha táctica' },
+                    { id: 'cine', icono: '🎞️', etiqueta: 'Cine' },
+                  ].map((o) => (
+                    <button key={o.id} type="button" className={`opcion-tarjeta ${(config.presentacionEstilo || 'tarjeta') === o.id ? 'activa' : ''}`} aria-pressed={(config.presentacionEstilo || 'tarjeta') === o.id} onClick={() => cambiarConfig('presentacionEstilo', o.id)}>
+                      <span aria-hidden>{o.icono}</span>{o.etiqueta}
+                    </button>
+                  ))}
+                </div>
+                <p className="texto-tenue bloque-nota">Se dispara desde la Mesa con 🎬 Presentar.</p>
+                {config.nominaMostrarFoto && (
+                  <>
+                    <p className="seccion-titulo">Foto grande</p>
+                    <CampoRango etiqueta="Tamaño" valor={Number.isFinite(config.nominaPresentacionFotoTamano) ? config.nominaPresentacionFotoTamano : 170} unidad="px" min={80} max={320} step={5} onChange={(v) => cambiarConfig('nominaPresentacionFotoTamano', v)} />
+                    <div className="fila-form">
+                      <CampoRango etiqueta="Encuadre ↔" valor={Number.isFinite(config.nominaPresentacionFotoPosX) ? config.nominaPresentacionFotoPosX : 50} min={0} max={100} onChange={(v) => cambiarConfig('nominaPresentacionFotoPosX', v)} />
+                      <CampoRango etiqueta="Encuadre ↕" valor={Number.isFinite(config.nominaPresentacionFotoPosY) ? config.nominaPresentacionFotoPosY : 50} min={0} max={100} onChange={(v) => cambiarConfig('nominaPresentacionFotoPosY', v)} />
+                    </div>
+                    <div className="fila-form" style={{ alignItems: 'flex-end' }}>
+                      <CampoRango etiqueta="Borde" valor={Number.isFinite(config.nominaPresentacionFotoBordeAncho) ? config.nominaPresentacionFotoBordeAncho : 4} unidad="px" min={0} max={16} onChange={(v) => cambiarConfig('nominaPresentacionFotoBordeAncho', v)} />
+                      <ColorOpcional etiqueta="Color del borde" valor={config.nominaPresentacionFotoBordeColor} vacio="el del equipo" onChange={(v) => cambiarConfig('nominaPresentacionFotoBordeColor', v)} />
+                    </div>
+                    <CampoRango etiqueta="Fotos chicas de las ya presentadas" valor={Number.isFinite(config.nominaPresentacionChipFotoTamano) ? config.nominaPresentacionChipFotoTamano : 32} unidad="px" min={16} max={70} onChange={(v) => cambiarConfig('nominaPresentacionChipFotoTamano', v)} />
+                  </>
+                )}
+              </Bloque>
+
+              <Bloque id="fotos" {...bloque('nomina')} icono="📷" titulo="Fotos de jugadoras" resumen={config.nominaMostrarFoto ? `Visibles · ${Number.isFinite(config.nominaFotoTamano) ? config.nominaFotoTamano : 34}px` : 'Ocultas'}>
+                <Toggle etiqueta="Mostrar foto en la lista" checked={Boolean(config.nominaMostrarFoto)} onChange={(v) => cambiarConfig('nominaMostrarFoto', v)} />
+                <p className="texto-tenue bloque-nota">Las fotos se cargan en Equipos → Nómina (📷). Sin foto se ve el dorsal en un círculo.</p>
+                {config.nominaMostrarFoto && (
+                  <>
+                    <CampoRango etiqueta="Tamaño" valor={Number.isFinite(config.nominaFotoTamano) ? config.nominaFotoTamano : 34} unidad="px" min={20} max={90} onChange={(v) => cambiarConfig('nominaFotoTamano', v)} />
+                    <div className="fila-form">
+                      <CampoRango etiqueta="Encuadre ↔" valor={Number.isFinite(config.nominaFotoPosX) ? config.nominaFotoPosX : 50} min={0} max={100} onChange={(v) => cambiarConfig('nominaFotoPosX', v)} />
+                      <CampoRango etiqueta="Encuadre ↕" valor={Number.isFinite(config.nominaFotoPosY) ? config.nominaFotoPosY : 50} min={0} max={100} onChange={(v) => cambiarConfig('nominaFotoPosY', v)} />
+                    </div>
+                    <div className="fila-form" style={{ alignItems: 'flex-end' }}>
+                      <CampoRango etiqueta="Borde" valor={Number.isFinite(config.nominaFotoBordeAncho) ? config.nominaFotoBordeAncho : 2} unidad="px" min={0} max={12} onChange={(v) => cambiarConfig('nominaFotoBordeAncho', v)} />
+                      <ColorOpcional etiqueta="Color del borde" valor={config.nominaFotoBordeColor} vacio="el del diseño" onChange={(v) => cambiarConfig('nominaFotoBordeColor', v)} />
+                    </div>
+                  </>
+                )}
+              </Bloque>
+
+              <Bloque
+                id="escudos" {...bloque('nomina')} icono="🛡️" titulo="Escudos"
+                resumen={config.logoEnNomina ? ({ costado: 'Junto al nombre', fondo: 'De fondo', ambos: 'Junto al nombre y de fondo' })[config.nominaLogoPosicion || 'costado'] : 'Ocultos'}
+              >
+                <Toggle etiqueta="Mostrar escudo del equipo" checked={Boolean(config.logoEnNomina)} onChange={(v) => cambiarConfig('logoEnNomina', v)} />
+                {config.logoEnNomina && (
+                  <>
+                    <div className="segmentado segmentado-ancho" role="group" aria-label="Dónde va el escudo">
+                      {[{ id: 'costado', etiqueta: 'Junto al nombre' }, { id: 'fondo', etiqueta: 'De fondo' }, { id: 'ambos', etiqueta: 'Los dos' }].map((o) => (
+                        <button key={o.id} type="button" className={(config.nominaLogoPosicion || 'costado') === o.id ? 'activo' : ''} onClick={() => cambiarConfig('nominaLogoPosicion', o.id)}>{o.etiqueta}</button>
+                      ))}
+                    </div>
+                    {(config.nominaLogoPosicion || 'costado') !== 'fondo' && (
+                      <CampoRango etiqueta="Tamaño junto al nombre" valor={config.logoTamanoNomina} unidad="px" min={10} max={140} onChange={(v) => cambiarConfig('logoTamanoNomina', v)} />
+                    )}
+                    {(config.nominaLogoPosicion === 'fondo' || config.nominaLogoPosicion === 'ambos') && (
+                      <>
+                        <CampoRango etiqueta="Tamaño de fondo" valor={Number.isFinite(config.nominaLogoFondoTamano) ? config.nominaLogoFondoTamano : 130} min={5} max={500} onChange={(v) => cambiarConfig('nominaLogoFondoTamano', v)} />
+                        <div className="fila-form">
+                          <CampoRango etiqueta="Separación del centro" valor={Number.isFinite(config.nominaLogoFondoOffsetX) ? config.nominaLogoFondoOffsetX : 0} unidad="px" min={-400} max={400} step={5} onChange={(v) => cambiarConfig('nominaLogoFondoOffsetX', v)} />
+                          <CampoRango etiqueta="Corrimiento vertical" valor={Number.isFinite(config.nominaLogoFondoOffsetY) ? config.nominaLogoFondoOffsetY : 0} unidad="px" min={-300} max={300} step={5} onChange={(v) => cambiarConfig('nominaLogoFondoOffsetY', v)} />
+                        </div>
+                        <Toggle etiqueta="Usar versión alternativa (blanco y negro)" title='Busca en "Logos de fondo" uno con el mismo título que el escudo del equipo.' checked={Boolean(config.nominaUsarLogoFondoAlternativo)} onChange={(v) => cambiarConfig('nominaUsarLogoFondoAlternativo', v)} />
+                      </>
+                    )}
+                    <CampoRango etiqueta="Opacidad" valor={config.logoOpacidadNomina} min={10} max={100} onChange={(v) => cambiarConfig('logoOpacidadNomina', v)} />
+                  </>
+                )}
+              </Bloque>
+
+              <Bloque id="estilo" {...bloque('nomina')} icono="🎨" titulo="Estilo visual" resumen={resumenEstiloCapa(config, 'nomina')}>
+                <SeccionEstiloCapa prefijo="nomina" config={config} cambiarConfig={cambiarConfig} etiquetaTitulo="Título" />
+              </Bloque>
+            </>
           )}
         </div>
 
         {/* ───────── ESTADÍSTICAS ───────── */}
         <div className="grupo-personalizacion" hidden={seccionAbierta !== 'estadisticas'}>
           <div className="grupo-titulo">📊 Estadísticas</div>
-          <Toggle etiqueta="Mostrar estadísticas" checked={config.mostrarEstadisticas} onChange={(v) => cambiarConfig('mostrarEstadisticas', v)} />
+          <Toggle etiqueta="Usar estadísticas en este diseño" checked={Boolean(config.mostrarEstadisticas)} onChange={(v) => cambiarConfig('mostrarEstadisticas', v)} />
           {config.mostrarEstadisticas && (
-            <div className="subgrupo">
-              <SelectorUbicacion etiqueta="Ubicación en pantalla" valor={config.estadisticasPosicion} onChange={(v) => cambiarConfig('estadisticasPosicion', v)} />
-              <p className="texto-tenue" style={{ margin: '-4px 0 0' }}>
-                Aplica a "Ambos equipos" y a jugador — un solo equipo sale pegado a su propio lado.
-              </p>
-              <CampoRango
-                etiqueta="Ajuste fino de altura (arriba/abajo)"
-                valor={Number.isFinite(config.estadisticasOffsetY) ? config.estadisticasOffsetY : 0}
-                unidad="px" min={-300} max={300} step={5}
-                onChange={(v) => cambiarConfig('estadisticasOffsetY', v)}
-                ayuda="Corre las estadísticas de a poco, sin cambiar la ubicación general elegida arriba."
-              />
-              <Toggle etiqueta="Escudos de los equipos" checked={config.logoEnEstadisticas} onChange={(v) => cambiarConfig('logoEnEstadisticas', v)} />
-              {config.logoEnEstadisticas && (
-                <div className="fila-form">
-                  <CampoRango etiqueta="Tamaño" valor={config.logoTamanoEstadisticas} unidad="px" min={30} max={160} onChange={(v) => cambiarConfig('logoTamanoEstadisticas', v)} />
-                  <CampoRango etiqueta="Transparencia" valor={config.logoOpacidadEstadisticas} min={10} max={100} onChange={(v) => cambiarConfig('logoOpacidadEstadisticas', v)} />
-                </div>
-              )}
-              <Toggle etiqueta="Detalle por jugador" checked={config.mostrarDetalleJugadores} onChange={(v) => cambiarConfig('mostrarDetalleJugadores', v)} />
-              <SelectorDuracion etiqueta="Segundos visible al dispararlas" valor={config.estadisticasDuracionSeg} porDefecto={7} onChange={(v) => cambiarConfig('estadisticasDuracionSeg', v)} />
-              <SeccionEstiloCapa prefijo="estadisticas" config={config} cambiarConfig={cambiarConfig} etiquetaTitulo="Nombre del equipo" />
-            </div>
+            <>
+              <Bloque
+                id="ubicacion" {...bloque('estadisticas')} icono="📍" titulo="Ubicación y contenido"
+                resumen={`${OPCIONES_UBICACION.find((o) => o.id === (config.estadisticasPosicion || 'centro'))?.etiqueta || 'Centro'} · ${Number.isFinite(config.estadisticasDuracionSeg) ? config.estadisticasDuracionSeg : 7}s${config.mostrarDetalleJugadores ? ' · por jugadora' : ''}`}
+              >
+                <SelectorUbicacion etiqueta="Ubicación (un solo equipo sale pegado a su lado)" valor={config.estadisticasPosicion} onChange={(v) => cambiarConfig('estadisticasPosicion', v)} />
+                <CampoRango etiqueta="Corrimiento vertical" valor={Number.isFinite(config.estadisticasOffsetY) ? config.estadisticasOffsetY : 0} unidad="px" min={-300} max={300} step={5} onChange={(v) => cambiarConfig('estadisticasOffsetY', v)} />
+                <SelectorDuracion etiqueta="Segundos visible" valor={config.estadisticasDuracionSeg} porDefecto={7} onChange={(v) => cambiarConfig('estadisticasDuracionSeg', v)} />
+                <Toggle etiqueta="Detalle por jugadora" checked={Boolean(config.mostrarDetalleJugadores)} onChange={(v) => cambiarConfig('mostrarDetalleJugadores', v)} />
+              </Bloque>
+              <Bloque id="escudos" {...bloque('estadisticas')} icono="🛡️" titulo="Escudos" resumen={config.logoEnEstadisticas ? `Visibles · ${config.logoTamanoEstadisticas ?? ''}px` : 'Ocultos'}>
+                <Toggle etiqueta="Mostrar escudos" checked={Boolean(config.logoEnEstadisticas)} onChange={(v) => cambiarConfig('logoEnEstadisticas', v)} />
+                {config.logoEnEstadisticas && (
+                  <div className="fila-form">
+                    <CampoRango etiqueta="Tamaño" valor={config.logoTamanoEstadisticas} unidad="px" min={30} max={160} onChange={(v) => cambiarConfig('logoTamanoEstadisticas', v)} />
+                    <CampoRango etiqueta="Opacidad" valor={config.logoOpacidadEstadisticas} min={10} max={100} onChange={(v) => cambiarConfig('logoOpacidadEstadisticas', v)} />
+                  </div>
+                )}
+              </Bloque>
+              <Bloque id="estilo" {...bloque('estadisticas')} icono="🎨" titulo="Estilo visual" resumen={resumenEstiloCapa(config, 'estadisticas')}>
+                <SeccionEstiloCapa prefijo="estadisticas" config={config} cambiarConfig={cambiarConfig} etiquetaTitulo="Nombre del equipo" />
+              </Bloque>
+            </>
+          )}
+        </div>
+
+        {/* ───────── INTERTANTO ───────── */}
+        <div className="grupo-personalizacion" hidden={seccionAbierta !== 'intertanto'}>
+          <div className="grupo-titulo">⏱️ Intertanto</div>
+          <p className="texto-tenue" style={{ margin: '0 0 6px' }}>
+            Resumen entre cuartos: marcador, puntos por cuarto y, con nómina cargada, la comparativa y las líderes.
+          </p>
+          <Toggle etiqueta="Usar Intertanto en este diseño" checked={config.mostrarIntertanto !== false} onChange={(v) => cambiarConfig('mostrarIntertanto', v)} />
+          {config.mostrarIntertanto !== false && (
+            <>
+              <Bloque
+                id="cuando" {...bloque('intertanto')} icono="⏰" titulo="Cuándo aparece"
+                resumen={`${config.intertantoAuto !== false ? 'Solo, al llegar a 0:00' : 'Solo con el botón de la Mesa'} · ${Number.isFinite(config.intertantoDuracionSeg) && config.intertantoDuracionSeg > 0 ? `${config.intertantoDuracionSeg}s` : 'hasta que arranque el reloj'}`}
+              >
+                <Toggle etiqueta="Aparecer solo al terminar cada cuarto" checked={config.intertantoAuto !== false} onChange={(v) => cambiarConfig('intertantoAuto', v)} />
+                <Toggle etiqueta="Ocultar el marcador mientras se ve" checked={config.intertantoOcultarMarcador !== false} onChange={(v) => cambiarConfig('intertantoOcultarMarcador', v)} />
+                <CampoRango etiqueta="Segundos visible (0 = hasta que arranque el reloj)" valor={Number.isFinite(config.intertantoDuracionSeg) ? config.intertantoDuracionSeg : 0} unidad="s" min={0} max={120} step={5} onChange={(v) => cambiarConfig('intertantoDuracionSeg', v)} />
+                <CampoRango etiqueta="Corrimiento vertical" valor={Number.isFinite(config.intertantoOffsetY) ? config.intertantoOffsetY : 0} unidad="px" min={-300} max={300} step={5} onChange={(v) => cambiarConfig('intertantoOffsetY', v)} />
+              </Bloque>
+              <Bloque
+                id="contenido" {...bloque('intertanto')} icono="📋" titulo="Qué muestra"
+                resumen={[config.intertantoCuartos !== false && 'cuartos', config.intertantoComparativa !== false && 'comparativa', config.intertantoLideres !== false && 'líderes'].filter(Boolean).join(' · ') || 'Solo el marcador'}
+              >
+                <Toggle etiqueta="Puntos por cuarto" checked={config.intertantoCuartos !== false} onChange={(v) => cambiarConfig('intertantoCuartos', v)} />
+                <Toggle etiqueta="Comparativa de equipo" checked={config.intertantoComparativa !== false} onChange={(v) => cambiarConfig('intertantoComparativa', v)} />
+                <Toggle etiqueta="Líderes del partido" checked={config.intertantoLideres !== false} onChange={(v) => cambiarConfig('intertantoLideres', v)} />
+                {config.intertantoLideres !== false && (
+                  <div className="chips-opciones">
+                    {CATEGORIAS_LIDERES_OPCIONES.map((c) => {
+                      const actuales = Array.isArray(config.intertantoCategorias) && config.intertantoCategorias.length ? config.intertantoCategorias : ['pts', 'reb', 'ast'];
+                      const activa = actuales.includes(c.clave);
+                      return (
+                        <button
+                          key={c.clave} type="button" className={`chip-opcion ${activa ? 'activa' : ''}`} aria-pressed={activa}
+                          onClick={() => {
+                            const nuevas = activa ? actuales.filter((k) => k !== c.clave) : [...actuales, c.clave];
+                            cambiarConfig('intertantoCategorias', CATEGORIAS_LIDERES_OPCIONES.map((o) => o.clave).filter((k) => nuevas.includes(k)));
+                          }}
+                        >
+                          {activa ? '✓ ' : ''}{c.etiqueta}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+                <p className="texto-tenue bloque-nota">La comparativa y las líderes necesitan nómina cargada.</p>
+              </Bloque>
+              <Bloque id="estilo" {...bloque('intertanto')} icono="🎨" titulo="Estilo visual" resumen={resumenEstiloCapa(config, 'intertanto')}>
+                <SeccionEstiloCapa prefijo="intertanto" config={config} cambiarConfig={cambiarConfig} etiquetaTitulo="Nombres y textos" />
+              </Bloque>
+            </>
           )}
         </div>
 
         {/* ───────── ANUNCIOS ───────── */}
         <div className="grupo-personalizacion" hidden={seccionAbierta !== 'anuncios'}>
           <div className="grupo-titulo">📣 Anuncios de jugadas</div>
-          <Toggle etiqueta="Anunciar jugadas" checked={config.anunciarJugadas} onChange={(v) => cambiarConfig('anunciarJugadas', v)} />
+          <Toggle etiqueta="Anunciar jugadas (puntos, triples…)" checked={Boolean(config.anunciarJugadas)} onChange={(v) => cambiarConfig('anunciarJugadas', v)} />
           {config.anunciarJugadas && (
-            <div className="subgrupo">
-              <label>
-                Dónde aparece el aviso
-                <select value={config.alertaPosicion || ''} onChange={(e) => cambiarConfig('alertaPosicion', e.target.value)}>
-                  <option value="">Automático según el diseño</option>
-                  <option value="costado">Como pestaña al costado (izquierda si es local, derecha si es visita)</option>
-                  <option value="arriba">Como pestaña arriba del marcador</option>
-                  <option value="superpone">Superpuesto, justo sobre el marcador</option>
-                  <option value="libre">Posición libre (elegís el punto exacto)</option>
-                </select>
-              </label>
-              {config.alertaPosicion !== 'libre' && (
-                <CampoRango
-                  etiqueta="Ajuste fino de altura (arriba/abajo)"
-                  valor={Number.isFinite(config.anunciosOffsetY) ? config.anunciosOffsetY : 0}
-                  unidad="px" min={-300} max={300} step={5}
-                  onChange={(v) => cambiarConfig('anunciosOffsetY', v)}
-                  ayuda="Corre el aviso de a poco, sin cambiar el modo elegido arriba."
-                />
-              )}
-              {config.alertaPosicion === 'libre' && (
-                <>
-                  <div className="fila-form">
-                    <CampoRango
-                      etiqueta="Posición horizontal"
-                      valor={Math.round(Number.isFinite(config.anunciosX) ? config.anunciosX : 50)}
-                      min={0} max={100}
-                      onChange={(v) => cambiarConfig('anunciosX', v)}
-                    />
-                    <CampoRango
-                      etiqueta="Posición vertical"
-                      valor={Math.round(Number.isFinite(config.anunciosY) ? config.anunciosY : 15)}
-                      min={0} max={100}
-                      onChange={(v) => cambiarConfig('anunciosY', v)}
-                    />
-                  </div>
-                  <div className="fila-form" style={{ margin: '0 0 4px' }}>
-                    {PRESETS_POSICION.map((p) => (
-                      <button key={p.id} type="button" className="btn-secundario" onClick={() => setConfig((c) => ({ ...c, anunciosX: p.x, anunciosY: p.y }))}>
-                        {p.etiqueta}
-                      </button>
-                    ))}
-                  </div>
-                  <p className="texto-tenue" style={{ margin: 0, fontSize: 12 }}>
-                    Independiente del marcador, con el mismo tipo de control (mismos atajos "Arriba izq.", "Centro", etc.) — el aviso de LOCAL sale un poco a la izquierda de ese punto, el de VISITA a la derecha. O arrastrá el punto naranja directo en la vista previa de arriba.
-                  </p>
-                </>
-              )}
-              {config.mostrarTitulo && !['costado', 'superpone', 'libre'].includes(config.alertaPosicion || '') && (
+            <>
+              <Bloque
+                id="ubicacion" {...bloque('anuncios')} icono="📍" titulo="Ubicación"
+                resumen={({ '': 'Automática', costado: 'Pestaña al costado', arriba: 'Pestaña arriba', superpone: 'Sobre el marcador', libre: 'Posición libre' })[config.alertaPosicion || '']}
+              >
                 <label>
-                  Cómo convive con el título
-                  <select value={config.anunciosTituloModo || 'arriba-titulo'} onChange={(e) => cambiarConfig('anunciosTituloModo', e.target.value)}>
-                    <option value="arriba-titulo">Apilado arriba del título (más chico, sin taparlo)</option>
-                    <option value="reemplaza-titulo">Reemplaza el título mientras dura el aviso</option>
-                    <option value="debajo-marcador">Debajo del marcador, en vez de arriba</option>
+                  Dónde aparece
+                  <select value={config.alertaPosicion || ''} onChange={(e) => cambiarConfig('alertaPosicion', e.target.value)}>
+                    <option value="">Automático según el diseño</option>
+                    <option value="costado">Pestaña al costado (del lado del equipo)</option>
+                    <option value="arriba">Pestaña arriba del marcador</option>
+                    <option value="superpone">Superpuesto sobre el marcador</option>
+                    <option value="libre">Posición libre (arrastrá el punto naranja en la vista previa)</option>
                   </select>
                 </label>
-              )}
-              <Toggle etiqueta="Anunciar faltas" checked={config.anunciarFaltas} onChange={(v) => cambiarConfig('anunciarFaltas', v)} />
-              <SelectorDuracion etiqueta="Segundos visible cada aviso" valor={config.anunciosDuracionSeg} porDefecto={4} onChange={(v) => cambiarConfig('anunciosDuracionSeg', v)} />
-              <SeccionEstiloCapa prefijo="anuncios" config={config} cambiarConfig={cambiarConfig} tituloSeparado={false} />
-            </div>
+                {config.alertaPosicion === 'libre' ? (
+                  <>
+                    <div className="fila-form">
+                      <CampoRango etiqueta="Horizontal" valor={Math.round(Number.isFinite(config.anunciosX) ? config.anunciosX : 50)} min={0} max={100} onChange={(v) => cambiarConfig('anunciosX', v)} />
+                      <CampoRango etiqueta="Vertical" valor={Math.round(Number.isFinite(config.anunciosY) ? config.anunciosY : 15)} min={0} max={100} onChange={(v) => cambiarConfig('anunciosY', v)} />
+                    </div>
+                    <div className="chips-opciones">
+                      {PRESETS_POSICION.map((p) => (
+                        <button key={p.id} type="button" className="chip-opcion" onClick={() => setConfig((c) => ({ ...c, anunciosX: p.x, anunciosY: p.y }))}>{p.etiqueta}</button>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <CampoRango etiqueta="Corrimiento vertical" valor={Number.isFinite(config.anunciosOffsetY) ? config.anunciosOffsetY : 0} unidad="px" min={-300} max={300} step={5} onChange={(v) => cambiarConfig('anunciosOffsetY', v)} />
+                )}
+                {config.mostrarTitulo && !['costado', 'superpone', 'libre'].includes(config.alertaPosicion || '') && (
+                  <label>
+                    Con el título del partido
+                    <select value={config.anunciosTituloModo || 'arriba-titulo'} onChange={(e) => cambiarConfig('anunciosTituloModo', e.target.value)}>
+                      <option value="arriba-titulo">Apilado arriba del título</option>
+                      <option value="reemplaza-titulo">Reemplaza el título mientras dura</option>
+                      <option value="debajo-marcador">Debajo del marcador</option>
+                    </select>
+                  </label>
+                )}
+              </Bloque>
+              <Bloque id="contenido" {...bloque('anuncios')} icono="📋" titulo="Qué se anuncia" resumen={`Jugadas${config.anunciarFaltas ? ' y faltas' : ''} · ${Number.isFinite(config.anunciosDuracionSeg) ? config.anunciosDuracionSeg : 4}s`}>
+                <Toggle etiqueta="Anunciar también las faltas" checked={Boolean(config.anunciarFaltas)} onChange={(v) => cambiarConfig('anunciarFaltas', v)} />
+                <SelectorDuracion etiqueta="Segundos visible cada aviso" valor={config.anunciosDuracionSeg} porDefecto={4} onChange={(v) => cambiarConfig('anunciosDuracionSeg', v)} />
+              </Bloque>
+              <Bloque id="estilo" {...bloque('anuncios')} icono="🎨" titulo="Estilo visual" resumen={resumenEstiloCapa(config, 'anuncios')}>
+                <SeccionEstiloCapa prefijo="anuncios" config={config} cambiarConfig={cambiarConfig} tituloSeparado={false} />
+              </Bloque>
+            </>
           )}
         </div>
 
@@ -2979,6 +3046,61 @@ export default function Disenos() {
     }
   };
 
+  // Variantes: el mismo estilo de tablero, otra configuración y otro
+  // enlace de OBS (p. ej. un "Clásico" por cada liga/cliente). Antes solo
+  // se podía tener UN diseño por plantilla.
+  const importarNuevoRef = useRef(null);
+  const [aviso, setAviso] = useState('');
+  const avisarCatalogo = (t) => { setAviso(t); setTimeout(() => setAviso(''), 3500); };
+  const duplicarDiseno = async (diseno) => {
+    try {
+      const { diseno: nuevo } = await api.crearDiseno({
+        nombre: `${diseno.nombre} (copia)`,
+        plantilla_base: nuevoIdVariante(diseno.plantilla_base),
+        config: diseno.config || {},
+      });
+      cargar();
+      avisarCatalogo(`✓ Se creó "${nuevo.nombre}" — una variante independiente, con su propio enlace de OBS.`);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+  const renombrarDiseno = async (diseno) => {
+    const nombre = window.prompt('Nuevo nombre del diseño:', diseno.nombre);
+    if (!nombre || !nombre.trim() || nombre.trim() === diseno.nombre) return;
+    try {
+      await api.actualizarDiseno(diseno.id, { nombre: nombre.trim() });
+      cargar();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+  const eliminarVariante = async (diseno) => {
+    const mensaje = diseno.partido_activo_id
+      ? `"${diseno.nombre}" tiene un partido en curso: si lo eliminás, su enlace de OBS deja de mostrar este diseño. ¿Eliminar igual? No se puede deshacer.`
+      : `¿Eliminar la variante "${diseno.nombre}"? No se puede deshacer.`;
+    if (!window.confirm(mensaje)) return;
+    try {
+      await api.eliminarDiseno(diseno.id);
+      cargar();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+  const importarDisenoNuevo = async (archivo) => {
+    try {
+      const datos = await leerArchivoDiseno(archivo);
+      const base = idBasePlantilla(datos.plantilla_base);
+      const conocida = PLANTILLAS_MARCADOR.some((p) => p.id === base) || base.startsWith('custom-');
+      if (!conocida) throw new Error(`El archivo usa una plantilla que no existe en esta app (${base})`);
+      const { diseno } = await api.crearDiseno({ nombre: datos.nombre || 'Diseño importado', plantilla_base: nuevoIdVariante(base), config: datos.config });
+      cargar();
+      setEditando(diseno);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   // Ya NO borra la fila — la vacía de vuelta a los valores de fábrica de
   // la plantilla (ver el comentario junto a mensajeConfirmarRestablecer).
   // La fila sigue con el mismo id, así que cualquier escena que la tenga
@@ -2994,7 +3116,7 @@ export default function Disenos() {
   };
 
   return (
-    <div className="pagina">
+    <div className={`pagina ${editando ? 'pagina-ancha' : ''}`}>
       <h1>Diseños de marcador</h1>
       <p className="texto-tenue">
         Elegí un estilo de tablero. Queda guardado en tu cuenta automáticamente: la próxima vez que lo abrís seguís
@@ -3010,6 +3132,45 @@ export default function Disenos() {
         />
       ) : (
         <>
+        {aviso && <p className="mensaje-exito">{aviso}</p>}
+        <div className="catalogo-barra">
+          <h2>Mis diseños</h2>
+          <div className="fila-form" style={{ margin: 0 }}>
+            <button type="button" className="btn-secundario btn-chico" onClick={() => importarNuevoRef.current?.click()} title="Crea un diseño nuevo a partir de un archivo .json exportado">
+              ⬆ Importar diseño
+            </button>
+            <input ref={importarNuevoRef} type="file" accept="application/json,.json" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) importarDisenoNuevo(f); e.target.value = ''; }} />
+          </div>
+        </div>
+        {disenos.length === 0 ? (
+          <p className="texto-tenue">Todavía no personalizaste ningún diseño — elegí un estilo del catálogo de abajo para empezar.</p>
+        ) : (
+          <div className="grilla-tarjetas grilla-mis-disenos">
+            {[...disenos].sort((a, b) => Number(Boolean(b.partido_activo_id)) - Number(Boolean(a.partido_activo_id)) || b.id - a.id).map((d) => (
+              <div className="tarjeta tarjeta-plantilla" key={d.id}>
+                <MiniPreviewMarcador plantillaId={d.plantilla_base} config={d.config || {}} />
+                <div className="tarjeta-titulo">
+                  <strong title={d.nombre}>{d.nombre}</strong>
+                  <div className="tarjeta-chips">
+                    {d.partido_activo_id && <span className="chip-en-uso">● en vivo</span>}
+                    {esVariante(d.plantilla_base) && <span className="chip-variante">variante</span>}
+                  </div>
+                </div>
+                <span className="texto-tenue tarjeta-sub">{nombreDePlantilla(d.plantilla_base) || 'Plantilla propia'}</span>
+                <div className="tarjeta-acciones">
+                  <button className="btn-primario btn-chico" onClick={() => setEditando(d)}>✎ Editar</button>
+                  <button className="btn-secundario btn-chico" title="Crea una variante independiente (mismo estilo, otro enlace de OBS)" onClick={() => duplicarDiseno(d)}>⧉ Duplicar</button>
+                  <button className="btn-secundario btn-chico" onClick={() => renombrarDiseno(d)}>Renombrar</button>
+                  <button className="btn-secundario btn-chico" title="Descargar como .json" onClick={() => descargarDiseno(d.nombre, d.plantilla_base, d.config || {})}>⬇</button>
+                  {esVariante(d.plantilla_base) && (
+                    <button className="btn-link" onClick={() => eliminarVariante(d)}>Eliminar</button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        <h2 className="catalogo-titulo">Catálogo de estilos</h2>
         {plantillasPersonalizadas.length > 0 && (
           <div className="grupo-equipos">
             <h3 className="grupo-equipos-titulo">🎨 Tus plantillas (armadas en el Creador)</h3>
@@ -3018,7 +3179,7 @@ export default function Disenos() {
                 const idSintetico = `custom-${plantilla.id}`;
                 const guardado = disenos.find((d) => d.plantilla_base === idSintetico);
                 return (
-                  <div className="tarjeta" key={idSintetico}>
+                  <div className="tarjeta tarjeta-plantilla" key={idSintetico}>
                     <MiniPreviewMarcador plantillaId="creador-libre" config={guardado?.config || plantilla.config || {}} />
                     <strong>{plantilla.nombre}</strong>
                     <div className="tarjeta-acciones">
@@ -3044,9 +3205,9 @@ export default function Disenos() {
           {PLANTILLAS_MARCADOR.filter((p) => !plantillasOcultas.includes(p.id)).map((p) => {
             const guardado = disenos.find((d) => d.plantilla_base === p.id);
             return (
-              <div className="tarjeta" key={p.id}>
+              <div className="tarjeta tarjeta-plantilla" key={p.id}>
                 <MiniPreviewMarcador plantillaId={p.id} config={guardado?.config || {}} />
-                <strong>{p.nombre}</strong>
+                <strong>{p.nombre}{p.nuevo && <span className="chip-nuevo">Nuevo</span>}</strong>
                 <div className="tarjeta-acciones">
                   <button className="btn-primario" onClick={() => usarPlantilla(p.id)}>Usar este diseño</button>
                   {guardado && (

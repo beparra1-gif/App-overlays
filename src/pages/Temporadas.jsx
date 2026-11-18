@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api/client';
-import { formatearReloj } from '../marcadores/utils';
 
 // "Temporada" acá no es algo que el usuario cree a mano: es, simplemente,
 // el conjunto de partidos guardados (ver Partidos.jsx → "Guardados") que

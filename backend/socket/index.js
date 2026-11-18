@@ -1,4 +1,6 @@
 import jwt from 'jsonwebtoken';
+import pool from '../db.js';
+import { verificarTokenLector } from '../middleware/auth.js';
 import {
   cargarPartidoPorToken,
   cargarPartidoPorId,
@@ -28,6 +30,11 @@ import {
   relojActual,
   puntosPorPeriodo,
   reiniciarPartido,
+  actualizarSincronizacionCamara,
+  fijarPosesion,
+  detenerPosesionEnCero,
+  relojPosesionActual,
+  asignarAnotacion,
 } from './estadoPartido.js';
 import { cargarEscenaConDiseno } from './escenas.js';
 import { describirJugada } from './jugadas.js';
@@ -47,6 +54,34 @@ const TIPOS_CON_JUGADA = new Set([
 // Mesa — a la escala de partidos simultáneos de un solo usuario, el costo
 // extra de esa lectura es insignificante frente a la garantía de consistencia.
 const partidosConRelojActivo = new Map();
+
+// Estado EN VIVO de la transmisión (no es una regla de juego, no se guarda
+// en la base): marcador oculto, cartel de Entretiempo e Intertanto. Antes
+// vivía solo en el navegador de la Mesa y en el de OBS — si la fuente de
+// OBS se recargaba (o se abría una segunda Mesa), se perdía: el marcador
+// volvía a aparecer en pleno corte, o el botón de la Mesa mostraba el
+// estado equivocado. Ahora el servidor lo recuerda por partido y se lo
+// reenvía a quien se une.
+const transmisionPorToken = new Map();
+function transmision(publicToken) {
+  if (!transmisionPorToken.has(publicToken)) {
+    transmisionPorToken.set(publicToken, { marcadorOculto: false, alerta: null, intertanto: null });
+  }
+  return transmisionPorToken.get(publicToken);
+}
+
+// Config del diseño enlazado a la escena de marcador de un partido — solo
+// se consulta cuando el reloj llega a 0 (para decidir si el Intertanto se
+// muestra solo), no en cada tick.
+async function configDisenoDelPartido(partidoId) {
+  const resultado = await pool.query(
+    `SELECT d.config FROM escenas e JOIN disenos_guardados d ON d.id = e.diseno_id
+     WHERE e.partido_id = $1 AND e.tipo = 'marcador'
+     ORDER BY e.creado_en ASC LIMIT 1`,
+    [partidoId]
+  );
+  return resultado.rows[0]?.config || {};
+}
 
 const roomPartido = (publicToken) => `partido:${publicToken}`;
 const roomEscena = (escenaToken) => `escena:${escenaToken}`;
@@ -73,15 +108,50 @@ function serializarPorToken(manejador) {
   return (datos = {}) => encolarPorToken(datos.publicToken, () => manejador(datos));
 }
 
-function usuarioAutorizado(token, partido) {
-  if (!token) return false;
+// Acciones que puede mandar el lector de marcador por cámara (token de
+// alcance limitado, ver firmarTokenLector) — y qué interruptor de
+// "Marcador por cámara" (Mesa) tiene que estar prendido para cada una.
+const ACCIONES_LECTOR = {
+  RELOJ_FIJAR: 'reloj',
+  RELOJ_INICIAR: 'reloj',
+  RELOJ_PAUSAR: 'reloj',
+  POSESION_FIJAR: 'reloj',
+  PUNTOS_CORREGIR: 'puntos',
+  PERIODO_FIJAR: 'periodo',
+  FALTAS_EQUIPO_CORREGIR: 'faltas',
+};
+
+// 'dueno' (sesión normal del dueño del partido), 'lector' (enlace del
+// lector, solo para ESTE partido) o null. Antes cualquier JWT válido del
+// dueño pasaba, sin mirar su alcance.
+function autorizacion(token, partido) {
+  if (!token) return null;
   try {
     const payload = jwt.verify(token, process.env.JWT_SECRET);
-    return payload.userId === partido.user_id;
+    if (payload.userId !== partido.user_id) return null;
+    if (payload.scope === 'lector') return payload.partidoId === partido.id ? 'lector' : null;
+    if (payload.scope) return null;
+    return 'dueno';
   } catch {
-    return false;
+    return null;
   }
 }
+
+// Último latido de cada lector conectado (por publicToken del partido) —
+// mientras haya un lector vivo y el partido tenga "Marcador por cámara"
+// activo, los puntos/faltas que carga la Mesa NO suman al total (lo manda
+// el marcador físico); si el celular se desconecta, la Mesa vuelve sola a
+// sumar como siempre, sin quedarse congelada.
+const LECTOR_VIVO_MS = 12000;
+const lectoresPorToken = new Map();
+const lectorVivo = (publicToken) => {
+  const l = lectoresPorToken.get(publicToken);
+  return Boolean(l && Date.now() - l.ultimoLatido < LECTOR_VIVO_MS);
+};
+const resumenLector = (publicToken) => {
+  const l = lectoresPorToken.get(publicToken);
+  return { conectado: lectorVivo(publicToken), ultimoLatido: l?.ultimoLatido || null, lecturas: l?.lecturas || null, modo: l?.modo || null };
+};
 
 function buscarJugador(estado, jugadorId) {
   if (!jugadorId) return null;
@@ -101,6 +171,36 @@ export function registrarSocketPartidos(io) {
     io.to(roomPartido(publicTokenPartido)).emit('escena_viewers', { escenaToken, cantidad: cantidadViewers(escenaToken) });
   };
 
+  // Reenvía a UN socket recién unido el estado en vivo de la transmisión
+  // (ver transmisionPorToken) — solo lo que está prendido, para no mandar
+  // eventos de más.
+  const enviarTransmision = (socket, publicToken) => {
+    const t = transmisionPorToken.get(publicToken);
+    if (!t) return;
+    if (t.marcadorOculto) socket.emit('marcador_visibilidad', { oculto: true });
+    if (t.alerta) socket.emit('marcador_alerta', t.alerta);
+    if (t.intertanto) socket.emit('intertanto', t.intertanto);
+  };
+
+  const avisarLector = (publicToken) => io.to(roomPartido(publicToken)).emit('lector_estado', resumenLector(publicToken));
+
+  const emitirIntertanto = (publicToken, datos) => {
+    const t = transmision(publicToken);
+    t.intertanto = datos?.activo ? datos : null;
+    io.to(roomPartido(publicToken)).emit('intertanto', datos?.activo ? datos : { activo: false });
+  };
+
+  // Si el servidor se reinicia con un reloj corriendo, el Map de relojes
+  // activos arrancaba vacío y ese partido dejaba de recibir ticks (y nunca
+  // se frenaba solo en 0). Se reconstruye desde la base al arrancar, y
+  // además cada vez que alguien se une a un partido con el reloj en marcha.
+  const vigilarRelojSiCorre = (partido) => {
+    if (partido?.reloj_corriendo) partidosConRelojActivo.set(partido.id, partido.public_token);
+  };
+  pool.query('SELECT id, public_token, reloj_corriendo FROM partidos WHERE reloj_corriendo = true')
+    .then((r) => r.rows.forEach(vigilarRelojSiCorre))
+    .catch((error) => console.error('[relojes activos al arrancar]', error.message));
+
   io.on('connection', (socket) => {
     // Se recuerda qué escena/partido se unió ESTE socket puntual, para poder
     // recalcular y avisar el conteo de viewers cuando se desconecte (ver
@@ -115,6 +215,7 @@ export function registrarSocketPartidos(io) {
     // escena puntual (diseño, activo, config) sin que el resto se entere.
     socket.on('unirse', async ({ escenaToken } = {}) => {
       if (!escenaToken) return;
+      try {
       const resultado = await cargarEscenaConDiseno(escenaToken);
       if (!resultado) return socket.emit('error_marcador', { error: 'Escena no encontrada' });
       const partido = await cargarPartidoPorId(resultado.escena.partido_id);
@@ -131,7 +232,15 @@ export function registrarSocketPartidos(io) {
       partidoTokenUnido = partido.public_token;
       socket.emit('escena_config', resultado);
       socket.emit('estado', await construirEstado(partido));
+      enviarTransmision(socket, partido.public_token);
+      vigilarRelojSiCorre(partido);
       avisarViewers(partido.public_token, escenaToken);
+      } catch (error) {
+        // Un error de base acá (async, sin catch) era un unhandled
+        // rejection: en Node moderno eso tumba el proceso entero.
+        console.error('[unirse]', error);
+        socket.emit('error_marcador', { error: 'No se pudo cargar la escena' });
+      }
     });
 
     // La Mesa de control no representa ninguna escena en particular — se une
@@ -139,10 +248,47 @@ export function registrarSocketPartidos(io) {
     // REST (`GET /partidos/:id`), sin pasar por una escena.
     socket.on('unirse_mesa', async ({ publicToken } = {}) => {
       if (!publicToken) return;
-      const partido = await cargarPartidoPorToken(publicToken);
-      if (!partido) return socket.emit('error_marcador', { error: 'Partido no encontrado' });
-      socket.join(roomPartido(publicToken));
-      socket.emit('estado', await construirEstado(partido));
+      try {
+        const partido = await cargarPartidoPorToken(publicToken);
+        if (!partido) return socket.emit('error_marcador', { error: 'Partido no encontrado' });
+        socket.join(roomPartido(publicToken));
+        socket.emit('estado', await construirEstado(partido));
+        enviarTransmision(socket, publicToken);
+        socket.emit('lector_estado', resumenLector(publicToken));
+        vigilarRelojSiCorre(partido);
+      } catch (error) {
+        console.error('[unirse_mesa]', error);
+        socket.emit('error_marcador', { error: 'No se pudo cargar el partido' });
+      }
+    });
+
+    // Lector de marcador por cámara (celular en la tribuna, sin login): se
+    // une con su token de alcance limitado y avisa que está vivo con un
+    // latido periódico que trae sus últimas lecturas (para que la Mesa las vea).
+    let lectorDe = null;
+    socket.on('unirse_lector', async ({ lectorToken } = {}) => {
+      try {
+        const datos = verificarTokenLector(lectorToken);
+        if (!datos) return socket.emit('error_marcador', { error: 'El enlace del lector venció o no es válido' });
+        const partido = await cargarPartidoPorId(datos.partidoId);
+        if (!partido || partido.user_id !== datos.userId) return socket.emit('error_marcador', { error: 'Partido no encontrado' });
+        socket.join(roomPartido(partido.public_token));
+        lectorDe = partido.public_token;
+        socket.emit('estado', await construirEstado(partido));
+        vigilarRelojSiCorre(partido);
+      } catch (error) {
+        console.error('[unirse_lector]', error);
+        socket.emit('error_marcador', { error: 'No se pudo conectar el lector' });
+      }
+    });
+    socket.on('lector_latido', ({ lecturas, modo } = {}) => {
+      if (!lectorDe) return;
+      lectoresPorToken.set(lectorDe, {
+        ultimoLatido: Date.now(),
+        lecturas: lecturas && typeof lecturas === 'object' ? lecturas : null,
+        modo: modo === 'auto' ? 'auto' : 'manual',
+      });
+      avisarLector(lectorDe);
     });
 
     // La Mesa pide esto apenas sabe cuál es el token de la escena de
@@ -158,7 +304,21 @@ export function registrarSocketPartidos(io) {
         if (!publicToken || !tipo) throw new Error('Solicitud incompleta');
         const partido = await cargarPartidoPorToken(publicToken);
         if (!partido) throw new Error('Partido no encontrado');
-        if (!usuarioAutorizado(token, partido)) throw new Error('No autorizado para controlar este partido');
+        const rol = autorizacion(token, partido);
+        if (!rol) throw new Error('No autorizado para controlar este partido');
+        const sincronizacion = partido.sincronizacion_camara || {};
+        if (rol === 'lector') {
+          const interruptor = ACCIONES_LECTOR[tipo];
+          if (!interruptor) throw new Error('Acción no permitida para el lector');
+          if (!sincronizacion.activo || !sincronizacion[interruptor]) {
+            throw new Error('La Mesa tiene ese dato en modo manual — activalo en "Marcador por cámara"');
+          }
+        }
+        // Mientras la cámara maneja el marcador (y está viva), las jugadas
+        // de la Mesa registran estadísticas pero no suman al total.
+        const camaraManda = sincronizacion.activo && lectorVivo(publicToken);
+        const sumarMarcador = !(camaraManda && sincronizacion.puntos);
+        const sumarFaltasPeriodo = !(camaraManda && sincronizacion.faltas);
 
         if (tipo === 'NOMINA_REPRODUCIR') {
           if (!MODOS_NOMINA_VALIDOS.includes(payload.modo)) throw new Error('Modo de nómina inválido');
@@ -189,7 +349,19 @@ export function registrarSocketPartidos(io) {
         // mismo criterio que los pulsos de arriba (es un control en vivo de
         // la transmisión, no una regla de juego).
         if (tipo === 'MARCADOR_VISIBILIDAD') {
+          transmision(publicToken).marcadorOculto = !!payload.oculto;
           io.to(roomPartido(publicToken)).emit('marcador_visibilidad', { oculto: !!payload.oculto });
+          return;
+        }
+
+        // Intertanto: panel grande de resumen entre cuartos (marcador,
+        // puntos por cuarto, comparativa y líderes) — mismo criterio que
+        // MARCADOR_ALERTA: control en vivo, no se guarda en la base. Se
+        // apaga solo al volver a arrancar el reloj (ver RELOJ_INICIAR).
+        if (tipo === 'INTERTANTO') {
+          emitirIntertanto(publicToken, payload.activo
+            ? { activo: true, ocultarMarcador: payload.ocultarMarcador !== false, ts: Date.now() }
+            : { activo: false });
           return;
         }
 
@@ -200,7 +372,7 @@ export function registrarSocketPartidos(io) {
         // mismo tamaño de la caja del marcador. `texto` vacío/null apaga la
         // alerta y deja ver el marcador de nuevo.
         if (tipo === 'MARCADOR_ALERTA') {
-          io.to(roomPartido(publicToken)).emit('marcador_alerta', {
+          const alerta = {
             texto: payload.texto ? String(payload.texto).slice(0, 40) : null,
             equipo: EQUIPOS_VALIDOS.includes(payload.equipo) ? payload.equipo : null,
             // "Minuto solicitado" se apaga solo (mismo criterio que un
@@ -209,7 +381,11 @@ export function registrarSocketPartidos(io) {
             // acción (ver dispararAlertaMarcador/solicitarTimeout en
             // Mesa.jsx), acá solo se reenvía el pedido tal cual.
             autoOcultar: !!payload.autoOcultar,
-          });
+          };
+          // Solo se recuerda el cartel "fijo" (Entretiempo); el que se
+          // apaga solo (Minuto solicitado) no tiene sentido reenviarlo.
+          if (!alerta.autoOcultar) transmision(publicToken).alerta = alerta.texto ? alerta : null;
+          io.to(roomPartido(publicToken)).emit('marcador_alerta', alerta);
           return;
         }
 
@@ -244,7 +420,7 @@ export function registrarSocketPartidos(io) {
             if (!EQUIPOS_VALIDOS.includes(payload.equipo)) throw new Error('Equipo inválido');
             const puntos = Number(payload.puntos);
             if (![1, 2, 3].includes(puntos)) throw new Error('Puntos inválidos');
-            actualizado = await registrarPunto(partido, { equipo: payload.equipo, jugadorId: payload.jugadorId || null, puntos });
+            actualizado = await registrarPunto(partido, { equipo: payload.equipo, jugadorId: payload.jugadorId || null, puntos }, { sumarMarcador });
             break;
           }
           case 'PUNTOS_CORREGIR': {
@@ -252,6 +428,11 @@ export function registrarSocketPartidos(io) {
             const puntos = Number(payload.puntos);
             if (!Number.isInteger(puntos) || puntos < 0 || puntos > 999) throw new Error('Puntaje inválido');
             actualizado = await corregirPuntos(partido, { equipo: payload.equipo, puntos });
+            // Marcador por cámara con "preguntar quién anotó": la Mesa
+            // ofrece las jugadoras en cancha de ese equipo.
+            if (rol === 'lector' && sincronizacion.preguntar && actualizado.__correccion?.delta >= 1 && actualizado.__correccion.delta <= 3) {
+              io.to(roomPartido(publicToken)).emit('anotacion_pendiente', { ...actualizado.__correccion, puntos: actualizado.__correccion.delta, ts: Date.now() });
+            }
             break;
           }
           case 'FALTAS_CORREGIR': {
@@ -277,13 +458,13 @@ export function registrarSocketPartidos(io) {
             if (!Number.isInteger(convertidos) || !Number.isInteger(intentos) || convertidos < 0 || convertidos > intentos || intentos < 1 || intentos > 3) {
               throw new Error('Combo de tiros libres inválido');
             }
-            actualizado = await registrarTiroLibre(partido, { equipo: payload.equipo, jugadorId: payload.jugadorId || null, convertidos, intentos });
+            actualizado = await registrarTiroLibre(partido, { equipo: payload.equipo, jugadorId: payload.jugadorId || null, convertidos, intentos }, { sumarMarcador });
             break;
           }
           case 'FALTA': {
             if (!EQUIPOS_VALIDOS.includes(payload.equipo)) throw new Error('Equipo inválido');
             const tipoFalta = TIPOS_FALTA_VALIDOS.includes(payload.tipoFalta) ? payload.tipoFalta : 'personal';
-            actualizado = await registrarFalta(partido, { equipo: payload.equipo, jugadorId: payload.jugadorId || null, tipoFalta });
+            actualizado = await registrarFalta(partido, { equipo: payload.equipo, jugadorId: payload.jugadorId || null, tipoFalta }, { sumarFaltasPeriodo });
             payload.tipoFalta = tipoFalta;
             break;
           }
@@ -313,11 +494,13 @@ export function registrarSocketPartidos(io) {
             actualizado = await alternarPosesion(partido);
             break;
           case 'RELOJ_INICIAR':
-            actualizado = await iniciarReloj(partido);
+            actualizado = await iniciarReloj(partido, Number.isFinite(Number(payload.segundos)) && payload.segundos !== null && payload.segundos !== undefined ? Number(payload.segundos) : null);
             partidosConRelojActivo.set(actualizado.id, publicToken);
+            // Arranca el juego: el Intertanto (si estaba en pantalla) se va solo.
+            if (transmisionPorToken.get(publicToken)?.intertanto) emitirIntertanto(publicToken, { activo: false });
             break;
           case 'RELOJ_PAUSAR':
-            actualizado = await pausarReloj(partido);
+            actualizado = await pausarReloj(partido, Number.isFinite(Number(payload.segundos)) && payload.segundos !== null && payload.segundos !== undefined ? Number(payload.segundos) : null);
             partidosConRelojActivo.delete(actualizado.id);
             break;
           case 'RELOJ_AJUSTAR': {
@@ -339,6 +522,12 @@ export function registrarSocketPartidos(io) {
             partidosConRelojActivo.delete(actualizado.id);
             break;
           }
+          case 'POSESION_FIJAR': {
+            const seg = Number(payload.segundos);
+            if (!Number.isFinite(seg) || seg < 0 || seg > 24) throw new Error('Reloj de posesión inválido');
+            actualizado = await fijarPosesion(partido, seg);
+            break;
+          }
           case 'RELOJ_REINICIAR':
             actualizado = await reiniciarReloj(partido);
             partidosConRelojActivo.delete(actualizado.id);
@@ -350,6 +539,7 @@ export function registrarSocketPartidos(io) {
           case 'PARTIDO_REINICIAR':
             actualizado = await reiniciarPartido(partido, payload, io);
             partidosConRelojActivo.delete(actualizado.id);
+            if (transmisionPorToken.get(publicToken)?.intertanto) emitirIntertanto(publicToken, { activo: false });
             break;
           case 'QUINTETO_ACTUALIZAR': {
             const quintetoLocalIds = Array.isArray(payload.quintetoLocalIds)
@@ -361,6 +551,23 @@ export function registrarSocketPartidos(io) {
             actualizado = await actualizarQuintetos(partido, { quintetoLocalIds, quintetoVisitaIds });
             break;
           }
+          case 'ASIGNAR_ANOTACION': {
+            const eventoId = Number(payload.eventoId);
+            const jugadorId = Number(payload.jugadorId);
+            if (!eventoId || !jugadorId) throw new Error('Anotación inválida');
+            const asignada = await asignarAnotacion(partido, { eventoId, jugadorId });
+            actualizado = partido;
+            payload.equipo = asignada.equipo;
+            payload.jugadorId = jugadorId;
+            payload.puntos = asignada.puntos;
+            payload.convertidos = 1;
+            payload.intentos = 1;
+            payload.tipoJugada = asignada.esLibre ? 'TIRO_LIBRE' : 'PUNTO';
+            break;
+          }
+          case 'SINCRONIZACION_CAMARA':
+            actualizado = await actualizarSincronizacionCamara(partido, payload);
+            break;
           case 'CONVOCADOS_ACTUALIZAR': {
             if (!EQUIPOS_VALIDOS.includes(payload.equipo)) throw new Error('Equipo inválido');
             const ids = Array.isArray(payload.ids) ? payload.ids.map(Number).filter(Number.isFinite) : [];
@@ -374,14 +581,15 @@ export function registrarSocketPartidos(io) {
         const estado = await construirEstado(actualizado);
         io.to(roomPartido(publicToken)).emit('estado', estado);
 
-        if (TIPOS_CON_JUGADA.has(tipo)) {
+        const tipoAnuncio = tipo === 'ASIGNAR_ANOTACION' ? payload.tipoJugada : tipo;
+        if (TIPOS_CON_JUGADA.has(tipoAnuncio)) {
           const equipoNombre = payload.equipo === 'visita' ? estado.equipoVisita.nombre : estado.equipoLocal.nombre;
-          const texto = describirJugada(tipo, payload, {
+          const texto = describirJugada(tipoAnuncio, payload, {
             jugador: buscarJugador(estado, payload.jugadorId),
             jugadorEntra: buscarJugador(estado, jugadorEntraId),
             equipoNombre,
           });
-          if (texto) io.to(roomPartido(publicToken)).emit('jugada', { texto, tipo, equipo: payload.equipo || null, ts: Date.now() });
+          if (texto) io.to(roomPartido(publicToken)).emit('jugada', { texto, tipo: tipoAnuncio, equipo: payload.equipo || null, ts: Date.now() });
         }
       } catch (error) {
         socket.emit('error_marcador', { error: error.message || 'No se pudo aplicar la acción' });
@@ -390,6 +598,10 @@ export function registrarSocketPartidos(io) {
 
     socket.on('disconnect', () => {
       if (escenaUnida && partidoTokenUnido) avisarViewers(partidoTokenUnido, escenaUnida);
+      if (lectorDe) {
+        lectoresPorToken.delete(lectorDe);
+        avisarLector(lectorDe);
+      }
     });
   });
 
@@ -401,10 +613,23 @@ export function registrarSocketPartidos(io) {
           partidosConRelojActivo.delete(partidoId);
           continue;
         }
+        // Reloj de posesión en 0: se detiene y avisa (la bocina la decide
+        // el árbitro; el reloj de juego sigue hasta que lo paren).
+        if (partido.posesion_corriendo && relojPosesionActual(partido) <= 0) {
+          const sinPosesion = await detenerPosesionEnCero(partido);
+          io.to(roomPartido(publicToken)).emit('posesion_cero', { ts: Date.now() });
+          Object.assign(partido, sinPosesion);
+        }
         if (relojActual(partido) <= 0) {
           const detenido = await pausarReloj(partido);
           partidosConRelojActivo.delete(partidoId);
           io.to(roomPartido(publicToken)).emit('estado', await construirEstado(detenido));
+          // Fin del cuarto: si el diseño lo pide (Personalizar → Intertanto
+          // → "Mostrar solo al terminar cada cuarto"), aparece el resumen.
+          const cfg = await configDisenoDelPartido(partidoId);
+          if (cfg.mostrarIntertanto !== false && cfg.intertantoAuto !== false) {
+            emitirIntertanto(publicToken, { activo: true, ocultarMarcador: cfg.intertantoOcultarMarcador !== false, auto: true, ts: Date.now() });
+          }
           continue;
         }
         io.to(roomPartido(publicToken)).emit('estado', await construirEstado(partido));

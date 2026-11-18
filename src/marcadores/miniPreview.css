@@ -220,3 +220,30 @@
   text-transform: uppercase;
   letter-spacing: 0.4px;
 }
+
+/* Fondos simulados de la previsualización grande (Personalizar tablero):
+   el lienzo real es transparente, pero diseñar sobre un damero no deja
+   juzgar contraste. Solo cambian el FONDO del marco, nunca el lienzo. */
+.mini-preview-fondo-cancha {
+  background:
+    radial-gradient(ellipse 22% 38% at 50% 50%, transparent 97%, rgba(255, 255, 255, .55) 98% 99.5%, transparent 100%),
+    linear-gradient(90deg, transparent calc(50% - 1px), rgba(255, 255, 255, .55) calc(50% - 1px) calc(50% + 1px), transparent calc(50% + 1px)),
+    radial-gradient(ellipse 30% 80% at 0% 50%, transparent 97%, rgba(255, 255, 255, .45) 98% 99.5%, transparent 100%),
+    radial-gradient(ellipse 30% 80% at 100% 50%, transparent 97%, rgba(255, 255, 255, .45) 98% 99.5%, transparent 100%),
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, .05) 0 2px, transparent 2px 46px),
+    linear-gradient(180deg, #c98d4f 0%, #b9783c 55%, #a4672f 100%);
+}
+.mini-preview-fondo-oscuro { background: radial-gradient(120% 90% at 50% 30%, #2a3142, #0d1018); }
+.mini-preview-fondo-claro { background: radial-gradient(120% 90% at 50% 30%, #ffffff, #dfe4ec); }
+
+/* Miniaturas del catálogo: enfocadas sobre el marcador (ver
+   MiniPreviewMarcador), así que el damero chico distrae menos con un fondo
+   oscuro liso con un poco de luz. */
+.mini-preview-catalogo {
+  background: radial-gradient(120% 120% at 50% 0%, #2b3245, #0e1119 70%);
+  border-radius: 12px;
+}
+.mini-preview-catalogo .mini-preview-lienzo { transition: transform .35s cubic-bezier(.2, .8, .2, 1); }
+
+.previa-acciones { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; justify-content: flex-end; }
+.previa-cabecera { gap: 10px; flex-wrap: wrap; }

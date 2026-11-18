@@ -1,36 +1,49 @@
 import { useRef } from 'react';
 import { obtenerPlantilla } from './registro';
 import { PARTIDO_DEMO } from './datosDemo';
-import { useEscalaLienzo } from './utils';
+import { useCajaMarcador, useEscalaLienzo } from './utils';
 import LogosLibres from './LogosLibres';
 import ElementosLibres from './ElementosLibres';
 import './miniPreview.css';
 
-// La miniatura de catálogo (tarjetas de "Diseños") — a diferencia de
-// PreviaCombinada (el panel grande de edición), acá no hace falta nómina/
-// estadísticas/anuncios ni nada editable: es una FOTO fija de cómo se ve
-// el marcador solo. Pero SÍ hace falta dibujar LogosLibres/ElementosLibres
-// (de solo lectura, sin `editable`) — si no, cualquier plantilla armada en
-// el Creador (que vive ENTERA en config.creadorElementos, ya que "Creador
-// Libre" es un lienzo en blanco) se ve como una tarjeta vacía en el
-// catálogo, aunque el diseño de verdad tenga contenido. Antes de este
-// cambio pasaba exactamente eso — la miniatura de una plantilla propia no
-// mostraba nada de lo diseñado.
-export default function MiniPreviewMarcador({ plantillaId, config }) {
+// Cuánto del ancho/alto de la miniatura puede ocupar el marcador una vez
+// enfocado, y el zoom máximo (para no pixelar plantillas muy chicas).
+const OCUPACION_ENFOCADO = 0.78;
+const ZOOM_MAXIMO = 4;
+
+// Miniatura del catálogo. Antes mostraba el lienzo entero de 1920×1080
+// escalado: el marcador quedaba como un puntito en una esquina y no se
+// podían comparar los diseños. Con `enfocar` (por defecto) se mide la caja
+// real del marcador y se hace zoom sobre ella, centrada.
+export default function MiniPreviewMarcador({ plantillaId, config, enfocar = true }) {
   const { Componente } = obtenerPlantilla(plantillaId);
-  // Mismo cálculo que PreviaCombinada: la miniatura de catálogo es angosta
-  // (una tarjeta chica), pero tiene que mostrar la plantilla a la misma
-  // proporción relativa que un Browser Source real de 1920×1080 — no un
-  // 0.25 fijo pensado para otro ancho.
   const marcoRef = useRef(null);
   const lienzoRef = useRef(null);
   const escalaLienzo = useEscalaLienzo(marcoRef);
+  const caja = useCajaMarcador(lienzoRef, [plantillaId, config]);
+
+  let escala = escalaLienzo;
+  let pan = { x: 0, y: 0 };
+  if (enfocar && caja && caja.width > 0 && caja.heightAlto > 0) {
+    const zoom = Math.min(ZOOM_MAXIMO, Math.max(1, OCUPACION_ENFOCADO / Math.max(caja.width / 100, caja.heightAlto / 100)));
+    const anchoMarco = escalaLienzo * 1920;
+    const altoMarco = escalaLienzo * 1080;
+    const cx = (caja.left + caja.width / 2) / 100;
+    const cy = (caja.topAlto + caja.heightAlto / 2) / 100;
+    escala = escalaLienzo * zoom;
+    pan = { x: anchoMarco * (0.5 - zoom * cx), y: altoMarco * (0.5 - zoom * cy) };
+  }
+
   return (
-    <div className="mini-preview-marco" ref={marcoRef}>
-      <div className="mini-preview-lienzo" ref={lienzoRef} style={{ '--escala-lienzo': escalaLienzo }}>
+    <div className="mini-preview-marco mini-preview-catalogo" ref={marcoRef}>
+      <div
+        className="mini-preview-lienzo"
+        ref={lienzoRef}
+        style={{ '--escala-lienzo': escala, '--pan-x': `${pan.x}px`, '--pan-y': `${pan.y}px` }}
+      >
         <Componente partido={PARTIDO_DEMO} config={config} />
         <LogosLibres config={config} contenedorRef={lienzoRef} />
-        <ElementosLibres partido={PARTIDO_DEMO} config={config} contenedorRef={lienzoRef} escalaLienzo={escalaLienzo} />
+        <ElementosLibres partido={PARTIDO_DEMO} config={config} contenedorRef={lienzoRef} escalaLienzo={escala} />
       </div>
     </div>
   );

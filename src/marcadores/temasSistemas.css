@@ -1,0 +1,152 @@
+/* GENERADO por generar_temas.py — identidad de cada sistema en todas las capas.
+   Lo que el usuario elige en Personalizar (colores/fuentes por capa) llega
+   como estilo inline y SIEMPRE gana sobre estos valores por defecto. */
+[class*="fam-sx-"] .nomina-jugador,
+[class*="fam-sx-"] .np-tarjeta,
+[class*="fam-sx-"] .np-chip,
+[class*="fam-sx-"] .stats-caja,
+[class*="fam-sx-"] .it-panel,
+[class*="fam-sx-"] .anuncios-toast:not(.anuncios-saliendo),
+[class*="fam-sx-"].alerta-marcador {
+  border-radius: var(--sx-radio);
+  border: var(--sx-borde);
+  box-shadow: var(--sx-sombra);
+  background-image: var(--sx-textura);
+  animation-name: var(--sx-anim);
+  animation-duration: var(--sx-dur);
+  animation-timing-function: var(--sx-ease);
+}
+[class*="fam-sx-"] .np-tarjeta { border-color: var(--color-equipo, var(--pm-banner)); }
+[class*="fam-sx-"] .nomina-titulo, [class*="fam-sx-"] .np-titulo-equipo { font-family: var(--nomina-titulo-fuente, var(--sx-titulo)); text-transform: var(--sx-mayus); letter-spacing: var(--sx-esp); }
+[class*="fam-sx-"] .stats-titulo, [class*="fam-sx-"] .stats-nombre { font-family: var(--estadisticas-titulo-fuente, var(--sx-titulo)); text-transform: var(--sx-mayus); letter-spacing: var(--sx-esp); }
+[class*="fam-sx-"] .stats-titulo, [class*="fam-sx-"] .stats-etiqueta, [class*="fam-sx-"] .stats-fila-encabezado { color: color-mix(in srgb, currentColor 62%, transparent); }
+[class*="fam-sx-"].it-overlay { font-family: var(--intertanto-titulo-fuente, var(--sx-titulo)); --it-fondo: var(--intertanto-fondo, var(--estadisticas-fondo, var(--pm-tablero))); --it-linea: color-mix(in srgb, currentColor 14%, transparent); --it-tenue: color-mix(in srgb, currentColor 60%, transparent); }
+[class*="fam-sx-"] .it-panel { background-color: var(--it-fondo); }
+[class*="fam-sx-"] .it-titulo { color: var(--sx-sobre); text-transform: var(--sx-mayus); }
+[class*="fam-sx-"] .it-bloque, [class*="fam-sx-"] .it-cuartos, [class*="fam-sx-"] .it-puntos { background: color-mix(in srgb, currentColor 6%, transparent); }
+[class*="fam-sx-"] .anuncios-toast { font-family: var(--anuncios-titulo-fuente, var(--sx-titulo)); text-transform: var(--sx-mayus); letter-spacing: var(--sx-esp); }
+[class*="fam-sx-"].alerta-marcador { font-family: var(--sx-titulo); text-transform: var(--sx-mayus); letter-spacing: var(--sx-esp); }
+.fam-sx-crossover { --pm-tablero: #111111; --pm-texto: #f5f3ee; --pm-banner: #c8102e; --pm-marcador: #ffffff; --sx-sobre: #ffffff; --sx-radio: 0; --sx-borde: none; --sx-sombra: 8px 8px 0 rgba(0,0,0,.35); --sx-textura: none; --sx-anim: sx-in-corte; --sx-dur: .42s; --sx-ease: cubic-bezier(.2,1.4,.4,1); --sx-titulo: 'Barlow Condensed', sans-serif; --sx-mayus: uppercase; --sx-esp: 1px; }
+.fam-sx-crossover .nomina-jugador, .fam-sx-crossover .stats-caja, .fam-sx-crossover .anuncios-toast { --sx-skew: -8deg; transform: skewX(-8deg); }
+.fam-sx-crossover .nomina-jugador > *, .fam-sx-crossover .stats-caja > * { transform: skewX(8deg); }
+.fam-sx-crossover .nomina-titulo, .fam-sx-crossover .stats-nombre, .fam-sx-crossover .it-titulo { font-style: italic; font-weight: 800; }
+.fam-sx-crossover .nomina-jugador { border-left: 8px solid var(--color-equipo, var(--pm-banner)); }
+.fam-sx-foco { --pm-tablero: #07090d; --pm-texto: #f4f4f4; --pm-banner: #ffd27a; --pm-marcador: #ffffff; --sx-sobre: #111111; --sx-radio: 4px; --sx-borde: 1px solid rgba(255,210,122,.25); --sx-sombra: 0 30px 70px rgba(0,0,0,.65); --sx-textura: linear-gradient(180deg, rgba(255,226,170,.06), transparent 40%); --sx-anim: sx-in-luz; --sx-dur: .8s; --sx-ease: ease-out; --sx-titulo: 'Chakra Petch', sans-serif; --sx-mayus: uppercase; --sx-esp: 4px; }
+.fam-sx-foco .nomina-jugador, .fam-sx-foco .stats-caja, .fam-sx-foco .it-panel { position: relative; overflow: hidden; }
+.fam-sx-foco .nomina-jugador::after, .fam-sx-foco .stats-caja::after { content: ''; position: absolute; top: 0; bottom: 0; width: 90px; left: -120px; background: linear-gradient(90deg, transparent, rgba(255,226,170,.25), transparent); transform: skewX(-20deg); animation: sx-haz 6s ease-in-out 1s infinite; pointer-events: none; }
+.fam-sx-foco .stats-valor, .fam-sx-foco .it-pts-gana { text-shadow: 0 0 22px rgba(255,210,122,.55); }
+.fam-sx-pizarra { --pm-tablero: #23392f; --pm-texto: #f1f1ea; --pm-banner: #f6d55c; --pm-marcador: #ffffff; --sx-sobre: #23392f; --sx-radio: 6px; --sx-borde: 5px solid #6b4a2b; --sx-sombra: 0 18px 40px rgba(0,0,0,.45), inset 0 0 40px rgba(0,0,0,.35); --sx-textura: radial-gradient(circle at 20% 15%, rgba(255,255,255,.07), transparent 55%), radial-gradient(rgba(255,255,255,.035) 1px, transparent 1.5px) 0 0 / 6px 6px; --sx-anim: sx-in-tiza; --sx-dur: .7s; --sx-ease: steps(6); --sx-titulo: 'Permanent Marker', cursive; --sx-mayus: none; --sx-esp: 1px; }
+.fam-sx-pizarra { font-family: 'Kalam', cursive !important; }
+.fam-sx-pizarra .nomina-dorsal, .fam-sx-pizarra .np-dorsal { border: 2px solid var(--pm-banner); border-radius: 50% 46% 52% 48%; color: var(--pm-banner); }
+.fam-sx-pizarra .stats-valor, .fam-sx-pizarra .it-pts { font-family: 'Permanent Marker', cursive; }
+.fam-sx-pizarra .nomina-titulo::before { content: 'X  O  '; color: var(--pm-banner); }
+.fam-sx-ticket { --pm-tablero: #fff8e7; --pm-texto: #1c1c1c; --pm-banner: #d7263d; --pm-marcador: #1c1c1c; --sx-sobre: #fff8e7; --sx-radio: 2px; --sx-borde: 2px dashed rgba(28,28,28,.45); --sx-sombra: 0 14px 30px rgba(0,0,0,.3); --sx-textura: none; --sx-anim: sx-in-imprime; --sx-dur: .6s; --sx-ease: steps(6); --sx-titulo: 'Big Shoulders Stencil Display', sans-serif; --sx-mayus: uppercase; --sx-esp: 2px; }
+.fam-sx-ticket { font-family: 'Courier Prime', monospace !important; }
+.fam-sx-ticket .stats-grilla { grid-template-columns: 1fr; gap: 0; min-width: 260px; }
+.fam-sx-ticket .stats-item { display: flex; justify-content: space-between; align-items: baseline; padding: 3px 0; border-bottom: 1px dashed rgba(28,28,28,.4); text-align: left; }
+.fam-sx-ticket .stats-item .stats-etiqueta { order: -1; font-size: 13px; color: inherit; }
+.fam-sx-ticket .stats-valor { font-family: 'Courier Prime', monospace; font-size: 20px; }
+.fam-sx-ticket .stats-caja::after, .fam-sx-ticket .it-panel::after { content: 'GRACIAS POR SU VISITA'; display: block; margin-top: 10px; text-align: center; font-size: 11px; letter-spacing: 3px; opacity: .55; }
+.fam-sx-ticket .it-panel::before { background: repeating-linear-gradient(90deg, var(--pm-texto) 0 8px, transparent 8px 14px); height: 3px; }
+.fam-sx-ticket .anuncios-toast:not(.anuncios-saliendo) { border: 3px solid var(--pm-banner); color: var(--pm-banner); rotate: -3deg; font-family: 'Big Shoulders Stencil Display', sans-serif; letter-spacing: 3px; }
+.fam-sx-cromo { --pm-tablero: #0e1a3a; --pm-texto: #ffffff; --pm-banner: #c9a227; --pm-marcador: #ffffff; --sx-sobre: #0e1a3a; --sx-radio: 10px; --sx-borde: 3px solid #c9a227; --sx-sombra: 0 18px 40px rgba(0,0,0,.5); --sx-textura: none; --sx-anim: sx-in-volteo; --sx-dur: .7s; --sx-ease: cubic-bezier(.3,.7,.3,1); --sx-titulo: 'Playfair Display', serif; --sx-mayus: none; --sx-esp: 0; }
+.fam-sx-cromo .nomina-jugador, .fam-sx-cromo .np-tarjeta, .fam-sx-cromo .stats-caja { position: relative; overflow: hidden; }
+.fam-sx-cromo .nomina-jugador::after, .fam-sx-cromo .np-tarjeta::after, .fam-sx-cromo .stats-caja::after { content: ''; position: absolute; inset: 0; background: linear-gradient(115deg, transparent 30%, rgba(255,255,255,.35) 45%, rgba(160,220,255,.25) 52%, transparent 65%); background-size: 250% 100%; animation: sx-holo 5s ease-in-out infinite; pointer-events: none; mix-blend-mode: overlay; }
+.fam-sx-cromo .nomina-titulo, .fam-sx-cromo .stats-nombre, .fam-sx-cromo .it-titulo { font-style: italic; }
+.fam-sx-cromo .np-tarjeta { border-width: 6px; border-color: #c9a227; }
+.fam-sx-metro { --pm-tablero: #ffffff; --pm-texto: #1a1a1a; --pm-banner: #ffd100; --pm-marcador: #1a1a1a; --sx-sobre: #1a1a1a; --sx-radio: 10px; --sx-borde: none; --sx-sombra: 0 12px 30px rgba(0,0,0,.25); --sx-textura: none; --sx-anim: sx-in-linea; --sx-dur: .5s; --sx-ease: cubic-bezier(.2,.9,.3,1); --sx-titulo: 'Overpass', sans-serif; --sx-mayus: none; --sx-esp: 0; }
+.fam-sx-metro .nomina-jugador { padding-left: 38px; }
+.fam-sx-metro .nomina-jugador::before { content: ''; position: absolute; left: 14px; top: 50%; width: 12px; height: 12px; margin-top: -6px; border-radius: 50%; border: 3px solid var(--color-equipo, var(--pm-banner)); background: #fff; }
+.fam-sx-metro .nomina-jugador::after { content: ''; position: absolute; left: 19px; top: -8px; bottom: -8px; width: 4px; background: var(--color-equipo, var(--pm-banner)); z-index: -1; }
+.fam-sx-metro .nomina-titulo, .fam-sx-metro .it-titulo { font-weight: 800; }
+.fam-sx-metro .anuncios-toast:not(.anuncios-saliendo) { background: #1a1a1a; color: var(--pm-banner); }
+.fam-sx-paletas { --pm-tablero: #1b1b1b; --pm-texto: #ede6d6; --pm-banner: #f2c230; --pm-marcador: #f2c230; --sx-sobre: #1b1b1b; --sx-radio: 6px; --sx-borde: 1px solid #000; --sx-sombra: 0 16px 34px rgba(0,0,0,.55); --sx-textura: none; --sx-anim: sx-in-paleta; --sx-dur: .55s; --sx-ease: cubic-bezier(.4,1.6,.5,1); --sx-titulo: 'Share Tech Mono', monospace; --sx-mayus: uppercase; --sx-esp: 3px; }
+.fam-sx-paletas .stats-valor, .fam-sx-paletas .nomina-dorsal, .fam-sx-paletas .it-cuartos-celda, .fam-sx-paletas .it-lider-valor { background: linear-gradient(#141414 0 49%, #0b0b0b 51%); border-radius: 4px; padding: 0 6px; box-shadow: inset 0 0 0 1px #000; color: var(--pm-banner); animation: sx-volteo-x .5s cubic-bezier(.4,1.6,.5,1) both; }
+.fam-sx-paletas .it-pts { color: var(--pm-banner); }
+.fam-sx-riso { --pm-tablero: #f2eee3; --pm-texto: #0078bf; --pm-banner: #ff48b0; --pm-marcador: #ff48b0; --sx-sobre: #f2eee3; --sx-radio: 0; --sx-borde: none; --sx-sombra: 0 10px 24px rgba(0,0,0,.2); --sx-textura: radial-gradient(rgba(0,0,0,.07) 1px, transparent 1.3px) 0 0 / 4px 4px; --sx-anim: sx-in-sello; --sx-dur: .45s; --sx-ease: ease-out; --sx-titulo: 'Archivo Black', sans-serif; --sx-mayus: uppercase; --sx-esp: 1px; }
+.fam-sx-riso { font-family: 'Space Mono', monospace !important; }
+.fam-sx-riso .nomina-titulo, .fam-sx-riso .stats-nombre, .fam-sx-riso .stats-valor, .fam-sx-riso .it-pts, .fam-sx-riso .it-titulo, .fam-sx-riso .nomina-dorsal { color: #ff48b0; text-shadow: 3px 2px 0 rgba(0,120,191,.75); }
+.fam-sx-riso .nomina-jugador:nth-child(odd) { rotate: -.8deg; }
+.fam-sx-riso .nomina-jugador:nth-child(even) { rotate: .8deg; }
+.fam-sx-noventero { --pm-tablero: #fff4d6; --pm-texto: #2d1b4e; --pm-banner: #ffd23f; --pm-marcador: #6b3fa0; --sx-sobre: #2d1b4e; --sx-radio: 18px; --sx-borde: 4px solid #2d1b4e; --sx-sombra: 7px 7px 0 #2d1b4e; --sx-textura: none; --sx-anim: sx-in-rebote; --sx-dur: .6s; --sx-ease: cubic-bezier(.3,1.8,.5,1); --sx-titulo: 'Bowlby One', sans-serif; --sx-mayus: uppercase; --sx-esp: 1px; }
+.fam-sx-noventero .nomina-jugador:nth-child(odd) { rotate: -1.5deg; }
+.fam-sx-noventero .nomina-jugador:nth-child(even) { rotate: 1.5deg; }
+.fam-sx-noventero .nomina-dorsal { background: #00b3a6; color: #fff; border-radius: 14px; border: 3px solid #2d1b4e; }
+.fam-sx-noventero .it-panel::before { height: 10px; background: repeating-linear-gradient(90deg, #ff5f8f 0 18px, #00b3a6 18px 36px, #ffd23f 36px 54px); }
+.fam-sx-pulso { --pm-tablero: #0b0f12; --pm-texto: #e8eef2; --pm-banner: #2bd9a3; --pm-marcador: #ffffff; --sx-sobre: #0b0f12; --sx-radio: 10px; --sx-borde: 1px solid #1d262d; --sx-sombra: 0 18px 40px rgba(0,0,0,.55); --sx-textura: linear-gradient(rgba(43,217,163,.05) 1px, transparent 1px) 0 0 / 100% 12px; --sx-anim: sx-in-ecg; --sx-dur: .8s; --sx-ease: ease-out; --sx-titulo: 'IBM Plex Sans Condensed', sans-serif; --sx-mayus: uppercase; --sx-esp: 2px; }
+.fam-sx-pulso .nomina-jugador { border-left: 3px solid var(--pm-banner); }
+.fam-sx-pulso .stats-valor, .fam-sx-pulso .it-pts { font-variant-numeric: tabular-nums; color: var(--pm-banner); }
+.fam-sx-pulso .nomina-titulo::after, .fam-sx-pulso .stats-titulo::after { content: ' ─╱╲─'; color: var(--pm-banner); letter-spacing: 0; }
+.fam-sx-foto { --pm-tablero: #101418; --pm-texto: #ffffff; --pm-banner: #7b2ff7; --pm-marcador: #ffffff; --sx-sobre: #ffffff; --sx-radio: 4px; --sx-borde: none; --sx-sombra: 0 20px 50px rgba(0,0,0,.55); --sx-textura: none; --sx-anim: sx-in-foto; --sx-dur: .6s; --sx-ease: cubic-bezier(.2,.9,.3,1.1); --sx-titulo: 'League Gothic', sans-serif; --sx-mayus: uppercase; --sx-esp: 1px; }
+.fam-sx-foto { font-family: 'Rubik', sans-serif !important; }
+.fam-sx-foto .nomina-foto-chica { width: 54px !important; height: 54px !important; border-radius: 4px !important; }
+.fam-sx-foto .np-foto { width: 260px !important; height: 300px !important; border-radius: 6px !important; object-fit: cover; }
+.fam-sx-foto .stats-valor, .fam-sx-foto .it-lider-valor { font-family: 'League Gothic', sans-serif; font-size: calc(52px * var(--estadisticas-escala-texto, 1)); }
+.fam-sx-foto .stats-etiqueta { background: var(--pm-banner); color: #fff; padding: 1px 6px; display: inline-block; }
+.fam-sx-foto .it-avatar { width: 70px; height: 70px; border-radius: 6px; }
+.fam-sx-titular { --pm-tablero: #8e1b2c; --pm-texto: #ffffff; --pm-banner: #f7c948; --pm-marcador: #ffffff; --sx-sobre: #8e1b2c; --sx-radio: 0; --sx-borde: none; --sx-sombra: 0 18px 40px rgba(0,0,0,.45); --sx-textura: none; --sx-anim: sx-in-titular; --sx-dur: .55s; --sx-ease: cubic-bezier(.2,.9,.3,1); --sx-titulo: 'Saira Extra Condensed', sans-serif; --sx-mayus: uppercase; --sx-esp: 1px; }
+.fam-sx-titular .nomina-titulo, .fam-sx-titular .stats-nombre { font-size: calc(46px * var(--nomina-escala-titulo, 1)); font-weight: 900; line-height: .9; color: var(--pm-banner); }
+.fam-sx-titular .it-titulo { font-size: 46px; font-weight: 900; border-radius: 0; }
+.fam-sx-titular .nomina-jugador { --sx-skew: -10deg; background: #fff; color: #8e1b2c; transform: skewX(-10deg); }
+.fam-sx-titular .nomina-jugador > * { transform: skewX(10deg); }
+.fam-sx-reacciones { --pm-tablero: #f4f1ec; --pm-texto: #1e1e1e; --pm-banner: #e4572e; --pm-marcador: #1e1e1e; --sx-sobre: #ffffff; --sx-radio: 999px; --sx-borde: none; --sx-sombra: 0 12px 28px rgba(0,0,0,.25); --sx-textura: none; --sx-anim: sx-in-pop; --sx-dur: .5s; --sx-ease: cubic-bezier(.3,1.6,.5,1); --sx-titulo: 'Bricolage Grotesque', sans-serif; --sx-mayus: none; --sx-esp: 0; }
+.fam-sx-reacciones .stats-caja, .fam-sx-reacciones .it-panel, .fam-sx-reacciones .np-tarjeta { border-radius: 28px; }
+.fam-sx-reacciones .nomina-titulo, .fam-sx-reacciones .it-titulo { background: #1e1e1e; color: #f4f1ec; border-radius: 999px; padding: 4px 16px; display: inline-block; font-weight: 800; }
+.fam-sx-reacciones .anuncios-toast:not(.anuncios-saliendo) { background: var(--pm-banner); color: #fff; rotate: -3deg; }
+.fam-sx-modular { --pm-tablero: #15171c; --pm-texto: #ffffff; --pm-banner: #ffd60a; --pm-marcador: #ffffff; --sx-sobre: #15171c; --sx-radio: 0; --sx-borde: none; --sx-sombra: 0 14px 30px rgba(0,0,0,.45); --sx-textura: none; --sx-anim: sx-in-pestana; --sx-dur: .45s; --sx-ease: cubic-bezier(.2,.9,.3,1); --sx-titulo: 'Kanit', sans-serif; --sx-mayus: uppercase; --sx-esp: 1px; }
+.fam-sx-modular .nomina-jugador, .fam-sx-modular .stats-caja, .fam-sx-modular .anuncios-toast { border-left: 6px solid var(--color-equipo, var(--anuncio-color-equipo, var(--pm-banner))); transform-origin: left; }
+.fam-sx-modular .stats-titulo, .fam-sx-modular .nomina-titulo { background: #2a2d33; padding: 2px 10px; display: inline-block; }
+.fam-sx-torneo { --pm-tablero: #ffffff; --pm-texto: #1a1033; --pm-banner: #5b2bd9; --pm-marcador: #1a1033; --sx-sobre: #ffffff; --sx-radio: 14px; --sx-borde: none; --sx-sombra: 0 14px 34px rgba(26,16,51,.3); --sx-textura: none; --sx-anim: sx-in-sube; --sx-dur: .55s; --sx-ease: cubic-bezier(.2,.9,.3,1); --sx-titulo: 'Outfit', sans-serif; --sx-mayus: uppercase; --sx-esp: 1px; }
+.fam-sx-torneo .nomina-jugador { background: linear-gradient(90deg, var(--color-equipo, var(--pm-banner)) 0 8px, #fff 8px); }
+.fam-sx-torneo .nomina-titulo, .fam-sx-torneo .it-titulo, .fam-sx-torneo .stats-titulo { background: linear-gradient(90deg, var(--pm-banner), #c22cff); color: #fff; border-radius: 999px; padding: 3px 14px; display: inline-block; }
+.fam-sx-trapecio { --pm-tablero: #f2f2f2; --pm-texto: #121212; --pm-banner: #e10600; --pm-marcador: #121212; --sx-sobre: #ffffff; --sx-radio: 0; --sx-borde: none; --sx-sombra: 0 18px 40px rgba(0,0,0,.5); --sx-textura: none; --sx-anim: sx-in-ala; --sx-dur: .55s; --sx-ease: cubic-bezier(.2,.9,.3,1); --sx-titulo: 'Michroma', sans-serif; --sx-mayus: uppercase; --sx-esp: 2px; }
+.fam-sx-trapecio .nomina-jugador { clip-path: polygon(3% 0, 97% 0, 100% 100%, 0 100%); }
+.fam-sx-trapecio .stats-titulo, .fam-sx-trapecio .nomina-titulo, .fam-sx-trapecio .it-titulo { background: #121212; color: #fff; padding: 3px 22px; clip-path: polygon(8% 0, 92% 0, 100% 100%, 0 100%); display: inline-block; border-radius: 0; }
+.fam-sx-grunge { --pm-tablero: #1a1a1a; --pm-texto: #f2e8c9; --pm-banner: #e63946; --pm-marcador: #ffffff; --sx-sobre: #1a1a1a; --sx-radio: 0; --sx-borde: none; --sx-sombra: 5px 8px 0 rgba(0,0,0,.45); --sx-textura: radial-gradient(rgba(255,255,255,.08) 1px, transparent 1.6px) 0 0 / 5px 5px; --sx-anim: sx-in-rasgado; --sx-dur: .55s; --sx-ease: cubic-bezier(.3,1.4,.5,1); --sx-titulo: 'Rubik Dirt', sans-serif; --sx-mayus: uppercase; --sx-esp: 1px; }
+.fam-sx-grunge { font-family: 'Special Elite', monospace !important; }
+.fam-sx-grunge .nomina-jugador, .fam-sx-grunge .stats-caja, .fam-sx-grunge .it-panel, .fam-sx-grunge .np-tarjeta, .fam-sx-grunge .anuncios-toast { clip-path: polygon(0 3%, 9% 0, 24% 2%, 39% 0, 55% 3%, 71% 0, 86% 2%, 100% 0, 99% 35%, 100% 70%, 98% 100%, 82% 97%, 64% 100%, 47% 97%, 30% 100%, 13% 97%, 0 100%, 1% 64%, 0 30%); }
+.fam-sx-grunge .nomina-jugador:nth-child(odd) { rotate: -1deg; }
+.fam-sx-brutalista { --pm-tablero: #0d0d0d; --pm-texto: #ffffff; --pm-banner: #ffe500; --pm-marcador: #ffffff; --sx-sobre: #0d0d0d; --sx-radio: 0; --sx-borde: 4px solid #ffffff; --sx-sombra: 10px 10px 0 #ffe500; --sx-textura: none; --sx-anim: sx-in-corte; --sx-dur: .35s; --sx-ease: cubic-bezier(.2,1.4,.4,1); --sx-titulo: 'Dela Gothic One', sans-serif; --sx-mayus: uppercase; --sx-esp: 1px; }
+.fam-sx-brutalista .nomina-dorsal { background: #fff; color: #0d0d0d; }
+.fam-sx-brutalista .stats-etiqueta, .fam-sx-brutalista .it-bloque-titulo { background: var(--pm-banner); color: #0d0d0d; padding: 0 6px; display: inline-block; }
+.fam-sx-suizo { --pm-tablero: #f3f0e8; --pm-texto: #111111; --pm-banner: #e30613; --pm-marcador: #111111; --sx-sobre: #ffffff; --sx-radio: 0; --sx-borde: none; --sx-sombra: 0 14px 40px rgba(0,0,0,.25); --sx-textura: none; --sx-anim: sx-in-linea; --sx-dur: .45s; --sx-ease: cubic-bezier(.2,.9,.3,1); --sx-titulo: 'Inter Tight', sans-serif; --sx-mayus: uppercase; --sx-esp: .08em; }
+.fam-sx-suizo .nomina-titulo::before, .fam-sx-suizo .stats-titulo::before { content: ''; display: inline-block; width: 12px; height: 12px; margin-right: 8px; background: var(--pm-banner); vertical-align: 0; }
+.fam-sx-suizo .nomina-jugador { border-top: 1px solid rgba(17,17,17,.2); }
+.fam-sx-suizo .stats-valor, .fam-sx-suizo .it-pts { font-weight: 800; letter-spacing: -0.04em; }
+.fam-sx-torre { --pm-tablero: #0a0d14; --pm-texto: #ffffff; --pm-banner: #f5c400; --pm-marcador: #ffffff; --sx-sobre: #0b0d12; --sx-radio: 14px; --sx-borde: none; --sx-sombra: 0 16px 40px rgba(0,0,0,.45); --sx-textura: none; --sx-anim: sx-in-baja; --sx-dur: .5s; --sx-ease: cubic-bezier(.2,.9,.3,1); --sx-titulo: 'Big Shoulders Display', sans-serif; --sx-mayus: uppercase; --sx-esp: 1px; }
+.fam-sx-torre .nomina-jugador, .fam-sx-torre .stats-caja { border-left: 6px solid var(--color-equipo, var(--pm-banner)); }
+.fam-sx-momentum { --pm-tablero: #0c0e14; --pm-texto: #ffffff; --pm-banner: #ffd60a; --pm-marcador: #ffffff; --sx-sobre: #0b0d12; --sx-radio: 16px; --sx-borde: none; --sx-sombra: 0 18px 44px rgba(0,0,0,.45); --sx-textura: none; --sx-anim: sx-in-sube; --sx-dur: .55s; --sx-ease: cubic-bezier(.2,.8,.2,1); --sx-titulo: 'Space Grotesk', sans-serif; --sx-mayus: uppercase; --sx-esp: .04em; }
+.fam-sx-momentum .stats-caja, .fam-sx-momentum .it-panel { border-bottom: 6px solid var(--pm-banner); }
+.fam-sx-cancha { --pm-tablero: #13243a; --pm-texto: #ffffff; --pm-banner: #ffb703; --pm-marcador: #ffffff; --sx-sobre: #13243a; --sx-radio: 8px; --sx-borde: 2px solid rgba(255,255,255,.65); --sx-sombra: 0 18px 40px rgba(0,0,0,.45); --sx-textura: radial-gradient(circle at 50% 50%, transparent 38px, rgba(255,255,255,.18) 39px 40px, transparent 41px); --sx-anim: sx-in-pop; --sx-dur: .5s; --sx-ease: ease-out; --sx-titulo: 'Unbounded', sans-serif; --sx-mayus: uppercase; --sx-esp: .1em; }
+.fam-sx-sticker { --pm-tablero: #ffffff; --pm-texto: #1a1a1a; --pm-banner: #ffd60a; --pm-marcador: #1a1a1a; --sx-sobre: #1a1a1a; --sx-radio: 22px; --sx-borde: 5px solid #ffffff; --sx-sombra: 0 6px 0 rgba(0,0,0,.35), 0 14px 26px rgba(0,0,0,.25); --sx-textura: none; --sx-anim: sx-in-rebote; --sx-dur: .55s; --sx-ease: cubic-bezier(.3,1.8,.5,1); --sx-titulo: 'Lilita One', sans-serif; --sx-mayus: none; --sx-esp: 0; }
+.fam-sx-sticker .nomina-jugador { background: var(--color-equipo, var(--pm-banner)); color: #fff; }
+.fam-sx-sticker .nomina-jugador:nth-child(odd) { rotate: -2deg; }
+.fam-sx-sticker .nomina-jugador:nth-child(even) { rotate: 2deg; }
+.fam-sx-terminal { --pm-tablero: #080c0a; --pm-texto: #d1fae5; --pm-banner: #22c55e; --pm-marcador: #ffffff; --sx-sobre: #080c0a; --sx-radio: 10px; --sx-borde: 1px solid rgba(34,197,94,.45); --sx-sombra: 0 14px 34px rgba(0,0,0,.5), 0 0 24px rgba(34,197,94,.15); --sx-textura: linear-gradient(rgba(255,255,255,.025) 50%, transparent 50%) 0 0 / 100% 4px; --sx-anim: sx-in-teclea; --sx-dur: .6s; --sx-ease: steps(8); --sx-titulo: 'JetBrains Mono', monospace; --sx-mayus: none; --sx-esp: 0; }
+.fam-sx-terminal .nomina-titulo::before, .fam-sx-terminal .stats-titulo::before, .fam-sx-terminal .it-bloque-titulo::before { content: '$ '; color: var(--pm-banner); }
+.fam-sx-terminal .nomina-titulo::after, .fam-sx-terminal .stats-titulo::after { content: '█'; margin-left: 4px; animation: sx-cursor 1s steps(1) infinite; color: var(--pm-banner); }
+
+@keyframes sx-in-corte { 0% { opacity: 0; transform: translateX(-60px) skewX(-14deg); } 60% { opacity: 1; transform: translateX(8px) skewX(-8deg); } 100% { opacity: 1; transform: translateX(0) skewX(var(--sx-skew, 0deg)); } }
+@keyframes sx-in-luz { 0% { opacity: 0; filter: brightness(.2); clip-path: inset(0 100% 0 0); } 100% { opacity: 1; filter: brightness(1); clip-path: inset(0); } }
+@keyframes sx-in-tiza { 0% { opacity: 1; clip-path: inset(0 100% 0 0); } 100% { opacity: 1; clip-path: inset(0); } }
+@keyframes sx-in-imprime { 0% { opacity: 1; clip-path: inset(0 0 100% 0); } 100% { opacity: 1; clip-path: inset(0); } }
+@keyframes sx-in-volteo { 0% { opacity: 0; transform: perspective(800px) rotateY(-90deg); } 100% { opacity: 1; transform: perspective(800px) rotateY(0); } }
+@keyframes sx-in-linea { 0% { opacity: 0; transform: scaleX(0); transform-origin: left; } 100% { opacity: 1; transform: scaleX(1); transform-origin: left; } }
+@keyframes sx-in-paleta { 0% { opacity: 0; transform: perspective(500px) rotateX(-90deg); } 70% { opacity: 1; transform: perspective(500px) rotateX(12deg); } 100% { opacity: 1; transform: perspective(500px) rotateX(0); } }
+@keyframes sx-in-sello { 0% { opacity: 0; transform: scale(1.6) rotate(-6deg); } 70% { opacity: 1; transform: scale(.96) rotate(0); } 100% { opacity: 1; transform: scale(1); } }
+@keyframes sx-in-rebote { 0% { opacity: 0; transform: scale(.3) rotate(-8deg); } 60% { opacity: 1; transform: scale(1.12) rotate(3deg); } 100% { opacity: 1; transform: scale(1) rotate(0); } }
+@keyframes sx-in-ecg { 0% { opacity: 1; clip-path: inset(0 100% 0 0); } 100% { opacity: 1; clip-path: inset(0); } }
+@keyframes sx-in-foto { 0% { opacity: 0; clip-path: inset(0 100% 0 0); transform: translateX(-20px); } 100% { opacity: 1; clip-path: inset(0); transform: none; } }
+@keyframes sx-in-titular { 0% { opacity: 1; clip-path: inset(100% 0 0 0); transform: translateY(30px) skewX(var(--sx-skew, 0deg)); } 100% { opacity: 1; clip-path: inset(0); transform: skewX(var(--sx-skew, 0deg)); } }
+@keyframes sx-in-pop { 0% { opacity: 0; transform: scale(.6); } 70% { opacity: 1; transform: scale(1.06); } 100% { opacity: 1; transform: scale(1); } }
+@keyframes sx-in-pestana { 0% { opacity: 0; transform: scaleX(0); } 100% { opacity: 1; transform: scaleX(1); } }
+@keyframes sx-in-sube { 0% { opacity: 0; transform: translateY(30px); } 100% { opacity: 1; transform: none; } }
+@keyframes sx-in-baja { 0% { opacity: 0; transform: translateY(-30px); } 100% { opacity: 1; transform: none; } }
+@keyframes sx-in-ala { 0% { opacity: 0; clip-path: inset(0 50% 0 50%); } 100% { opacity: 1; clip-path: inset(0); } }
+@keyframes sx-in-rasgado { 0% { opacity: 0; transform: translateY(-40px) rotate(-6deg); } 70% { opacity: 1; transform: translateY(4px) rotate(1deg); } 100% { opacity: 1; transform: none; } }
+@keyframes sx-in-teclea { 0% { opacity: 1; clip-path: inset(0 100% 0 0); } 100% { opacity: 1; clip-path: inset(0); } }
+@keyframes sx-haz { 0%, 70% { left: -120px; } 100% { left: 110%; } }
+@keyframes sx-holo { 0%, 60% { background-position: 120% 0; } 100% { background-position: -120% 0; } }
+@keyframes sx-volteo-x { from { transform: perspective(300px) rotateX(-90deg); } to { transform: none; } }
+@keyframes sx-cursor { 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { [class*="fam-sx-"] * { animation-duration: .01ms !important; } }

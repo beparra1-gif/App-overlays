@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '../api/client';
 import { crearSocket } from '../socket';
@@ -6,9 +6,11 @@ import VistaMarcador from '../marcadores/vistas/VistaMarcador';
 import VistaNomina from '../marcadores/vistas/VistaNomina';
 import VistaEstadisticas from '../marcadores/vistas/VistaEstadisticas';
 import VistaAnuncios from '../marcadores/vistas/VistaAnuncios';
+import VistaIntertanto from '../marcadores/vistas/VistaIntertanto';
 import AlertaMarcador from '../marcadores/vistas/AlertaMarcador';
+import RelojPosesion from '../marcadores/RelojPosesion';
 import ErrorBoundary from '../components/ErrorBoundary';
-import { useCajaMarcador, useRelojVivo } from '../marcadores/utils';
+import { aplicarColoresEquipo, equipoParaColores, useCajaMarcador, useRelojVivo } from '../marcadores/utils';
 
 // El payload que viaja por socket (stats_pulso) trae solo lo mínimo; acá se
 // arma la config completa que espera VistaEstadisticas para cada uno de los
@@ -42,6 +44,10 @@ export default function EscenaPublica() {
   // real queda oculto detrás (ver ocultarMarcadorAhora, más abajo) y este
   // cartel ocupa exactamente su lugar.
   const [alertaMarcador, setAlertaMarcador] = useState(null);
+  // Intertanto (resumen grande entre cuartos): null o { ocultarMarcador,
+  // ts, saliendo }. Lo prende/apaga la Mesa (o el servidor solo, al llegar
+  // el reloj a 0 si el diseño lo pide) y se apaga al arrancar el reloj.
+  const [intertanto, setIntertanto] = useState(null);
 
   // Medida real de la caja del marcador, para que Anuncios pueda apilarse
   // sin pisar el título cuando los dos están activos (ver
@@ -98,6 +104,12 @@ export default function EscenaPublica() {
     socket.on('nomina_pulso', ({ modo, ocultarMarcador, jugadorIds, equipo }) => activo && setNomina({ modo, ocultarMarcador, jugadorIds, equipo, ts: Date.now() }));
     socket.on('marcador_visibilidad', ({ oculto }) => activo && setMarcadorOculto(!!oculto));
     socket.on('marcador_alerta', ({ texto, equipo, autoOcultar }) => activo && setAlertaMarcador(texto ? { texto, equipo, autoOcultar: !!autoOcultar, ts: Date.now() } : null));
+    socket.on('intertanto', (d) => {
+      if (!activo) return;
+      if (d?.activo) setIntertanto({ ocultarMarcador: d.ocultarMarcador !== false, ts: d.ts || Date.now() });
+      // Se apaga en dos pasos (fade de salida, después se saca del DOM).
+      else setIntertanto((prev) => (prev ? { ...prev, saliendo: true } : prev));
+    });
     socket.on('jugada', (jugada) => activo && setJugadas((prev) => [jugada, ...prev].slice(0, 5)));
     socket.on('stats_pulso', (payload) => activo && setStats({ ...payload, ts: Date.now() }));
     socket.on('error_marcador', (payload) => activo && setError(payload.error));
@@ -129,6 +141,19 @@ export default function EscenaPublica() {
     return () => { clearTimeout(salir); clearTimeout(sacar); };
   }, [nomina?.ts, duracionNominaMs]);
   useEffect(() => {
+    if (!intertanto?.saliendo) return undefined;
+    const t = setTimeout(() => setIntertanto(null), 450);
+    return () => clearTimeout(t);
+  }, [intertanto?.saliendo]);
+  // Duración opcional (Personalizar → Intertanto): 0/vacío = queda hasta que
+  // arranque el reloj o se apague desde la Mesa.
+  const duracionIntertantoMs = (Number(datos?.diseno?.config?.intertantoDuracionSeg) || 0) * 1000;
+  useEffect(() => {
+    if (!intertanto || intertanto.saliendo || !duracionIntertantoMs) return undefined;
+    const t = setTimeout(() => setIntertanto((prev) => (prev ? { ...prev, saliendo: true } : prev)), duracionIntertantoMs);
+    return () => clearTimeout(t);
+  }, [intertanto?.ts, intertanto?.saliendo, duracionIntertantoMs]);
+  useEffect(() => {
     if (!stats) return undefined;
     const temporizador = setTimeout(() => setStats(null), duracionStatsMs);
     return () => clearTimeout(temporizador);
@@ -159,6 +184,13 @@ export default function EscenaPublica() {
     return () => clearTimeout(temporizador);
   }, [alertaMarcador?.ts, alertaMarcador?.autoOcultar, duracionAnunciosMs]);
 
+  // Colores según equipo: se recalcula solo cuando cambia el equipo que
+  // "manda" el color (p. ej. cuando cambia quién va ganando), no en cada tick.
+  const colorManda = equipoParaColores(datos?.diseno?.config, datos?.partido)?.color || '';
+  const disenoVivo = useMemo(() => (datos?.diseno ? { ...datos.diseno, config: aplicarColoresEquipo(datos.diseno.config || CONFIG_VACIA, datos.partido) } : datos?.diseno),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [datos?.diseno, colorManda]);
+
   if (error || !datos?.partido || !datos?.escena) return null;
   if (datos.escena.eliminada || datos.escena.activo === false) return null;
 
@@ -170,8 +202,8 @@ export default function EscenaPublica() {
       // Anuncios (se activan solos con cada jugada) — cada una según lo que
       // ese diseño tenga habilitado en Personalizar diseño — así alcanza con
       // un solo enlace en OBS en vez de cuatro fuentes.
-      const cfg = datos.diseno?.config || CONFIG_VACIA;
-      const plantillaId = datos.diseno?.plantilla_base;
+      const cfg = disenoVivo?.config || CONFIG_VACIA;
+      const plantillaId = disenoVivo?.plantilla_base;
       // Al disparar nómina/estadísticas desde la Mesa, el que dispara elige
       // (checkbox "Ocultar el marcador mientras se muestra") si el marcador
       // base se tapa mientras esa capa está en pantalla o se queda visible
@@ -179,7 +211,8 @@ export default function EscenaPublica() {
       // interruptor manual (`marcadorOculto`, botón "Marcador Visible/
       // Oculto" en la Mesa) — cualquiera de los tres motivos alcanza para
       // tapar el marcador.
-      const ocultarMarcadorAhora = Boolean((nomina && nomina.ocultarMarcador) || (stats && stats.ocultarMarcador) || marcadorOculto || alertaMarcador);
+      const intertantoVisible = cfg.mostrarIntertanto !== false && intertanto;
+      const ocultarMarcadorAhora = Boolean((nomina && nomina.ocultarMarcador) || (stats && stats.ocultarMarcador) || marcadorOculto || alertaMarcador || (intertantoVisible && intertanto.ocultarMarcador && !intertanto.saliendo));
       // Modo "reemplazar el título por el anuncio" (Personalizar diseño →
       // Anuncios → Cómo convive con el título): mientras hay un aviso en
       // pantalla, el título se apaga del todo y el aviso ocupa exactamente
@@ -193,7 +226,10 @@ export default function EscenaPublica() {
               `oculto`; sacarlo de golpe con un `&&` condicional no dejaba
               lugar para ninguna transición. */}
           <ErrorBoundary>
-            <VistaMarcador partido={{ ...datos.partido, relojSegundos: relojVivo }} diseno={datos.diseno} oculto={ocultarMarcadorAhora} suprimirTitulo={suprimirTitulo} />
+            <VistaMarcador partido={{ ...datos.partido, relojSegundos: relojVivo }} diseno={disenoVivo} oculto={ocultarMarcadorAhora} suprimirTitulo={suprimirTitulo} />
+          </ErrorBoundary>
+          <ErrorBoundary>
+            <RelojPosesion partido={datos.partido} config={cfg} caja={caja} relojJuego={relojVivo} oculto={ocultarMarcadorAhora} />
           </ErrorBoundary>
           {alertaMarcador && (
             <ErrorBoundary>
@@ -231,6 +267,11 @@ export default function EscenaPublica() {
               />
             </ErrorBoundary>
           )}
+          {intertantoVisible && (
+            <ErrorBoundary>
+              <VistaIntertanto key={intertanto.ts} partido={{ ...datos.partido, relojSegundos: relojVivo }} tema={cfg} plantillaId={plantillaId} saliendo={intertanto.saliendo} />
+            </ErrorBoundary>
+          )}
           {cfg.anunciarJugadas && (
             <ErrorBoundary>
               <VistaAnuncios
@@ -253,13 +294,13 @@ export default function EscenaPublica() {
       // interruptor de Mesa ya la prende/apaga.
       return (
         <ErrorBoundary>
-          <VistaNomina partido={datos.partido} modo={nomina?.modo || 'ambos'} claveAnimacion={nomina?.ts || 0} config={datos.diseno?.config} plantillaId={datos.diseno?.plantilla_base} />
+          <VistaNomina partido={datos.partido} modo={nomina?.modo || 'ambos'} claveAnimacion={nomina?.ts || 0} config={disenoVivo?.config} plantillaId={disenoVivo?.plantilla_base} />
         </ErrorBoundary>
       );
     case 'estadisticas':
       return (
         <ErrorBoundary>
-          <VistaEstadisticas partido={datos.partido} config={datos.escena.config} tema={datos.diseno?.config} plantillaId={datos.diseno?.plantilla_base} />
+          <VistaEstadisticas partido={datos.partido} config={datos.escena.config} tema={disenoVivo?.config} plantillaId={disenoVivo?.plantilla_base} />
         </ErrorBoundary>
       );
     case 'anuncios':
@@ -268,8 +309,8 @@ export default function EscenaPublica() {
           <VistaAnuncios
             jugadas={jugadas}
             config={datos.escena.config}
-            tema={datos.diseno?.config}
-            plantillaId={datos.diseno?.plantilla_base}
+            tema={disenoVivo?.config}
+            plantillaId={disenoVivo?.plantilla_base}
             colorLocal={datos.partido.equipoLocal?.color}
             colorVisita={datos.partido.equipoVisita?.color}
           />

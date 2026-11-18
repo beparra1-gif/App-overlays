@@ -140,6 +140,8 @@ export const api = {
   eliminarEscena: (id) => solicitud(`/escenas/${id}`, { method: 'DELETE' }),
 
   obtenerEscenaPublica: (token) => solicitud(`/public/escenas/${token}`, { autenticado: false }),
+  obtenerLector: (token) => solicitud(`/public/lector/${token}`, { autenticado: false }),
+  crearEnlaceLector: (partidoId) => solicitud(`/partidos/${partidoId}/enlace-lector`, { method: 'POST' }),
 
   listarPosiciones: () => solicitud('/posiciones'),
   crearPosicion: (payload) => solicitud('/posiciones', { method: 'POST', body: payload }),

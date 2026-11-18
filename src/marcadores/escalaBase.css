@@ -1,0 +1,30 @@
+/* GENERADO: tamaño base de cada estilo, igualado al Clásico al 90 %
+   (alto de referencia 127px en el lienzo de 1920×1080; ancho máximo
+   800px; nunca achica). `zoom` agranda la caja de verdad (no solo la
+   dibuja más grande), así logos flotantes, anuncios y el reloj de
+   posesión, que se anclan a la caja medida, siguen en su lugar. El
+   "Tamaño general" de cada diseño sigue multiplicando encima. */
+.pn-wrap .pn-barra { zoom: 1.32; } /* NBA League Pass: 460×96 → 609×127 */
+.pu-wrap .pu-caja { zoom: 1.19; } /* NCAA Corner Bug: 220×107 → 261×127 */
+.pcb-wrap .pcb-caja { zoom: 2.00; } /* Corner Bug mínimo: 192×38 → 384×76 */
+.pled-wrap .pled-caja { zoom: 1.04; } /* Retro LED: 292×122 → 304×127 */
+.pcs-wrap .pcs-columna { zoom: 1.09; } /* Card Stack: 170×116 → 186×127 */
+.pcf-wrap .pcf-fila { zoom: 1.10; } /* Circle Focus: 226×115 → 250×127 */
+.pl-wrap .pl-barra { zoom: 1.81; } /* Lower Third: 441×47 → 800×85 */
+.eu-wrap .eu-caja { zoom: 1.23; } /* Euro Divisor: 311×103 → 383×127 */
+.rb-wrap .rb-caja { zoom: 1.18; } /* Record Block: 290×108 → 341×127 */
+.pfb-wrap .pfb-caja { zoom: 1.43; } /* FIBA Broadcast: 477×89 → 681×127 */
+.pht-wrap .pht-caja { zoom: 1.18; } /* HUD Táctico: 527×108 → 620×127 */
+.nvb-wrap .nvb-caja { zoom: 1.06; } /* Brutalista: 505×120 → 534×127 */
+.nvs-wrap .nvs-caja { zoom: 1.14; } /* Suizo Tipográfico: 533×111 → 610×127 */
+.nvm-wrap .nvm-caja { zoom: 1.29; } /* Momentum: 620×86 → 800×111 */
+.nvc-wrap .nvc-caja { zoom: 1.32; } /* Media Cancha: 578×96 → 765×127 */
+.nvk-wrap .nvk-caja { zoom: 1.42; } /* Sticker Pop: 563×88 → 800×125 */
+.sxc-wrap .sxc-caja { zoom: 1.48; } /* Crossover: 541×58 → 800×86 */
+.sxt-wrap .sxt-caja { zoom: 1.34; } /* Ticket y Recibo: 599×74 → 800×99 */
+.sxm-wrap .sxm-caja { zoom: 1.25; } /* Metro: 354×102 → 441×127 */
+.sxn-wrap .sxn-caja { zoom: 1.37; } /* Noventero: 586×88 → 800×120 */
+.sxy-wrap .sxy-caja { zoom: 1.84; } /* Apilado y Reacciones: 427×69 → 786×127 */
+.sxd-wrap .sxd-caja { zoom: 1.38; } /* Marcador Modular: 581×66 → 800×91 */
+.sxe-wrap .sxe-caja { zoom: 1.72; } /* Escudo del Torneo: 288×74 → 494×127 */
+.sxw-wrap .sxw-caja { zoom: 1.37; } /* Alas en Trapecio: 582×76 → 800×104 */

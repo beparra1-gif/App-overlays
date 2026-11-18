@@ -1,16 +1,22 @@
 import { Router } from 'express';
 import { cargarPartidoPorToken, cargarPartidoPorId, construirEstado } from '../socket/estadoPartido.js';
 import { cargarEscenaConDiseno } from '../socket/escenas.js';
+import { verificarTokenLector } from '../middleware/auth.js';
 
 const router = Router();
 
-router.get('/partidos/:token', async (req, res) => {
-  const partido = await cargarPartidoPorToken(req.params.token);
-  if (!partido) return res.status(404).json({ error: 'Marcador no encontrado' });
-  res.json({ partido: await construirEstado(partido) });
+router.get('/partidos/:token', async (req, res, next) => {
+  try {
+    const partido = await cargarPartidoPorToken(req.params.token);
+    if (!partido) return res.status(404).json({ error: 'Marcador no encontrado' });
+    res.json({ partido: await construirEstado(partido) });
+  } catch (error) {
+    next(error);
+  }
 });
 
-router.get('/escenas/:token', async (req, res) => {
+router.get('/escenas/:token', async (req, res, next) => {
+  try {
   const resultado = await cargarEscenaConDiseno(req.params.token);
   if (!resultado) return res.status(404).json({ error: 'Escena no encontrada' });
 
@@ -18,6 +24,23 @@ router.get('/escenas/:token', async (req, res) => {
   if (!partido) return res.status(404).json({ error: 'Partido no encontrado' });
 
   res.json({ escena: resultado.escena, diseno: resultado.diseno, partido: await construirEstado(partido) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Lector de marcador por cámara (enlace/QR sin login): devuelve el estado
+// del partido al que apunta el token. El token no sirve para nada más.
+router.get('/lector/:token', async (req, res, next) => {
+  try {
+    const datos = verificarTokenLector(req.params.token);
+    if (!datos) return res.status(401).json({ error: 'El enlace del lector venció o no es válido. Generá uno nuevo desde la Mesa.' });
+    const partido = await cargarPartidoPorId(datos.partidoId);
+    if (!partido || partido.user_id !== datos.userId) return res.status(404).json({ error: 'Partido no encontrado' });
+    res.json({ partido: await construirEstado(partido) });
+  } catch (error) {
+    next(error);
+  }
 });
 
 export default router;

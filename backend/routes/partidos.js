@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import pool from '../db.js';
-import { authenticate } from '../middleware/auth.js';
+import { authenticate, firmarTokenLector } from '../middleware/auth.js';
 import { construirEstado, reiniciarPartido } from '../socket/estadoPartido.js';
 import { generarToken } from '../utils/token.js';
 
@@ -204,6 +204,15 @@ router.get('/:id', async (req, res) => {
   const partido = await partidoDelUsuario(req.params.id, req.userId);
   if (!partido) return res.status(404).json({ error: 'Partido no encontrado' });
   res.json({ partido: await construirEstado(partido) });
+});
+
+// Enlace (y QR) para el celular que lee el marcador físico con la cámara:
+// un token de alcance limitado a ESTE partido, así no hace falta iniciar
+// sesión en ese celular ni darle acceso al resto de la cuenta.
+router.post('/:id/enlace-lector', async (req, res) => {
+  const partido = await partidoDelUsuario(req.params.id, req.userId);
+  if (!partido) return res.status(404).json({ error: 'Partido no encontrado' });
+  res.json({ token: firmarTokenLector(req.userId, partido.id), expiraEnDias: 7 });
 });
 
 router.put('/:id/quintetos', async (req, res) => {

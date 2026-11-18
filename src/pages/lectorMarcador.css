@@ -1,0 +1,78 @@
+.lm-pagina {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 14px 14px 40px;
+  min-height: 100vh;
+}
+.lm-tarjeta { padding: 24px; border-radius: 16px; background: var(--tarjeta); border: 1px solid var(--borde); }
+.lm-cabecera { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+.lm-cabecera h1 { font-size: 22px; margin: 0; }
+.lm-cabecera p { margin: 2px 0 0; }
+.lm-chip { font-size: 12px; font-weight: 700; padding: 5px 10px; border-radius: 999px; white-space: nowrap; }
+.lm-chip-ok { background: color-mix(in srgb, #16a34a 15%, transparent); color: #16a34a; }
+.lm-chip-off { background: color-mix(in srgb, var(--texto) 8%, transparent); color: var(--texto-tenue); }
+.lm-aviso {
+  font-size: 14px; padding: 10px 12px; border-radius: 12px; margin: 0 0 10px;
+  background: color-mix(in srgb, #f59e0b 12%, transparent); border: 1px solid color-mix(in srgb, #f59e0b 35%, transparent);
+}
+
+.lm-video-marco {
+  position: relative;
+  width: 100%;
+  background: #05070b;
+  border-radius: 14px;
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+  box-shadow: var(--sombra-2);
+}
+.lm-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: fill; display: block; }
+.lm-video-vacio {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center;
+  padding: 20px; color: #cbd5e1; font-size: 14px;
+  background: repeating-linear-gradient(45deg, #0b0f17 0 14px, #0e1320 14px 28px);
+}
+.lm-zona {
+  position: absolute;
+  border: 2px solid var(--lm-color);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--lm-color) 10%, transparent);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, .5);
+}
+.lm-zona-editable { cursor: move; border-style: dashed; }
+.lm-zona-etiqueta {
+  position: absolute; left: -2px; bottom: 100%;
+  font-size: 11px; font-weight: 700; line-height: 1; white-space: nowrap;
+  padding: 3px 6px; border-radius: 5px 5px 5px 0;
+  background: var(--lm-color); color: #fff;
+}
+.lm-zona-esquina {
+  position: absolute; right: -9px; bottom: -9px; width: 22px; height: 22px; border-radius: 50%;
+  background: var(--lm-color); border: 3px solid #fff; cursor: nwse-resize;
+}
+
+.lm-barra { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0; }
+.lm-barra > * { flex: 1 1 auto; justify-content: center; }
+.lm-activo { border-color: var(--primario); color: var(--primario); }
+.lm-zoom { display: flex; flex-direction: column; gap: 4px; font-size: 13px; margin-bottom: 10px; }
+
+.lm-lecturas { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px; }
+.lm-lectura {
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 10px 12px; border-radius: 12px;
+  background: var(--tarjeta); border: 1px solid var(--borde); border-top: 3px solid var(--lm-color);
+}
+.lm-lectura-off { opacity: .55; }
+.lm-lectura-cabeza { display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 13px; }
+.lm-lectura-cabeza em { margin-left: auto; font-style: normal; font-size: 10px; font-weight: 700; text-transform: uppercase; color: var(--texto-tenue); }
+.lm-lectura-valores { display: flex; gap: 10px; }
+.lm-lectura-valores > div { display: flex; flex-direction: column; flex: 1; }
+.lm-lectura-valores small { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: var(--texto-tenue); }
+.lm-lectura-valores strong { font-size: 22px; font-variant-numeric: tabular-nums; }
+.lm-confirmado { color: #16a34a; }
+.lm-vista { width: 100%; height: 36px; object-fit: contain; background: #fff; border-radius: 6px; border: 1px solid var(--borde); }
+.lm-crudo { font-size: 11px; color: var(--texto-tenue); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lm-tendencia { margin: 10px 0 0; }
+.lm-ayuda { margin-top: 16px; padding: 10px 14px; border-radius: 12px; background: var(--tarjeta); border: 1px solid var(--borde); font-size: 14px; }
+.lm-ayuda summary { cursor: pointer; font-weight: 600; }
+.lm-ayuda ul { padding-left: 18px; color: var(--texto-tenue); }
