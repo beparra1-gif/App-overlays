@@ -50,3 +50,12 @@
 .fam-sx-terminal .pm-titulo-texto::before { content: '> '; opacity: .7; }
 .fam-sx-grunge .pm-titulo-texto { rotate: -1.5deg; clip-path: polygon(0 8%, 6% 0, 40% 6%, 70% 0, 100% 7%, 100% 100%, 0 100%); }
 .fam-sx-pizarra .pm-titulo-texto { border: 4px solid #6b4a2b; border-bottom: 0; }
+
+/* Abajo: cuelga del borde inferior (pestaña invertida). Libre: centrado en su punto, pestaña completa. */
+.pm-titulo-abajo { transform: translate(-50%, 0); }
+.pm-titulo-abajo .pm-titulo-texto { border-radius: 0 0 8px 8px; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35); }
+.pm-titulo-libre { transform: translate(-50%, -50%); }
+.pm-titulo-libre .pm-titulo-texto { border-radius: 8px; }
+[class*="fam-sx-"] .pm-titulo-abajo .pm-titulo-texto { border-radius: 0 0 min(var(--sx-radio, 8px), 16px) min(var(--sx-radio, 8px), 16px); border-top: 0; border-bottom: var(--sx-borde, none); }
+[class*="fam-sx-"] .pm-titulo-libre .pm-titulo-texto { border-radius: min(var(--sx-radio, 8px), 16px); border-bottom: var(--sx-borde, none); }
+.fam-sx-trapecio .pm-titulo-abajo .pm-titulo-texto { clip-path: polygon(0 0, 100% 0, calc(100% - 14px) 100%, 14px 100%); }

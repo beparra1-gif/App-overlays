@@ -3,6 +3,7 @@ import pool from '../db.js';
 import { authenticate } from '../middleware/auth.js';
 import { construirEstado } from '../socket/estadoPartido.js';
 import { avisarRosterActualizado } from '../socket/rosterBroadcast.js';
+import { urlFotoJugador } from '../utils/token.js';
 
 const router = Router();
 router.use(authenticate);
@@ -12,7 +13,7 @@ router.use(authenticate);
 // ninguna cargada. Se aplica acá también (no solo en el partido en vivo)
 // para que "Personalizar tablero → Equipos" pueda mostrar/gestionar la foto
 // de cada jugador antes de que exista ningún partido.
-const conFotoUrl = (j) => ({ ...j, fotoUrl: j.tiene_foto ? `/jugadores/${j.id}/foto` : null });
+const conFotoUrl = (j) => ({ ...j, fotoUrl: urlFotoJugador(j) });
 
 async function equipoDelUsuario(equipoId, userId) {
   // Un `id` no numérico en la URL (typo, bot probando rutas, un enlace

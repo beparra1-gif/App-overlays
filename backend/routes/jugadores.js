@@ -3,16 +3,21 @@ import multer from 'multer';
 import pool from '../db.js';
 import { authenticate } from '../middleware/auth.js';
 import { avisarRosterActualizado } from '../socket/rosterBroadcast.js';
+import { urlFotoJugador } from '../utils/token.js';
+import crypto from 'crypto';
 
 const router = Router();
 
 // Sirve la foto — SIN authenticate: se usa como `src` de una <img> directo
 // desde la escena pública (Nómina, disparada en pantalla completa en OBS),
 // que no manda ningún token. Mismo criterio que GET /logos/file/:filename.
-router.get('/:id/foto', async (req, res) => {
-  if (!/^\d+$/.test(String(req.params.id))) return res.status(404).end();
+router.get('/foto/:token', async (req, res) => {
+  if (!/^[0-9a-f]{20,64}$/.test(String(req.params.token))) return res.status(404).end();
   try {
-    const resultado = await pool.query('SELECT mime_type, file_data FROM jugador_fotos WHERE jugador_id = $1', [req.params.id]);
+    const resultado = await pool.query(
+      'SELECT f.mime_type, f.file_data FROM jugador_fotos f JOIN jugadores j ON j.id = f.jugador_id WHERE j.foto_token = $1',
+      [req.params.token]
+    );
     const foto = resultado.rows[0];
     if (!foto) return res.status(404).end();
     res.setHeader('Content-Type', foto.mime_type);
@@ -34,7 +39,7 @@ router.use(authenticate);
 
 // Mismo criterio que en routes/equipos.js: `tiene_foto` (columna barata) se
 // traduce a la ruta pública de la imagen, o null si no hay ninguna cargada.
-const conFotoUrl = (j) => ({ ...j, fotoUrl: j.tiene_foto ? `/jugadores/${j.id}/foto` : null });
+const conFotoUrl = (j) => ({ ...j, fotoUrl: urlFotoJugador(j) });
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -101,9 +106,13 @@ router.post('/:id/foto', (req, res) => {
          ON CONFLICT (jugador_id) DO UPDATE SET mime_type = $2, file_data = $3, actualizado_en = now()`,
         [jugador.id, req.file.mimetype, req.file.buffer]
       );
-      await pool.query('UPDATE jugadores SET tiene_foto = true WHERE id = $1', [jugador.id]);
+      // Token nuevo en cada subida: además evita que OBS siga mostrando la foto vieja en caché.
+      const actualizado = (await pool.query(
+        'UPDATE jugadores SET tiene_foto = true, foto_token = $2 WHERE id = $1 RETURNING *',
+        [jugador.id, crypto.randomBytes(16).toString('hex')]
+      )).rows[0];
       if (!jugador.temporal) await avisarRosterActualizado(req.app.locals.io, jugador.equipo_id, req.userId);
-      res.status(201).json({ tieneFoto: true });
+      res.status(201).json({ tieneFoto: true, fotoUrl: urlFotoJugador(actualizado) });
     } catch (error) {
       console.error('[POST /jugadores/:id/foto]', error);
       res.status(500).json({ error: 'No se pudo guardar la foto' });
@@ -117,7 +126,7 @@ router.delete('/:id/foto', async (req, res) => {
 
   try {
     await pool.query('DELETE FROM jugador_fotos WHERE jugador_id = $1', [jugador.id]);
-    await pool.query('UPDATE jugadores SET tiene_foto = false WHERE id = $1', [jugador.id]);
+    await pool.query('UPDATE jugadores SET tiene_foto = false, foto_token = NULL WHERE id = $1', [jugador.id]);
     if (!jugador.temporal) await avisarRosterActualizado(req.app.locals.io, jugador.equipo_id, req.userId);
     res.status(204).end();
   } catch (error) {
@@ -138,10 +147,13 @@ router.delete('/:id', async (req, res) => {
   const forzar = req.query.forzar === 'true';
 
   try {
-    if (forzar) {
-      await pool.query('DELETE FROM eventos_partido WHERE jugador_id = $1', [jugador.id]);
-    }
-    await pool.query('DELETE FROM jugadores WHERE id = $1', [jugador.id]);
+    // Con "forzar", jugadas y jugadora se borran en UNA sentencia: si falla, no se pierde nada a medias.
+    await pool.query(
+      forzar
+        ? 'WITH ev AS (DELETE FROM eventos_partido WHERE jugador_id = $1) DELETE FROM jugadores WHERE id = $1'
+        : 'DELETE FROM jugadores WHERE id = $1',
+      [jugador.id]
+    );
     if (!jugador.temporal) await avisarRosterActualizado(req.app.locals.io, jugador.equipo_id, req.userId);
     res.status(204).end();
   } catch (error) {
@@ -150,8 +162,8 @@ router.delete('/:id', async (req, res) => {
     // salida ("no se pudo eliminar"); ahora se le dice al frontend CUÁNTAS,
     // para que pueda ofrecer borrarlas junto con el jugador.
     if (error.code === '23503') {
-      const bloqueando = await pool.query('SELECT COUNT(*)::int AS cantidad FROM eventos_partido WHERE jugador_id = $1', [jugador.id]);
-      return res.status(409).json({ error: 'Este jugador tiene jugadas registradas', eventos_bloqueando: bloqueando.rows[0].cantidad });
+      const bloqueando = await pool.query('SELECT COUNT(*)::int AS cantidad FROM eventos_partido WHERE jugador_id = $1', [jugador.id]).catch(() => null);
+      return res.status(409).json({ error: 'Este jugador tiene jugadas registradas', eventos_bloqueando: bloqueando?.rows[0].cantidad ?? null });
     }
     console.error('[DELETE /jugadores/:id]', error);
     res.status(500).json({ error: 'No se pudo eliminar el jugador' });

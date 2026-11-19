@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { api } from '../api/client';
+import { api, setToken } from '../api/client';
 
 function iniciales(usuario) {
   const base = (usuario.nombre || usuario.email || '?').trim();
@@ -74,7 +74,9 @@ function SeccionPassword({ usuario }) {
     }
     setGuardando(true);
     try {
-      await api.cambiarPassword({ passwordActual, passwordNueva });
+      // El servidor cierra las demás sesiones y devuelve un token nuevo para esta.
+      const { token } = await api.cambiarPassword({ passwordActual, passwordNueva });
+      if (token) setToken(token);
       setPasswordActual('');
       setPasswordNueva('');
       setConfirmar('');

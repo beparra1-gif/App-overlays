@@ -23,6 +23,9 @@ import { registrarSocketPartidos } from './socket/index.js';
 dotenv.config();
 
 const app = express();
+// Detrás del balanceador de DigitalOcean: sin esto todos los usuarios llegan
+// con la misma IP y el límite de intentos de login se comparte entre todos.
+app.set('trust proxy', 1);
 const server = http.createServer(app);
 
 const origenesPermitidos = (process.env.FRONTEND_URL || '')

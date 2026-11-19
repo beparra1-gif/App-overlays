@@ -558,6 +558,9 @@ export function estiloAnclaPop(tema = {}, lado, posicion = 'costado', caja = nul
   const posX = caja ? caja.left + caja.width / 2 : (Number.isFinite(tema?.posX) ? tema.posX : 50);
   const posY = caja ? caja.topAlto + caja.heightAlto / 2 : (Number.isFinite(tema?.posY) ? tema.posY : 88);
   const mitad = caja ? { x: caja.width / 2, y: caja.heightAlto / 2 } : mitadCajaProporcional(tema);
+  // Distancia en espejo (px sobre el lienzo de 1920): positivo aleja los dos
+  // lados del tablero (o del punto libre), negativo los acerca.
+  const extra = (Number(tema?.animacionPuntosSeparacion) || 0) / 19.2;
 
   if (posicion === 'centro') {
     return { justifyContent: 'center', alignItems: 'center', paddingLeft: 0, paddingTop: 0 };
@@ -573,7 +576,7 @@ export function estiloAnclaPop(tema = {}, lado, posicion = 'costado', caja = nul
   if (posicion === 'libre') {
     const libreX = Number.isFinite(tema?.animacionPuntosX) ? tema.animacionPuntosX : 50;
     const libreY = Number.isFinite(tema?.animacionPuntosY) ? tema.animacionPuntosY : 50;
-    const separacionLibre = 6;
+    const separacionLibre = Math.max(0, 6 + extra);
     const y = paddingTopDesdeY(Math.max(0, libreY - 4));
     if (lado === 'visita') {
       const x = Math.min(98, libreX + separacionLibre);
@@ -586,16 +589,16 @@ export function estiloAnclaPop(tema = {}, lado, posicion = 'costado', caja = nul
   if (posicion === 'arriba') {
     const arribaY = paddingTopDesdeY(Math.max(0, posY - mitad.y - 16));
     if (lado === 'visita') {
-      const x = Math.min(94, posX + 6);
+      const x = Math.min(98, posX + Math.max(0, 6 + extra));
       return { justifyContent: 'flex-start', alignItems: 'flex-start', paddingLeft: `${x}%`, paddingTop: arribaY };
     }
-    const x = Math.max(6, posX - 6);
+    const x = Math.max(2, posX - Math.max(0, 6 + extra));
     return { justifyContent: 'flex-end', alignItems: 'flex-start', paddingRight: `${100 - x}%`, paddingTop: arribaY };
   }
 
   // 'costado': separación idéntica de los dos lados respecto al borde real
   // de la caja, y cada uno crece "hacia afuera" (nunca hacia el marcador).
-  const separacion = mitad.x + 3;
+  const separacion = Math.max(0, mitad.x + 3 + extra);
   const costadoY = paddingTopDesdeY(Math.max(0, posY - mitad.y - 4));
   if (lado === 'visita') {
     const x = Math.min(98, posX + separacion);
@@ -800,19 +803,48 @@ export function usePatrocinadorActual(patrocinadores) {
 // otra unidad, para quien necesite anclar con `top`/`height` en vez de
 // `padding-top` (como los logos "a los costados": van con `top`/`height`
 // porque tienen que estirarse a lo alto de la caja, no colgar de un punto).
+// Piezas del tablero donde pueden entrar escudos y nombres: la caja misma si
+// tiene fondo propio; si no (p. ej. paneles de color por equipo), el panel
+// de cada costado y todas las piezas grandes de la fila.
+const tieneFondo = (cs) => cs.backgroundImage !== 'none' || !/^(transparent|rgba\([^)]*,\s*0\))$/.test(cs.backgroundColor);
+export const cajaConFondoPropio = (caja) => tieneFondo(getComputedStyle(caja));
+export function piezasDeCaja(caja) {
+  if (cajaConFondoPropio(caja)) return { propia: true, izquierdaEl: caja, derechaEl: caja, grandesEl: [caja] };
+  const altoCaja = caja.getBoundingClientRect().height;
+  const piezas = [...caja.querySelectorAll('*')]
+    .map((el) => ({ el, r: el.getBoundingClientRect() }))
+    .filter(({ el, r }) => r.width > 12 && r.height >= altoCaja * 0.5 && tieneFondo(getComputedStyle(el)));
+  if (!piezas.length) return null;
+  const area = ({ r }) => r.width * r.height;
+  const izquierda = piezas.reduce((a, b) => (b.r.left < a.r.left - 1 || (Math.abs(b.r.left - a.r.left) <= 1 && area(b) > area(a)) ? b : a));
+  const derecha = piezas.reduce((a, b) => (b.r.right > a.r.right + 1 || (Math.abs(b.r.right - a.r.right) <= 1 && area(b) > area(a)) ? b : a));
+  return {
+    propia: false,
+    izquierdaEl: izquierda.el, derechaEl: derecha.el,
+    // Solo las piezas de primer nivel (no las anidadas dentro de otra pieza).
+    grandesEl: piezas.map((p) => p.el).filter((el, _, todas) => !todas.some((o) => o !== el && o.contains(el))),
+  };
+}
+
 // REGLA: un nombre de club largo nunca agranda solo un lado del tablero.
 // Busca en la caja los dos textos que son el nombre de cada equipo y les da
 // el MISMO ancho (el del más largo, con tope); si uno pasa el tope, se achica
 // su letra (hasta 70 %) y recién después se corta con "…".
 const TOPE_NOMBRE_PX = 260;
-export function igualarNombres(raiz, nombres) {
+// Los elementos de texto del tablero que son el nombre de cada equipo:
+// [locales[], visitas[]]. Ignora las copias que dibuja LogoMarcaAgua (.lma-capa).
+export function elementosDeNombres(raiz, nombres) {
   const [a, b] = (nombres || []).map((n) => String(n || '').trim().toLowerCase());
-  if (!raiz || !a || !b) return;
-  const hojas = [...raiz.querySelectorAll('*')].filter((el) => el.children.length === 0 && el.textContent.trim());
+  if (!raiz || !a || !b) return [[], []];
+  const hojas = [...raiz.querySelectorAll('*')].filter((el) => el.children.length === 0 && el.textContent.trim() && !el.closest('.lma-capa'));
   const de = (n) => hojas.filter((el) => el.textContent.trim().toLowerCase() === n);
-  let locales = de(a);
-  let visitas = de(b);
-  if (a === b) { visitas = locales.filter((_, i) => i % 2); locales = locales.filter((_, i) => !(i % 2)); }
+  const locales = de(a);
+  if (a === b) return [locales.filter((_, i) => !(i % 2)), locales.filter((_, i) => i % 2)];
+  return [locales, de(b)];
+}
+
+export function igualarNombres(raiz, nombres) {
+  const [locales, visitas] = elementosDeNombres(raiz, nombres);
   for (let i = 0; i < Math.min(locales.length, visitas.length); i++) {
     const par = [locales[i], visitas[i]];
     for (const el of par) {
@@ -861,6 +893,8 @@ export function useCajaMarcador(contenedorRef, dependencias = [], nombres = null
         height: (rectCaja.height / rectContenedor.width) * 100,
         topAlto: ((rectCaja.top - rectContenedor.top) / rectContenedor.height) * 100,
         heightAlto: (rectCaja.height / rectContenedor.height) * 100,
+        elemento: elementoCaja,
+        fondoPropio: cajaConFondoPropio(elementoCaja),
       });
     };
 

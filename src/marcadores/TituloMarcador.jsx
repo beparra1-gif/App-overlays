@@ -29,9 +29,17 @@ export default function TituloMarcador({ config, plantillaId, caja, suprimir = f
     '--pm-fuente': fuenteEfectiva(config, plantillaId),
     justifyContent: 'flex-start',
     alignItems: 'flex-start',
-    paddingLeft: `${caja.left + caja.width / 2}%`,
-    paddingTop: `${caja.top}%`,
   };
+  // Arriba (pegado al borde superior), abajo (al inferior) o libre (punto elegido).
+  const posicion = config?.tituloPosicion || 'arriba';
+  if (posicion === 'libre') {
+    estilo.inset = 'auto';
+    estilo.left = `${Number.isFinite(config?.tituloX) ? config.tituloX : 50}%`;
+    estilo.top = `${Number.isFinite(config?.tituloY) ? config.tituloY : 70}%`;
+  } else {
+    estilo.paddingLeft = `${caja.left + caja.width / 2}%`;
+    estilo.paddingTop = `${posicion === 'abajo' ? caja.top + caja.height : caja.top}%`;
+  }
   // Tamaño de la pestaña (config.tituloTamano, 100% = el tamaño original de
   // siempre) y color propio (config.colorTitulo/colorTituloTexto) — sin
   // elegir color queda con los mismos --pm-banner/--pm-tablero de siempre
@@ -47,7 +55,7 @@ export default function TituloMarcador({ config, plantillaId, caja, suprimir = f
 
   return (
     <div style={estilo} className={`fam-${familiaDePlantilla(plantillaId)}`}>
-      <div className="pm-titulo-ancla">
+      <div className={`pm-titulo-ancla pm-titulo-${posicion}`}>
         <div className="pm-titulo-texto" style={estiloTexto}>{texto}</div>
       </div>
     </div>

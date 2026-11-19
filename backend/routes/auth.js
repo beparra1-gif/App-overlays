@@ -68,7 +68,7 @@ router.post('/login', limiteLogin, async (req, res) => {
   }
 
   try {
-    const resultado = await pool.query('SELECT id, email, nombre, password_hash, google_id, es_admin, creado_en FROM usuarios WHERE email = $1', [email]);
+    const resultado = await pool.query('SELECT id, email, nombre, password_hash, google_id, es_admin, creado_en, sesion_version FROM usuarios WHERE email = $1', [email]);
     const usuario = resultado.rows[0];
     if (!usuario) return res.status(401).json({ error: 'Credenciales inválidas' });
     // Cuenta creada con Google: nunca tuvo contraseña propia — avisar en vez
@@ -79,7 +79,7 @@ router.post('/login', limiteLogin, async (req, res) => {
     if (!coincide) return res.status(401).json({ error: 'Credenciales inválidas' });
 
     await tocarUltimoUso(usuario.id);
-    const token = firmarToken(usuario.id);
+    const token = firmarToken(usuario.id, usuario.sesion_version);
     res.json({
       token,
       usuario: {
@@ -140,7 +140,11 @@ router.post('/resetear-password', limiteRecuperacion, async (req, res) => {
     if (!fila) return res.status(400).json({ error: 'El enlace es inválido o ya venció — pedí uno nuevo' });
 
     const passwordHash = await bcrypt.hash(password, 10);
-    await pool.query('UPDATE usuarios SET password_hash = $1 WHERE id = $2', [passwordHash, fila.user_id]);
+    // Sube la versión de sesión: cualquier sesión abierta antes (p. ej. un token robado) deja de servir.
+    const { sesion_version: version } = (await pool.query(
+      'UPDATE usuarios SET password_hash = $1, sesion_version = sesion_version + 1 WHERE id = $2 RETURNING sesion_version',
+      [passwordHash, fila.user_id]
+    )).rows[0];
     // Cualquier otro enlace de reseteo pendiente para este usuario queda
     // invalidado — evita que un enlace viejo (por ejemplo reenviado dos
     // veces) siga siendo válido después de ya haber cambiado la contraseña.
@@ -153,7 +157,7 @@ router.post('/resetear-password', limiteRecuperacion, async (req, res) => {
     );
     const usuario = usuarioResultado.rows[0];
     await tocarUltimoUso(usuario.id);
-    const token = firmarToken(usuario.id);
+    const token = firmarToken(usuario.id, version);
     res.json({ token, usuario });
   } catch (error) {
     console.error('[POST /auth/resetear-password]', error);
@@ -179,27 +183,32 @@ router.post('/google', limiteLogin, async (req, res) => {
     const googleId = payload.sub;
     const nombre = payload.name || null;
 
-    const SELECT_USUARIO = 'SELECT id, email, nombre, es_admin, creado_en, password_hash, google_id FROM usuarios';
-    let usuario = (await pool.query(`${SELECT_USUARIO} WHERE google_id = $1`, [googleId])).rows[0];
+    const COLUMNAS = 'id, email, nombre, es_admin, creado_en, password_hash, google_id, sesion_version';
+    let usuario = (await pool.query(`SELECT ${COLUMNAS} FROM usuarios WHERE google_id = $1`, [googleId])).rows[0];
 
     if (!usuario) {
-      usuario = (await pool.query(`${SELECT_USUARIO} WHERE email = $1`, [email])).rows[0];
+      usuario = (await pool.query(`SELECT ${COLUMNAS} FROM usuarios WHERE email = $1`, [email])).rows[0];
       if (usuario) {
-        // Ya había una cuenta con este email (creada con contraseña) — se
-        // vincula Google a ESA cuenta en vez de crear una duplicada; Google
-        // ya verificó que el email es suyo, así que vincular es seguro.
-        await pool.query('UPDATE usuarios SET google_id = $1 WHERE id = $2', [googleId, usuario.id]);
-        usuario.google_id = googleId;
+        // Ya había una cuenta con este email — se vincula Google a ESA
+        // cuenta. Como el registro y el cambio de email no verifican el
+        // email, esa cuenta pudo haberla creado otra persona: se borra la
+        // contraseña y se cierran todas sus sesiones, así queda solo en
+        // manos de quien probó con Google que el email es suyo (después
+        // puede crear una contraseña nueva desde "Mi perfil").
+        usuario = (await pool.query(
+          `UPDATE usuarios SET google_id = $1, password_hash = NULL, sesion_version = sesion_version + 1 WHERE id = $2 RETURNING ${COLUMNAS}`,
+          [googleId, usuario.id]
+        )).rows[0];
       } else {
         usuario = (await pool.query(
-          'INSERT INTO usuarios (email, nombre, google_id) VALUES ($1, $2, $3) RETURNING id, email, nombre, es_admin, creado_en, password_hash, google_id',
+          `INSERT INTO usuarios (email, nombre, google_id) VALUES ($1, $2, $3) RETURNING ${COLUMNAS}`,
           [email, nombre, googleId]
         )).rows[0];
       }
     }
 
     await tocarUltimoUso(usuario.id);
-    const token = firmarToken(usuario.id);
+    const token = firmarToken(usuario.id, usuario.sesion_version);
     res.json({
       token,
       usuario: {
@@ -277,8 +286,12 @@ router.put('/password', authenticate, async (req, res) => {
     }
 
     const passwordHash = await bcrypt.hash(passwordNueva, 10);
-    await pool.query('UPDATE usuarios SET password_hash = $1 WHERE id = $2', [passwordHash, req.userId]);
-    res.json({ ok: true });
+    // Cierra las demás sesiones; esta sigue con el token nuevo que se devuelve.
+    const { sesion_version: version } = (await pool.query(
+      'UPDATE usuarios SET password_hash = $1, sesion_version = sesion_version + 1 WHERE id = $2 RETURNING sesion_version',
+      [passwordHash, req.userId]
+    )).rows[0];
+    res.json({ ok: true, token: firmarToken(req.userId, version) });
   } catch (error) {
     console.error('[PUT /auth/password]', error);
     res.status(500).json({ error: 'No se pudo actualizar la contraseña' });

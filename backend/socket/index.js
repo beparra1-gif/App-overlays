@@ -1,6 +1,5 @@
-import jwt from 'jsonwebtoken';
 import pool from '../db.js';
-import { verificarTokenLector } from '../middleware/auth.js';
+import { verificarSesion, verificarTokenLector } from '../middleware/auth.js';
 import {
   cargarPartidoPorToken,
   cargarPartidoPorId,
@@ -101,7 +100,10 @@ const colaPorToken = new Map();
 function encolarPorToken(publicToken, tarea) {
   const anterior = colaPorToken.get(publicToken) || Promise.resolve();
   const siguiente = anterior.then(tarea, tarea);
-  colaPorToken.set(publicToken, siguiente.catch(() => {}));
+  const cola = siguiente.catch(() => {});
+  colaPorToken.set(publicToken, cola);
+  // Sin tareas pendientes, se saca del Map (si no, crecía con cada partido jugado).
+  cola.then(() => { if (colaPorToken.get(publicToken) === cola) colaPorToken.delete(publicToken); });
   return siguiente;
 }
 function serializarPorToken(manejador) {
@@ -124,17 +126,14 @@ const ACCIONES_LECTOR = {
 // 'dueno' (sesión normal del dueño del partido), 'lector' (enlace del
 // lector, solo para ESTE partido) o null. Antes cualquier JWT válido del
 // dueño pasaba, sin mirar su alcance.
-function autorizacion(token, partido) {
+async function autorizacion(token, partido) {
   if (!token) return null;
-  try {
-    const payload = jwt.verify(token, process.env.JWT_SECRET);
-    if (payload.userId !== partido.user_id) return null;
-    if (payload.scope === 'lector') return payload.partidoId === partido.id ? 'lector' : null;
-    if (payload.scope) return null;
-    return 'dueno';
-  } catch {
-    return null;
-  }
+  // Misma verificación que la API: firma, vencimiento y versión de sesión.
+  const payload = await verificarSesion(token);
+  if (!payload || payload.userId !== partido.user_id) return null;
+  if (payload.scope === 'lector') return payload.partidoId === partido.id ? 'lector' : null;
+  if (payload.scope) return null;
+  return 'dueno';
 }
 
 // Último latido de cada lector conectado (por publicToken del partido) —
@@ -252,6 +251,7 @@ export function registrarSocketPartidos(io) {
         const partido = await cargarPartidoPorToken(publicToken);
         if (!partido) return socket.emit('error_marcador', { error: 'Partido no encontrado' });
         socket.join(roomPartido(publicToken));
+        partidoTokenUnido = publicToken;
         socket.emit('estado', await construirEstado(partido));
         enviarTransmision(socket, publicToken);
         socket.emit('lector_estado', resumenLector(publicToken));
@@ -268,7 +268,7 @@ export function registrarSocketPartidos(io) {
     let lectorDe = null;
     socket.on('unirse_lector', async ({ lectorToken } = {}) => {
       try {
-        const datos = verificarTokenLector(lectorToken);
+        const datos = await verificarTokenLector(lectorToken);
         if (!datos) return socket.emit('error_marcador', { error: 'El enlace del lector venció o no es válido' });
         const partido = await cargarPartidoPorId(datos.partidoId);
         if (!partido || partido.user_id !== datos.userId) return socket.emit('error_marcador', { error: 'Partido no encontrado' });
@@ -304,7 +304,7 @@ export function registrarSocketPartidos(io) {
         if (!publicToken || !tipo) throw new Error('Solicitud incompleta');
         const partido = await cargarPartidoPorToken(publicToken);
         if (!partido) throw new Error('Partido no encontrado');
-        const rol = autorizacion(token, partido);
+        const rol = await autorizacion(token, partido);
         if (!rol) throw new Error('No autorizado para controlar este partido');
         const sincronizacion = partido.sincronizacion_camara || {};
         if (rol === 'lector') {
@@ -602,16 +602,28 @@ export function registrarSocketPartidos(io) {
         lectoresPorToken.delete(lectorDe);
         avisarLector(lectorDe);
       }
+      // Nadie más mirando ese partido: se olvida su estado de transmisión en vivo.
+      const token = partidoTokenUnido || lectorDe;
+      if (token && !io.sockets.adapter.rooms.get(roomPartido(token))?.size) transmisionPorToken.delete(token);
     });
   });
 
+  // Las pantallas calculan el reloj solas (useRelojVivo, desde la hora de
+  // referencia): el estado completo se reenvía cada 5 s solo para
+  // resincronizar, no cada segundo (eran ~11 consultas por partido por segundo).
+  let vuelta = 0;
   setInterval(async () => {
+    vuelta += 1;
     for (const [partidoId, publicToken] of partidosConRelojActivo.entries()) {
+      // Por la misma cola que las acciones: si no, un tick que leyó el partido
+      // ANTES de una anotación emitía después ese estado viejo (58→60→58→60,
+      // y la animación "+2" salía dos veces).
+      await encolarPorToken(publicToken, async () => {
       try {
         const partido = await cargarPartidoPorId(partidoId);
         if (!partido || !partido.reloj_corriendo) {
           partidosConRelojActivo.delete(partidoId);
-          continue;
+          return;
         }
         // Reloj de posesión en 0: se detiene y avisa (la bocina la decide
         // el árbitro; el reloj de juego sigue hasta que lo paren).
@@ -630,12 +642,13 @@ export function registrarSocketPartidos(io) {
           if (cfg.mostrarIntertanto !== false && cfg.intertantoAuto !== false) {
             emitirIntertanto(publicToken, { activo: true, ocultarMarcador: cfg.intertantoOcultarMarcador !== false, auto: true, ts: Date.now() });
           }
-          continue;
+          return;
         }
-        io.to(roomPartido(publicToken)).emit('estado', await construirEstado(partido));
+        if (vuelta % 5 === 0) io.to(roomPartido(publicToken)).emit('estado', await construirEstado(partido));
       } catch (error) {
         console.error('[tick reloj]', error);
       }
+      });
     }
   }, 1000);
 }

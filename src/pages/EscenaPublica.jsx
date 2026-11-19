@@ -218,7 +218,7 @@ export default function EscenaPublica() {
       // pantalla, el título se apaga del todo y el aviso ocupa exactamente
       // su lugar — ver TituloMarcador (prop `suprimir`) y VistaAnuncios
       // (modo 'reemplaza-titulo').
-      const suprimirTitulo = cfg.anunciosTituloModo === 'reemplaza-titulo' && cfg.anunciarJugadas && anuncioVisible;
+      const suprimirTitulo = cfg.anunciosTituloModo === 'reemplaza-titulo' && (cfg.tituloPosicion || 'arriba') === 'arriba' && cfg.anunciarJugadas && anuncioVisible;
       return (
         <div ref={contenedorRef} style={{ position: 'fixed', inset: 0, pointerEvents: 'none' }}>
           {/* Siempre montado (nunca se saca del DOM) — la animación de

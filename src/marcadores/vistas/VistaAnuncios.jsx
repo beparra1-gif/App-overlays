@@ -88,7 +88,8 @@ export default function VistaAnuncios({
   // la caja real medida se resuelve según lo que se eligió en
   // Personalizar diseño → Anuncios; sin ella (o si el modo no es "arriba",
   // o no hay título) se sigue anclando como siempre (estiloAnclaAlerta).
-  const tituloActivo = Boolean(tema?.mostrarTitulo && (tema?.tituloTexto || '').trim());
+  // Solo cuenta si el título está ARRIBA de la caja: abajo o libre no comparte lugar con el aviso.
+  const tituloActivo = Boolean(tema?.mostrarTitulo && (tema?.tituloTexto || '').trim()) && (tema?.tituloPosicion || 'arriba') === 'arriba';
   const conTitulo = modoAlerta === 'arriba' && tituloActivo && caja;
   const modoTituloAnuncio = tema?.anunciosTituloModo || 'arriba-titulo';
 

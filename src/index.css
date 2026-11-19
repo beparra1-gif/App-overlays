@@ -1821,3 +1821,4 @@ input[type='checkbox'], input[type='radio'] { accent-color: var(--primario); }
 .selector-fuente-ejemplo { font-size: 21px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .bloque-ajuste.abierto { overflow: visible; }
 .bloque-ajuste-cuerpo .selector-color { flex: 1 1 200px; min-width: 0; }
+.btn-peligro-link { color: var(--peligro) !important; }

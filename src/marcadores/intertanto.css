@@ -16,10 +16,10 @@ html:has(.it-overlay) { background: transparent; }
      nombres. Los NÚMEROS sí usan la fuente del diseño (--pm-fuente). */
   font-family: var(--intertanto-titulo-fuente, 'Oswald', 'Arial Narrow', sans-serif);
   color: var(--intertanto-texto, var(--estadisticas-texto, var(--pm-texto, #fff)));
-  --it-acento: var(--pm-banner, #ffb703);
+  --it-acento: var(--intertanto-titulo, var(--pm-banner, #ffb703));
   --it-fondo: var(--intertanto-fondo, var(--estadisticas-fondo, rgba(9, 11, 18, 0.9)));
-  --it-linea: rgba(255, 255, 255, 0.1);
-  --it-tenue: rgba(255, 255, 255, 0.58);
+  --it-linea: color-mix(in srgb, currentColor 12%, transparent);
+  --it-tenue: color-mix(in srgb, currentColor 58%, transparent);
   z-index: 40;
 }
 
@@ -135,7 +135,7 @@ html:has(.it-overlay) { background: transparent; }
   font-weight: 700;
   line-height: 1;
   font-variant-numeric: tabular-nums;
-  color: var(--pm-marcador, #fff);
+  color: var(--intertanto-texto, var(--pm-marcador, #fff));
   opacity: .72;
 }
 .it-pts-gana { opacity: 1; text-shadow: 0 0 28px color-mix(in srgb, var(--it-acento) 55%, transparent); }
@@ -185,7 +185,7 @@ html:has(.it-overlay) { background: transparent; }
 .it-gana-cuarto { color: var(--it-acento); font-weight: 700; }
 .it-cuartos-total {
   font-weight: 700;
-  color: var(--pm-marcador, #fff);
+  color: var(--intertanto-texto, var(--pm-marcador, #fff));
   background: rgba(255, 255, 255, 0.07);
 }
 .it-cuartos-encabezado.it-cuartos-total { background: none; color: var(--it-tenue); }
@@ -304,7 +304,7 @@ html:has(.it-overlay) { background: transparent; }
   font-size: calc(36px * var(--intertanto-escala-texto, 1));
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  color: var(--pm-marcador, #fff);
+  color: var(--intertanto-texto, var(--pm-marcador, #fff));
   min-width: 48px;
   text-align: center;
 }
@@ -325,3 +325,16 @@ html:has(.it-overlay) { background: transparent; }
 @media (prefers-reduced-motion: reduce) {
   .it-panel, .it-anim, .it-comp-barra span { animation: none !important; }
 }
+
+/* Lo que el usuario elige en "Estilo visual" del Intertanto manda sobre los
+   colores propios de cada familia (Riso, Paletas, Cristal…). */
+.it-overlay.it-fondo-propio .it-panel {
+  background:
+    radial-gradient(120% 70% at 0% 0%, color-mix(in srgb, var(--it-local) 26%, transparent), transparent 60%),
+    radial-gradient(120% 70% at 100% 0%, color-mix(in srgb, var(--it-visita) 26%, transparent), transparent 60%),
+    var(--intertanto-fondo) !important;
+}
+.it-overlay.it-texto-propio, .it-overlay.it-texto-propio .it-panel,
+.it-overlay.it-texto-propio .it-pts, .it-overlay.it-texto-propio .it-cuartos-celda,
+.it-overlay.it-texto-propio .it-lider-valor, .it-overlay.it-texto-propio .it-comp-num { color: var(--intertanto-texto) !important; text-shadow: none; }
+.it-overlay.it-titulo-propio .it-titulo { background: var(--intertanto-titulo) !important; }

@@ -45,9 +45,7 @@ const CONFIG_INICIAL = {
   logoPosicion: 'costado',
   logoCajaModo: 'dentro',
   logoTamanoMarcador: 40,
-  logoCostadoTamano: 100,
   logoOpacidadMarcador: 100,
-  logoTamanoFondo: 30,
   logoFlotanteOffsetX: 0,
   logoFlotanteOffsetY: 0,
   escala: 1,
@@ -1234,6 +1232,16 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
   const soporte = soporteDePlantilla(plantillaBase);
   const colorBase = coloresPorDefecto(idBasePlantilla(plantillaBase));
   const posicionLogo = config.logoPosicion || 'costado';
+  // Arriba/abajo (dentro del tablero) sirve para todos los diseños; costados/libre
+  // es el modo flotante propio del Clásico (clasicoNombrePosicion).
+  const posicionNombre = ['arriba', 'abajo'].includes(config.nombrePosicion)
+    ? config.nombrePosicion
+    : (soporte.nombreFlotante && config.clasicoNombrePosicion) || 'dentro';
+  const elegirPosicionNombre = (v) => setConfig((c) => ({
+    ...c,
+    nombrePosicion: ['arriba', 'abajo'].includes(v) ? v : 'dentro',
+    clasicoNombrePosicion: ['costados', 'libre'].includes(v) ? v : 'dentro',
+  }));
   const modoCajaLogo = config.logoCajaModo || 'dentro';
   const presetActual = PRESETS_POSICION.find((p) => Math.abs(p.x - posX) < 1.5 && Math.abs(p.y - posY) < 1.5);
   const nombreFuente = (FUENTES_DISPONIBLES.find((f) => f.id && f.id === (config.fuenteMarcador || fuenteDePlantilla(plantillaBase)))?.etiqueta || fuenteDePlantilla(plantillaBase).split(',')[0].replace(/'/g, '')).split(' — ')[0];
@@ -2421,28 +2429,30 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
 
           <Bloque
             id="letras" {...bloque('marcador')} icono="🔤" titulo="Tipografía"
-            resumen={`${nombreFuente} · números ${Number.isFinite(config.tamanoTextoMarcador) ? config.tamanoTextoMarcador : 100}% · nombres ${Number.isFinite(config.tamanoTextoNombre) ? config.tamanoTextoNombre : 100}%`}
+            resumen={`${nombreFuente} · números ${Number.isFinite(config.tamanoTextoMarcador) ? config.tamanoTextoMarcador : 100}% · nombres ${Number.isFinite(config.tamanoTextoNombre) ? config.tamanoTextoNombre : 100}% ${({ dentro: '', arriba: 'arriba', abajo: 'abajo', costados: 'a los costados', libre: 'libre' })[posicionNombre] || ''}`.trim()}
           >
             <label>
               Tipo de letra (se usa también en nómina, estadísticas y anuncios)
               <SelectorFuente value={config.fuenteMarcador} fuentePorDefecto={fuenteDePlantilla(plantillaBase)} onChange={(v) => cambiarConfig('fuenteMarcador', v)} />
             </label>
-            <div className="fila-form">
-              <CampoRango etiqueta="Números" valor={Number.isFinite(config.tamanoTextoMarcador) ? config.tamanoTextoMarcador : 100} min={5} max={220} onChange={(v) => cambiarConfig('tamanoTextoMarcador', v)} />
-              <CampoRango etiqueta="Nombres" valor={Number.isFinite(config.tamanoTextoNombre) ? config.tamanoTextoNombre : 100} min={5} max={220} onChange={(v) => cambiarConfig('tamanoTextoNombre', v)} />
+            <CampoRango etiqueta="Tamaño de los números" valor={Number.isFinite(config.tamanoTextoMarcador) ? config.tamanoTextoMarcador : 100} min={5} max={220} onChange={(v) => cambiarConfig('tamanoTextoMarcador', v)} />
+            <p className="seccion-titulo">Nombre de cada equipo</p>
+            <div className="segmentado segmentado-ancho" role="group" aria-label="Dónde va el nombre de cada equipo">
+              {[
+                { id: 'dentro', etiqueta: 'Como viene' },
+                { id: 'arriba', etiqueta: 'Arriba' },
+                { id: 'abajo', etiqueta: 'Abajo' },
+                ...(soporte.nombreFlotante ? [{ id: 'costados', etiqueta: 'Costados' }, { id: 'libre', etiqueta: 'Libre' }] : []),
+              ].map((o) => (
+                <button key={o.id} type="button" className={posicionNombre === o.id ? 'activo' : ''} aria-pressed={posicionNombre === o.id} onClick={() => elegirPosicionNombre(o.id)}>{o.etiqueta}</button>
+              ))}
             </div>
+            <CampoRango etiqueta="Tamaño del nombre" valor={Number.isFinite(config.tamanoTextoNombre) ? config.tamanoTextoNombre : 100} min={5} max={220} onChange={(v) => cambiarConfig('tamanoTextoNombre', v)} />
+            {['arriba', 'abajo'].includes(config.nombrePosicion) && (
+              <p className="texto-tenue bloque-nota">Va dentro del tablero (que crece lo justo), sobre o bajo su equipo, con la misma letra y color del diseño.</p>
+            )}
             {soporte.nombreFlotante && (
               <>
-                <label>
-                  Dónde va el nombre del equipo
-                  <select value={config.clasicoNombrePosicion || 'dentro'} onChange={(e) => cambiarConfig('clasicoNombrePosicion', e.target.value)}>
-                    <option value="dentro">Adentro, junto al logo y el puntaje</option>
-                    <option value="arriba">Arriba del marcador</option>
-                    <option value="abajo">Abajo del marcador</option>
-                    <option value="costados">A los costados, afuera</option>
-                    <option value="libre">Posición libre</option>
-                  </select>
-                </label>
                 {config.clasicoNombrePosicion && config.clasicoNombrePosicion !== 'dentro' && config.clasicoNombrePosicion !== 'libre' && (
                   <div className="fila-form">
                     <CampoRango
@@ -2468,7 +2478,7 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
 
           <Bloque
             id="logo" {...bloque('marcador')} icono="🛡️" titulo="Escudos de los equipos"
-            resumen={!mostrar(config, 'mostrarLogo') ? 'Ocultos' : (posicionLogo === 'costado' && !soporte.logoAdentro) ? 'Elegí dónde mostrarlos' : ({ costado: 'Dentro del marcador', arriba: 'Arriba, sobre cada equipo', abajo: 'Abajo, bajo cada equipo', costados: `A los costados, ${modoCajaLogo === 'dentro' ? 'dentro de la caja' : 'afuera'}`, fondo: 'Marca de agua', libre: 'Posición libre en espejo' })[posicionLogo]}
+            resumen={!mostrar(config, 'mostrarLogo') ? 'Ocultos' : (posicionLogo === 'costado' && !soporte.logoAdentro) ? 'Elegí dónde mostrarlos' : ({ costado: 'Dentro del marcador', arriba: 'Arriba, sobre cada equipo', abajo: 'Abajo, bajo cada equipo', costados: `A los costados, ${modoCajaLogo === 'dentro' ? 'dentro del tablero' : 'afuera'}`, fondo: 'Dentro del tablero, libre con zoom', libre: 'Posición libre en espejo' })[posicionLogo]}
           >
             <Toggle etiqueta="Mostrar escudos" checked={mostrar(config, 'mostrarLogo')} onChange={(v) => cambiarConfig('mostrarLogo', v)} />
             {mostrar(config, 'mostrarLogo') && (
@@ -2481,7 +2491,7 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
                     <option value="arriba">Arriba, sobre cada equipo</option>
                     <option value="abajo">Abajo, bajo cada equipo</option>
                     <option value="libre">Posición libre (el visita va en espejo)</option>
-                    <option value="fondo">Marca de agua detrás del marcador</option>
+                    <option value="fondo">Dentro del tablero, libre con zoom (sin agrandar la caja)</option>
                   </select>
                 </label>
                 {['arriba', 'abajo', 'costados'].includes(posicionLogo) && (
@@ -2491,16 +2501,20 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
                   </div>
                 )}
                 <div className="fila-form">
-                  {posicionLogo === 'costados' && modoCajaLogo === 'dentro'
-                    ? <CampoRango etiqueta="Zoom del escudo (no agranda la caja)" valor={Number.isFinite(config.logoZoomCaja) ? config.logoZoomCaja : 80} min={30} max={100} onChange={(v) => cambiarConfig('logoZoomCaja', v)} />
-                    : posicionLogo !== 'fondo' && <CampoRango etiqueta="Tamaño" valor={Number.isFinite(config.logoTamanoMarcador) ? config.logoTamanoMarcador : 40} unidad="px" min={20} max={180} onChange={(v) => cambiarConfig('logoTamanoMarcador', v)} />}
+                  {posicionLogo !== 'fondo' && (
+                    <CampoRango
+                      etiqueta={['arriba', 'abajo', 'costados'].includes(posicionLogo) && modoCajaLogo === 'dentro' ? 'Tamaño (el tablero crece lo justo)' : 'Tamaño'}
+                      valor={Number.isFinite(config.logoTamanoMarcador) ? config.logoTamanoMarcador : 40} unidad="px" min={16} max={180}
+                      onChange={(v) => cambiarConfig('logoTamanoMarcador', v)}
+                    />
+                  )}
                   <CampoRango etiqueta="Opacidad" valor={Number.isFinite(config.logoOpacidadMarcador) ? config.logoOpacidadMarcador : 100} min={10} max={100} onChange={(v) => cambiarConfig('logoOpacidadMarcador', v)} />
                 </div>
-                {['arriba', 'abajo', 'costados'].includes(posicionLogo) && (
+                {['arriba', 'abajo', 'costados'].includes(posicionLogo) && modoCajaLogo === 'fuera' && (
                   <div className="fila-form">
                     <CampoRango
                       etiqueta={posicionLogo === 'costados' ? 'Separación del tablero' : 'Corrimiento horizontal'}
-                      valor={Number.isFinite(config.logoFlotanteOffsetX) ? config.logoFlotanteOffsetX : 0} unidad="px" min={posicionLogo === 'costados' && modoCajaLogo === 'dentro' ? 0 : -300} max={300} step={5}
+                      valor={Number.isFinite(config.logoFlotanteOffsetX) ? config.logoFlotanteOffsetX : 0} unidad="px" min={-300} max={300} step={5}
                       onChange={(v) => cambiarConfig('logoFlotanteOffsetX', v)}
                     />
                     <CampoRango etiqueta="Corrimiento vertical" valor={Number.isFinite(config.logoFlotanteOffsetY) ? config.logoFlotanteOffsetY : 0} unidad="px" min={-200} max={200} step={5} onChange={(v) => cambiarConfig('logoFlotanteOffsetY', v)} />
@@ -2513,7 +2527,14 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
                   </div>
                 )}
                 {posicionLogo === 'fondo' && (
-                  <CampoRango etiqueta="Tamaño de la marca de agua" valor={config.logoTamanoFondo} min={5} max={90} onChange={(v) => cambiarConfig('logoTamanoFondo', v)} ayuda="Si tapa los números, bajá la opacidad a 30-40%." />
+                  <>
+                    <div className="fila-form">
+                      <CampoRango etiqueta="Escudo local ↔ (visita en espejo)" valor={Number.isFinite(config.logoFondoX) ? config.logoFondoX : 22} min={0} max={50} onChange={(v) => cambiarConfig('logoFondoX', v)} />
+                      <CampoRango etiqueta="Altura ↕" valor={Number.isFinite(config.logoFondoY) ? config.logoFondoY : 50} min={0} max={100} onChange={(v) => cambiarConfig('logoFondoY', v)} />
+                    </div>
+                    <CampoRango etiqueta="Zoom (más del 100 % queda cortado por el borde)" valor={Number.isFinite(config.logoFondoZoom) ? config.logoFondoZoom : 120} min={20} max={400} step={5} onChange={(v) => cambiarConfig('logoFondoZoom', v)} />
+                    <p className="texto-tenue bloque-nota">Va detrás de los números; si los tapa, bajá la opacidad a 25-40 %.</p>
+                  </>
                 )}
               </>
             )}
@@ -2565,7 +2586,7 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
               : <p className="texto-tenue bloque-nota">Este diseño no muestra la flecha de posesión.</p>}
           </Bloque>
 
-          <Bloque id="titulo" {...bloque('marcador')} icono="🏷️" titulo="Título del partido" resumen={config.mostrarTitulo ? (config.tituloTexto || 'Sin texto') : 'Oculto'}>
+          <Bloque id="titulo" {...bloque('marcador')} icono="🏷️" titulo="Título del partido" resumen={config.mostrarTitulo ? `${config.tituloTexto || 'Sin texto'} · ${({ arriba: 'arriba', abajo: 'abajo', libre: 'libre' })[config.tituloPosicion || 'arriba']}` : 'Oculto'}>
             <Toggle etiqueta="Mostrar título" checked={Boolean(config.mostrarTitulo)} onChange={(v) => cambiarConfig('mostrarTitulo', v)} />
             {config.mostrarTitulo && (
               <>
@@ -2573,6 +2594,17 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
                   Texto
                   <input value={config.tituloTexto || ''} onChange={(e) => cambiarConfig('tituloTexto', e.target.value)} placeholder="Ej: Semifinal — Liga Regional 2026" maxLength={60} />
                 </label>
+                <div className="segmentado segmentado-ancho" role="group" aria-label="Ubicación del título">
+                  {[{ id: 'arriba', etiqueta: 'Arriba' }, { id: 'abajo', etiqueta: 'Abajo' }, { id: 'libre', etiqueta: 'Libre' }].map((o) => (
+                    <button key={o.id} type="button" className={(config.tituloPosicion || 'arriba') === o.id ? 'activo' : ''} onClick={() => cambiarConfig('tituloPosicion', o.id)}>{o.etiqueta}</button>
+                  ))}
+                </div>
+                {config.tituloPosicion === 'libre' && (
+                  <div className="fila-form">
+                    <CampoRango etiqueta="Horizontal" valor={Number.isFinite(config.tituloX) ? config.tituloX : 50} min={0} max={100} onChange={(v) => cambiarConfig('tituloX', v)} />
+                    <CampoRango etiqueta="Vertical" valor={Number.isFinite(config.tituloY) ? config.tituloY : 70} min={0} max={100} onChange={(v) => cambiarConfig('tituloY', v)} />
+                  </div>
+                )}
                 <CampoRango etiqueta="Tamaño" valor={Number.isFinite(config.tituloTamano) ? config.tituloTamano : 100} min={5} max={200} onChange={(v) => cambiarConfig('tituloTamano', v)} />
                 <div className="fila-form" style={{ alignItems: 'stretch' }}>
                   <SelectorColor etiqueta="Fondo" valor={config.colorTitulo} alpha={config.colorTituloAlpha} porDefecto={colorBase.banner} onCambiarColor={(v) => cambiarConfig('colorTitulo', v)} onCambiarAlpha={(v) => cambiarConfig('colorTituloAlpha', v)} />
@@ -2621,6 +2653,15 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
                     <option value="libre">Posición libre (arrastrá el punto azul en la vista previa)</option>
                   </select>
                 </label>
+                {(config.animacionPuntosPosicion || 'costado') !== 'centro' && (
+                  <CampoRango
+                    etiqueta="Distancia del tablero (local y visita en espejo)"
+                    valor={Number.isFinite(config.animacionPuntosSeparacion) ? config.animacionPuntosSeparacion : 0}
+                    unidad="px" min={-200} max={400} step={5}
+                    onChange={(v) => cambiarConfig('animacionPuntosSeparacion', v)}
+                    ayuda="Positivo los aleja, negativo los acerca. Los dos lados se mueven igual."
+                  />
+                )}
                 {config.animacionPuntosPosicion === 'libre' && (
                   <div className="fila-form">
                     <CampoRango etiqueta="Horizontal" valor={Math.round(Number.isFinite(config.animacionPuntosX) ? config.animacionPuntosX : 50)} min={0} max={100} onChange={(v) => cambiarConfig('animacionPuntosX', v)} />
@@ -3100,7 +3141,7 @@ export default function Disenos() {
   const eliminarVariante = async (diseno) => {
     const mensaje = diseno.partido_activo_id
       ? `"${diseno.nombre}" tiene un partido en curso: si lo eliminás, su enlace de OBS deja de mostrar este diseño. ¿Eliminar igual? No se puede deshacer.`
-      : `¿Eliminar la variante "${diseno.nombre}"? No se puede deshacer.`;
+      : `¿Eliminar el diseño "${diseno.nombre}"? No se puede deshacer (el estilo sigue disponible en el catálogo).`;
     if (!window.confirm(mensaje)) return;
     try {
       await api.eliminarDiseno(diseno.id);
@@ -3184,9 +3225,7 @@ export default function Disenos() {
                   <button className="btn-secundario btn-chico" title="Crea una variante independiente (mismo estilo, otro enlace de OBS)" onClick={() => duplicarDiseno(d)}>⧉ Duplicar</button>
                   <button className="btn-secundario btn-chico" onClick={() => renombrarDiseno(d)}>Renombrar</button>
                   <button className="btn-secundario btn-chico" title="Descargar como .json" onClick={() => descargarDiseno(d.nombre, d.plantilla_base, d.config || {})}>⬇</button>
-                  {esVariante(d.plantilla_base) && (
-                    <button className="btn-link" onClick={() => eliminarVariante(d)}>Eliminar</button>
-                  )}
+                  <button className="btn-link btn-peligro-link" onClick={() => eliminarVariante(d)}>🗑 Eliminar</button>
                 </div>
               </div>
             ))}

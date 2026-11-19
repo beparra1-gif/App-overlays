@@ -33,7 +33,7 @@ router.get('/escenas/:token', async (req, res, next) => {
 // del partido al que apunta el token. El token no sirve para nada más.
 router.get('/lector/:token', async (req, res, next) => {
   try {
-    const datos = verificarTokenLector(req.params.token);
+    const datos = await verificarTokenLector(req.params.token);
     if (!datos) return res.status(401).json({ error: 'El enlace del lector venció o no es válido. Generá uno nuevo desde la Mesa.' });
     const partido = await cargarPartidoPorId(datos.partidoId);
     if (!partido || partido.user_id !== datos.userId) return res.status(404).json({ error: 'Partido no encontrado' });

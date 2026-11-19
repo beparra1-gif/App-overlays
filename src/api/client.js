@@ -48,7 +48,7 @@ async function solicitud(path, { method = 'GET', body, autenticado = true } = {}
 
 export const urlLogo = (filename) => `${API_BASE_URL}/logos/file/${filename}`;
 // `jugador.fotoUrl` (si tiene foto) ya viene como ruta relativa a la API
-// (`/jugadores/:id/foto`, ver cargarRoster en el backend) — se arma la URL
+// (`/jugadores/foto/:token`, un token al azar; ver urlFotoJugador en backend/utils/token.js) — se arma la URL
 // completa acá, mismo criterio que urlLogo.
 export const urlFotoJugador = (fotoUrl) => (fotoUrl ? `${API_BASE_URL}${fotoUrl}` : null);
 

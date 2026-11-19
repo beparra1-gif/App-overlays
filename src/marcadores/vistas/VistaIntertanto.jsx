@@ -91,7 +91,7 @@ export default function VistaIntertanto({ partido, tema = {}, plantillaId, salie
   const sinDetalle = lideres.length === 0 && comparativa.length === 0;
 
   return (
-    <div className={`it-overlay fam-${familia} ${saliendo ? 'it-saliendo' : ''}`} style={estilo}>
+    <div className={`it-overlay fam-${familia} ${saliendo ? 'it-saliendo' : ''} ${tema.intertantoColorFondo ? 'it-fondo-propio' : ''} ${tema.intertantoColorTexto ? 'it-texto-propio' : ''} ${tema.intertantoColorTitulo ? 'it-titulo-propio' : ''}`} style={estilo}>
       <div className={`it-panel ${sinDetalle ? 'it-panel-compacto' : ''}`}>
         <div className="it-cabecera it-anim" style={{ '--it-delay': '0ms' }}>
           <span className="it-titulo">{titulo}</span>

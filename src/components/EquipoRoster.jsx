@@ -105,8 +105,8 @@ export default function EquipoRoster({
     setError('');
     setSubiendoFotoId(jugador.id);
     try {
-      await api.subirFotoJugador(jugador.id, archivo);
-      onJugadorEditado?.({ ...jugador, fotoUrl: `/jugadores/${jugador.id}/foto` });
+      const { fotoUrl } = await api.subirFotoJugador(jugador.id, archivo);
+      onJugadorEditado?.({ ...jugador, fotoUrl });
     } catch (err) {
       setError(err.message);
     } finally {

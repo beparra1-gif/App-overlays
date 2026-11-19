@@ -196,7 +196,7 @@ export default function PreviaCombinada({
   // abajo ya vienen apagados solos para lo que no es la pestaña activa).
   const opacidadDe = (capa) => (modo === 'general' || modo === capa ? 1 : OPACIDAD_CONTEXTO);
   const opacidadMarcador = modo === 'anuncios' ? 1 : opacidadDe('marcador');
-  const suprimirTitulo = (modo === 'general' || modo === 'anuncios') && conAnuncios && config?.anunciosTituloModo === 'reemplaza-titulo';
+  const suprimirTitulo = (modo === 'general' || modo === 'anuncios') && conAnuncios && config?.anunciosTituloModo === 'reemplaza-titulo' && (config?.tituloPosicion || 'arriba') === 'arriba';
 
   return (
     <>
@@ -217,7 +217,7 @@ export default function PreviaCombinada({
         <div style={{ opacity: opacidadMarcador, transition: 'opacity .25s ease', pointerEvents: opacidadMarcador === 1 ? 'auto' : 'none' }}>
           <LogoMarcaAgua equipoLocal={partido.equipoLocal} equipoVisita={partido.equipoVisita} config={config} caja={caja} />
           <Marcador partido={partido} config={config} />
-          <LogoFlotante equipoLocal={partido.equipoLocal} equipoVisita={partido.equipoVisita} config={config} plantillaId={plantillaId} caja={caja} />
+          <LogoFlotante equipoLocal={partido.equipoLocal} equipoVisita={partido.equipoVisita} config={config} caja={caja} />
           {idBasePlantilla(plantillaId) === 'clasico' && (
             <NombreFlotante equipoLocal={partido.equipoLocal} equipoVisita={partido.equipoVisita} config={config} plantillaId={plantillaId} caja={caja} prefijo="clasico" />
           )}

@@ -1,5 +1,6 @@
 import pool from '../db.js';
 import { avisarRosterActualizado } from './rosterBroadcast.js';
+import { urlFotoJugador } from '../utils/token.js';
 
 // Tiempo restante EXACTO (con fracción). Antes se truncaba lo transcurrido
 // a segundos enteros, y cada pausa guardaba ese valor truncado: el reloj se
@@ -27,7 +28,7 @@ const ahoraParaDb = () => new Date(Date.now());
 // ── Reglamento FIBA ──
 // Descalificación: 5 faltas (personales + técnicas + antideportivas), 2
 // técnicas, 2 antideportivas, 1 técnica + 1 antideportiva, o 1 descalificante.
-function esDescalificado(j) {
+export function esDescalificado(j) {
   return j.faltasPersonales + j.faltasTecnicas + j.faltasAntideportivas >= 5
     || j.faltasTecnicas >= 2 || j.faltasAntideportivas >= 2
     || (j.faltasTecnicas >= 1 && j.faltasAntideportivas >= 1)
@@ -38,11 +39,11 @@ function esDescalificado(j) {
 export const FALTAS_BONUS = 4;
 // Tiempos muertos: 2 en la 1ª mitad, 3 en la 2ª mitad, 1 por prórroga; los
 // no usados no pasan a la mitad/prórroga siguiente.
-const timeoutsIniciales = (periodo) => (periodo <= 2 ? 2 : periodo <= 4 ? 3 : 1);
-const tramoDeTimeouts = (periodo) => (periodo <= 2 ? 'mitad1' : periodo <= 4 ? 'mitad2' : `prorroga${periodo}`);
+export const timeoutsIniciales = (periodo) => (periodo <= 2 ? 2 : periodo <= 4 ? 3 : 1);
+export const tramoDeTimeouts = (periodo) => (periodo <= 2 ? 'mitad1' : periodo <= 4 ? 'mitad2' : `prorroga${periodo}`);
 // En los últimos 2:00 del 4º cuarto un equipo puede usar como máximo 2
 // tiempos muertos (si llegó con 3, uno se pierde).
-function timeoutsDisponibles(partido, equipo) {
+export function timeoutsDisponibles(partido, equipo) {
   const actual = equipo === 'local' ? partido.timeouts_local : partido.timeouts_visita;
   if (Number(partido.periodo) === 4 && relojActual(partido) <= 120) return Math.min(actual, 2);
   return actual;
@@ -71,7 +72,7 @@ function totalesEquipo(roster) {
 // (todo el plantel juega), el comportamiento de siempre.
 async function cargarRoster(equipoId, partidoId, minutosPorJugador = new Map(), convocadosIds = [], ajustesFaltas = {}) {
   const resultado = await pool.query(
-    `SELECT j.id, j.dorsal, j.nombre, j.tiene_foto,
+    `SELECT j.id, j.dorsal, j.nombre, j.tiene_foto, j.foto_token,
        COALESCE(SUM(CASE WHEN e.tipo = 'PUNTO' THEN e.puntos ELSE 0 END), 0)::int AS pts,
        COALESCE(SUM(CASE WHEN e.tipo = 'REBOTE' THEN 1 ELSE 0 END), 0)::int AS reb,
        COALESCE(SUM(CASE WHEN e.tipo = 'ASISTENCIA' THEN 1 ELSE 0 END), 0)::int AS ast,
@@ -105,7 +106,7 @@ async function cargarRoster(equipoId, partidoId, minutosPorJugador = new Map(), 
       id: j.id,
       dorsal: j.dorsal,
       nombre: j.nombre,
-      fotoUrl: j.tiene_foto ? `/jugadores/${j.id}/foto` : null,
+      fotoUrl: urlFotoJugador(j),
       pts: j.pts,
       reb: j.reb,
       ast: j.ast,
@@ -312,30 +313,35 @@ export async function corregirFaltasEquipo(partido, { equipo, faltas }) {
 // `sumarMarcador: false` — el marcador lo maneja la cámara (lector del
 // marcador físico): la jugada se registra igual (estadísticas del jugador)
 // pero el total del equipo no se toca, para no contar dos veces.
-export async function registrarPunto(partido, { equipo, jugadorId, puntos }, { sumarMarcador = true } = {}) {
-  const campo = equipo === 'local' ? 'pts_local' : 'pts_visita';
+// Suma al partido y guarda la jugada en UNA sola sentencia: si la jugada no
+// se puede guardar (p. ej. la jugadora fue borrada en otra pestaña), el
+// marcador tampoco cambia — antes quedaba sumado, la Mesa mostraba error y
+// al reintentar se sumaba dos veces.
+async function sumarYRegistrar(partidoId, setSql, setParams, evento) {
+  const columnas = Object.keys(evento);
+  const desde = setParams.length + 2;
+  const valores = columnas.map((c, i) => `$${desde + i}${c === 'metadata' ? '::jsonb' : ''}`);
   const resultado = await pool.query(
-    `UPDATE partidos SET ${campo} = ${campo} + $1, actualizado_en = now() WHERE id = $2 RETURNING *`,
-    [sumarMarcador ? puntos : 0, partido.id]
-  );
-  await pool.query(
-    'INSERT INTO eventos_partido (partido_id, tipo, jugador_id, equipo, puntos, periodo, reloj_segundos_evento) VALUES ($1, $2, $3, $4, $5, $6, $7)',
-    [partido.id, 'PUNTO', jugadorId || null, equipo, puntos, partido.periodo, relojEvento(partido)]
+    `WITH ev AS (INSERT INTO eventos_partido (${columnas.join(', ')}) VALUES (${valores.join(', ')}))
+     UPDATE partidos SET ${setSql}, actualizado_en = now() WHERE id = $${setParams.length + 1} RETURNING *`,
+    [...setParams, partidoId, ...Object.values(evento)]
   );
   return resultado.rows[0];
 }
 
+export async function registrarPunto(partido, { equipo, jugadorId, puntos }, { sumarMarcador = true } = {}) {
+  const campo = equipo === 'local' ? 'pts_local' : 'pts_visita';
+  return sumarYRegistrar(partido.id, `${campo} = ${campo} + $1`, [sumarMarcador ? puntos : 0], {
+    partido_id: partido.id, tipo: 'PUNTO', jugador_id: jugadorId || null, equipo, puntos, periodo: partido.periodo, reloj_segundos_evento: relojEvento(partido),
+  });
+}
+
 export async function registrarTiroLibre(partido, { equipo, jugadorId, convertidos, intentos }, { sumarMarcador = true } = {}) {
   const campo = equipo === 'local' ? 'pts_local' : 'pts_visita';
-  const resultado = await pool.query(
-    `UPDATE partidos SET ${campo} = ${campo} + $1, actualizado_en = now() WHERE id = $2 RETURNING *`,
-    [sumarMarcador ? convertidos : 0, partido.id]
-  );
-  await pool.query(
-    `INSERT INTO eventos_partido (partido_id, tipo, jugador_id, equipo, puntos, metadata, periodo, reloj_segundos_evento) VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7, $8)`,
-    [partido.id, 'TIRO_LIBRE', jugadorId || null, equipo, convertidos, JSON.stringify({ convertidos, intentos }), partido.periodo, relojEvento(partido)]
-  );
-  return resultado.rows[0];
+  return sumarYRegistrar(partido.id, `${campo} = ${campo} + $1`, [sumarMarcador ? convertidos : 0], {
+    partido_id: partido.id, tipo: 'TIRO_LIBRE', jugador_id: jugadorId || null, equipo, puntos: convertidos,
+    metadata: JSON.stringify({ convertidos, intentos }), periodo: partido.periodo, reloj_segundos_evento: relojEvento(partido),
+  });
 }
 
 // Puntos anotados por cuarto/prórroga, por equipo — se arma sumando los
@@ -363,15 +369,10 @@ export async function puntosPorPeriodo(partidoId) {
 export async function registrarFalta(partido, { equipo, jugadorId, tipoFalta = 'personal' }, { sumarFaltasPeriodo = true } = {}) {
   const campo = equipo === 'local' ? 'faltas_local' : 'faltas_visita';
   const campoPeriodo = equipo === 'local' ? 'faltas_periodo_local' : 'faltas_periodo_visita';
-  const resultado = await pool.query(
-    `UPDATE partidos SET ${campo} = ${campo} + 1, ${campoPeriodo} = ${campoPeriodo} + $2, actualizado_en = now() WHERE id = $1 RETURNING *`,
-    [partido.id, sumarFaltasPeriodo ? 1 : 0]
-  );
-  await pool.query(
-    `INSERT INTO eventos_partido (partido_id, tipo, jugador_id, equipo, metadata, periodo, reloj_segundos_evento) VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7)`,
-    [partido.id, 'FALTA', jugadorId || null, equipo, JSON.stringify({ tipoFalta }), partido.periodo, relojEvento(partido)]
-  );
-  return resultado.rows[0];
+  return sumarYRegistrar(partido.id, `${campo} = ${campo} + 1, ${campoPeriodo} = ${campoPeriodo} + $1`, [sumarFaltasPeriodo ? 1 : 0], {
+    partido_id: partido.id, tipo: 'FALTA', jugador_id: jugadorId || null, equipo, metadata: JSON.stringify({ tipoFalta }),
+    periodo: partido.periodo, reloj_segundos_evento: relojEvento(partido),
+  });
 }
 
 async function registrarEventoSimple(partido, tipo, { equipo, jugadorId }) {
