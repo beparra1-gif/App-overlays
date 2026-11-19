@@ -1,4 +1,4 @@
-import { formatearReloj, etiquetaPeriodo, usePulso, estiloPersonalizado, mostrar, indicadorFaltas } from '../utils';
+import { formatearReloj, etiquetaPeriodo, usePulso, estiloPersonalizado, mostrar, indicadorFaltas, logoAdentro } from '../utils';
 import '../plantillas.css';
 
 const abreviar = (nombre = '') => nombre.trim().slice(0, 3).toUpperCase() || '---';
@@ -6,7 +6,7 @@ const abreviar = (nombre = '') => nombre.trim().slice(0, 3).toUpperCase() || '--
 export default function Ncaa({ partido, config }) {
   const pulsoLocal = usePulso(partido.ptsLocal);
   const pulsoVisita = usePulso(partido.ptsVisita);
-  const mostrarLogo = mostrar(config, 'mostrarLogo');
+  const mostrarLogo = logoAdentro(config);
   const tam = config?.logoTamano ? Math.min(config.logoTamano, 28) : 20;
 
   return (

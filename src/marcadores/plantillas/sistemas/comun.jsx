@@ -1,4 +1,4 @@
-import { usePulso, usePulsoConDelta, mostrar, indicadorFaltas } from '../../utils';
+import { usePulso, usePulsoConDelta, mostrar, indicadorFaltas, logoAdentro } from '../../utils';
 import LogoEquipo from '../../LogoEquipo';
 
 // Piezas compartidas por los "sistemas" de marcador (cada uno con su propia
@@ -37,7 +37,7 @@ export function Logo({ partido, config, lado, className }) {
 // mismo tamaño, se vean como se vean los escudos); sin logo, la sigla.
 export function Medallon({ partido, config, lado, className = '' }) {
   const equipo = equipoDe(partido, lado);
-  const conLogo = equipo?.logo_url && mostrar(config, 'mostrarLogo');
+  const conLogo = equipo?.logo_url && logoAdentro(config);
   return (
     <span className={`sx-medallon ${className}`} style={{ '--sx-equipo': colorDe(partido, lado) }}>
       {conLogo ? <LogoEquipo equipo={equipo} config={{ ...config, logoPosicion: 'costado' }} className="sx-medallon-logo" /> : sigla(equipo)}

@@ -19,9 +19,6 @@ const CON_POSESION = new Set([
 ]);
 // Sin escudo de equipo (usan sigla, foto o el logo de la competencia).
 const SIN_LOGO = new Set(['retro-led', 'metro', 'foto-protagonista', 'pulso-partido', 'tablero-paletas', 'escudo-torneo', 'creador-libre']);
-// Escudo dibujado dentro de una forma propia: se puede mostrar/ocultar y
-// cambiar tamaño/transparencia, pero no moverlo afuera de la caja.
-const LOGO_FIJO = new Set(['card-stack', 'espn-ticker', 'lower-third', 'nba', 'ncaa', 'corner-min', 'crossover', 'apilado-reacciones']);
 // Barras de ancho completo: siempre ocupan el borde de la pantalla.
 const BARRA_COMPLETA = new Set(['ticker', 'espn-ticker', 'broadcast-bonus']);
 
@@ -31,7 +28,8 @@ export function soporteDePlantilla(plantillaId) {
     faltas: !SIN_FALTAS.has(id),
     estiloFaltas: !SIN_ESTILO_FALTAS.has(id),
     posesion: CON_POSESION.has(id),
-    logo: SIN_LOGO.has(id) ? 'ninguno' : LOGO_FIJO.has(id) ? 'fijo' : 'completo',
+    // Sin escudo propio igual se pueden mostrar afuera (arriba/abajo/costados/libre).
+    logoAdentro: !SIN_LOGO.has(id),
     posicionLibre: !BARRA_COMPLETA.has(id),
     nombreFlotante: id === 'clasico',
     formaPropia: id === 'personalizado',

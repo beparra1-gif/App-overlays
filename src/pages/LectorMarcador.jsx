@@ -4,7 +4,7 @@ import { createWorker, PSM } from 'tesseract.js';
 import { api } from '../api/client';
 import { crearSocket } from '../socket';
 import {
-  INTERRUPTOR_POR_ZONA, ZONAS_POR_DEFECTO, parsearEntero, parsearReloj, prepararRecorte, valorConfirmado,
+  INTERRUPTOR_POR_ZONA, ZONAS_POR_DEFECTO, corregirLectura, zonasDesdePalabras, parsearEntero, parsearReloj, prepararRecorte, valorConfirmado,
   estadoRelojFisico, estimarRelojFisicoDetalle, rachaFinal,
 } from '../lector/ocr';
 import './lectorMarcador.css';
@@ -47,6 +47,10 @@ function posesionPartidoAhora(p) {
   if (!p.posesionCorriendo || !p.posesionReferenciaEn) return Number(base) || 0;
   return Math.max(0, base - (Date.now() + desfaseServidor - new Date(p.posesionReferenciaEn).getTime()) / 1000);
 }
+
+// Cuánto puede alejarse una lectura de lo que ya marca el partido antes de
+// sospechar un dígito mal leído (un doble/triple, un cambio de cuarto, una falta).
+const CERCA_POR_ZONA = { ptsLocal: 6, ptsVisita: 6, periodo: 1, faltasLocal: 2, faltasVisita: 2 };
 
 function valorActualDelPartido(partido, zonaId) {
   if (!partido) return null;
@@ -119,6 +123,10 @@ export default function LectorMarcador() {
   const muestrasRelojRef = useRef([]); // [{ v, t }] lecturas válidas con la hora EXACTA del cuadro
   const vueltaRef = useRef(0);
   const instantaneaRef = useRef(null);
+  // La detección usa el mismo OCR: la lectura de zonas se pausa mientras tanto.
+  const pausaRef = useRef(false);
+  const vueltaEnCursoRef = useRef(null);
+  const [detectando, setDetectando] = useState(false);
   const correccionRef = useRef(null);
   const calibracionRef = useRef({}); // zonaId → { si: {n, puntos}, no: {n, puntos}, elegido }
   // El loop de lectura arranca una vez: lee siempre la versión vigente de
@@ -205,7 +213,14 @@ export default function LectorMarcador() {
     if (!canvas) canvas = canvasRefs.current[zona.id] = document.createElement('canvas');
     const hist = historialRef.current[zona.id] || [];
     const previoValido = [...hist].reverse().find((v) => v != null) ?? null;
-    const interpretar = (t) => (zona.tipo === 'reloj' ? parsearReloj(t, previoValido) : parsearEntero(t, zona.max));
+    // Corrige dígitos confundidos (09:12 leído 89:12): nada más largo que el
+    // cuarto en curso, y entre variantes, la más cercana a lo esperado.
+    const pLectura = vivo.current.partido;
+    const esperado = pLectura ? valorActualDelPartido(pLectura, zona.id) : null;
+    const maxSeg = ((pLectura?.periodo > 4 ? pLectura?.minutosProrroga || 5 : pLectura?.minutosPeriodo || 10)) * 60;
+    const interpretar = (t) => (zona.tipo === 'reloj'
+      ? corregirLectura(t, (x) => parsearReloj(x, previoValido), { posible: (v) => v <= maxSeg, referencia: previoValido ?? esperado, cerca: 75 })
+      : corregirLectura(t, (x) => parsearEntero(x, zona.max), { referencia: esperado, cerca: CERCA_POR_ZONA[zona.id] ?? Infinity }));
     // Tesseract a veces devuelve vacío con un solo dígito grueso en modo
     // "una línea": si no se entiende, se reintenta como "palabra" y, al
     // final, sin engrosar los segmentos. Solo cuesta más cuando falla.
@@ -336,13 +351,14 @@ export default function LectorMarcador() {
     while (activoRef.current) {
       const video = videoRef.current;
       const activas = vivo.current.zonas.filter((z) => z.activa);
-      if (video?.videoWidth && workerRef.current && activas.length) {
+      if (video?.videoWidth && workerRef.current && activas.length && !pausaRef.current) {
         // El reloj se lee en cada vuelta (cambia cada segundo); el resto de
         // las zonas se turnan, una por vuelta.
         const reloj = activas.find((z) => z.id === 'reloj');
         const resto = activas.filter((z) => z.id !== 'reloj');
         vueltaRef.current += 1;
         try {
+          vueltaEnCursoRef.current = (async () => {
           if (reloj) await leerZona(reloj);
           // Con reloj, el resto de las zonas se lee una vuelta sí y otra no:
           // el reloj es lo que más cambia y lo que más importa leer seguido.
@@ -350,6 +366,8 @@ export default function LectorMarcador() {
             turnoRef.current = (turnoRef.current + 1) % resto.length;
             await leerZona(resto[turnoRef.current]);
           }
+          })();
+          await vueltaEnCursoRef.current;
         } catch {
           // Cuadro ilegible (movimiento, reflejo): se reintenta en la próxima vuelta.
         }
@@ -383,6 +401,8 @@ export default function LectorMarcador() {
       activoRef.current = true;
       setCamara('activa');
       loop();
+      // Primer intento automático apenas hay imagen (si no encuentra nada, no molesta).
+      setTimeout(() => detectarTablero({ silencioso: true }), 1500);
     } catch (err) {
       setCargandoOcr(false);
       const inseguro = typeof window !== 'undefined' && !window.isSecureContext;
@@ -390,6 +410,52 @@ export default function LectorMarcador() {
         ? 'La cámara solo funciona en una página segura (https). Abrí el enlace publicado de la app, no una IP local.'
         : `No se pudo usar la cámara: ${err.message}`);
       setCamara('apagada');
+    }
+  };
+
+  // Busca solo el reloj, los puntajes y el cuarto en el cuadro completo y
+  // mueve los recuadros ahí. Lo que no encuentra queda donde estaba.
+  const detectarTablero = async ({ silencioso = false } = {}) => {
+    const video = videoRef.current;
+    if (!video?.videoWidth || !workerRef.current || detectando) return;
+    setDetectando(true);
+    pausaRef.current = true;
+    try {
+      await vueltaEnCursoRef.current?.catch(() => {});
+      const cuadro = document.createElement('canvas');
+      cuadro.width = video.videoWidth;
+      cuadro.height = video.videoHeight;
+      cuadro.getContext('2d').drawImage(video, 0, 0);
+      const p = vivo.current.partido;
+      const maxSeg = ((p?.periodo > 4 ? p?.minutosProrroga || 5 : p?.minutosPeriodo || 10)) * 60;
+      await workerRef.current.setParameters({ tessedit_char_whitelist: '0123456789:.', tessedit_pageseg_mode: PSM.SPARSE_TEXT });
+      let mejor = {};
+      // Sin engrosar y engrosando apenas (LED de 7 segmentos): gana la que encuentra más.
+      for (const radio of [null, 2]) {
+        const lienzo = prepararRecorte(cuadro, { x: 0, y: 0, w: 1, h: 1 }, document.createElement('canvas'), { unirSegmentos: radio != null, radio });
+        const { data } = await workerRef.current.recognize(lienzo, {}, { blocks: true });
+        const escala = cuadro.width / lienzo.width;
+        const palabras = (data.blocks || []).flatMap((b) => b.paragraphs.flatMap((pa) => pa.lines.flatMap((l) => l.words)))
+          .map((w) => ({ text: w.text, bbox: { x0: w.bbox.x0 * escala, y0: w.bbox.y0 * escala, x1: w.bbox.x1 * escala, y1: w.bbox.y1 * escala } }));
+        const hallado = zonasDesdePalabras(palabras, cuadro.width, cuadro.height, maxSeg);
+        if (Object.keys(hallado).length > Object.keys(mejor).length) mejor = hallado;
+        if (mejor.reloj && mejor.ptsLocal) break;
+      }
+      const ids = Object.keys(mejor);
+      if (!ids.length) {
+        if (!silencioso) setAviso('No reconocí el tablero en la imagen. Acercá el zoom o encuadrá los recuadros a mano.');
+        return;
+      }
+      setZonas((zs) => zs.map((z) => (mejor[z.id] ? { ...z, ...mejor[z.id], activa: true } : z)));
+      ids.forEach((id) => { historialRef.current[id] = []; });
+      muestrasRelojRef.current = [];
+      const nombres = { reloj: 'reloj', ptsLocal: 'puntos local', ptsVisita: 'puntos visita', periodo: 'cuarto' };
+      setAviso(`Tablero detectado: ${ids.map((id) => nombres[id]).join(', ')}. Revisá los recuadros y ajustá si hace falta.`);
+    } catch {
+      if (!silencioso) setAviso('No se pudo analizar la imagen. Probá de nuevo o encuadrá a mano.');
+    } finally {
+      pausaRef.current = false;
+      setDetectando(false);
     }
   };
 
@@ -494,6 +560,11 @@ export default function LectorMarcador() {
         ) : (
           <button className="btn-primario" disabled={camara === 'iniciando'} onClick={prenderCamara}>
             {camara === 'iniciando' ? (cargandoOcr ? 'Preparando lector…' : 'Pidiendo permiso…') : '▶ Prender cámara'}
+          </button>
+        )}
+        {camara === 'activa' && (
+          <button className="btn-secundario" disabled={detectando} onClick={() => detectarTablero()}>
+            {detectando ? 'Buscando el tablero…' : '🔍 Detectar tablero'}
           </button>
         )}
         <button className={`btn-secundario ${editando ? 'lm-activo' : ''}`} onClick={() => setEditando((v) => !v)}>

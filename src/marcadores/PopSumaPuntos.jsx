@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { usePulsoConDelta, estiloTema, estiloAnclaPop } from './utils';
 import './popSuma.css';
 
@@ -32,6 +32,42 @@ function contenidoIcono(icono, delta) {
 
 const SIMBOLO_POR_ICONO = { estrellas: '⭐', balones: '🏀' };
 
+// Mano estilo NBA: levanta 1, 2 o 3 dedos (índice, medio, anular) uno por uno.
+const DEDOS = [{ x: 30, alto: 50 }, { x: 44, alto: 56 }, { x: 58, alto: 52 }, { x: 72, alto: 42 }];
+function ManoNba({ delta }) {
+  const n = Math.min(3, Math.max(1, delta));
+  return (
+    <span className="pm-pop-mano-nba">
+      <svg viewBox="0 0 100 130" aria-hidden>
+        {DEDOS.map((d, i) => {
+          const arriba = i < n;
+          return (
+            <rect
+              key={i} x={d.x - 6} width="13" rx="6.5"
+              y={arriba ? 62 - d.alto : 48} height={arriba ? d.alto + 10 : 18}
+              className={arriba ? 'dedo dedo-arriba' : 'dedo'} style={{ animationDelay: `${0.18 + i * 0.14}s` }}
+            />
+          );
+        })}
+        <rect x="21" y="52" width="62" height="56" rx="16" className="palma" />
+        <rect x="9" y="70" width="13" height="34" rx="6.5" transform="rotate(-38 15 87)" className="dedo" />
+        <rect x="24" y="104" width="56" height="16" rx="4" className="muneca" />
+      </svg>
+      <span className="pm-pop-mano-nba-num">+{delta}</span>
+    </span>
+  );
+}
+
+// Un balón por punto que cae y pica, en secuencia.
+function BalonesAnimados({ delta }) {
+  return Array.from({ length: Math.max(1, delta) }).map((_, i) => (
+    <svg key={i} viewBox="0 0 40 40" className="pm-pop-balon" style={{ animationDelay: `${i * 0.22}s` }} aria-hidden>
+      <circle cx="20" cy="20" r="18" />
+      <path d="M2 20h36M20 2v36M7 7c7 7 7 19 0 26M33 7c-7 7-7 19 0 26" />
+    </svg>
+  ));
+}
+
 // Icono repetido tantas veces como puntos valga la jugada (⭐⭐ para un
 // doble, 🏀🏀🏀 para un triple) — pero NO todos a la vez: cada uno aparece
 // por separado, uno detrás de otro, como si se fueran "sumando" en pantalla
@@ -55,12 +91,16 @@ function Badge({ estado, lado, tema, posicion, escala, estiloAnim, icono, caja }
     position: 'fixed', inset: 0, display: 'flex', pointerEvents: 'none',
     ...estiloTema(tema), ...estiloAnclaPop(tema, lado, posicion, caja), '--pm-pop-escala': escala,
   };
-  const esSecuencia = icono === 'estrellas' || icono === 'balones';
-  const clase = `pm-pop-suma ${esSecuencia ? 'pm-pop-secuencia' : (estiloAnim ? `pm-pop-${estiloAnim}` : '')} pm-pop-lado-${lado}`.trim();
+  const esSecuencia = icono === 'estrellas' || icono === 'balones' || icono === 'balon-animado';
+  const contenido = icono === 'mano-nba' ? <ManoNba delta={estado.delta} />
+    : icono === 'balon-animado' ? <BalonesAnimados delta={estado.delta} />
+    : esSecuencia ? <IconosSecuencia icono={icono} delta={estado.delta} />
+    : contenidoIcono(icono, estado.delta);
+  const clase = `pm-pop-suma ${esSecuencia || icono === 'mano-nba' ? 'pm-pop-secuencia' : (estiloAnim ? `pm-pop-${estiloAnim}` : '')} pm-pop-lado-${lado}`.trim();
   return (
     <div style={estilo}>
       <div className={clase} key={estado.clave}>
-        {esSecuencia ? <IconosSecuencia icono={icono} delta={estado.delta} /> : contenidoIcono(icono, estado.delta)}
+        {contenido}
       </div>
     </div>
   );
@@ -117,10 +157,17 @@ function MarcaArrastrable({ x, y, onArrastrar, contenedorRef }) {
 export default function PopSumaPuntos({ partido, config, demo = false, editable = false, onArrastrar, contenedorRef, caja }) {
   const localReal = usePulsoConDelta(partido.ptsLocal);
   const visitaReal = usePulsoConDelta(partido.ptsVisita);
+  // En la vista previa la animación se repite, para poder verla mientras se elige.
+  const [vuelta, setVuelta] = useState(0);
+  useEffect(() => {
+    if (!demo) return undefined;
+    const t = setInterval(() => setVuelta((v) => v + 1), 3000);
+    return () => clearInterval(t);
+  }, [demo]);
   if (config?.mostrarAnimacionPuntos === false) return null;
 
-  const local = demo ? { pulso: true, delta: 2, clave: 'demo-local' } : localReal;
-  const visita = demo ? { pulso: true, delta: 3, clave: 'demo-visita' } : visitaReal;
+  const local = demo ? { pulso: true, delta: 2, clave: `demo-local-${vuelta}` } : localReal;
+  const visita = demo ? { pulso: true, delta: 3, clave: `demo-visita-${vuelta}` } : visitaReal;
 
   const posicion = config?.animacionPuntosPosicion || 'costado';
   const escala = Number.isFinite(config?.animacionPuntosTamano) ? config.animacionPuntosTamano / 100 : 1;

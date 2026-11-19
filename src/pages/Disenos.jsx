@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import { api, urlLogo } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { PLANTILLAS_MARCADOR } from '../marcadores/registro';
-import { PRESETS_POSICION, mostrar, FUENTES_DISPONIBLES, idBasePlantilla, esVariante, nuevoIdVariante } from '../marcadores/utils';
+import { PRESETS_POSICION, mostrar, FUENTES_DISPONIBLES, idBasePlantilla, esVariante, nuevoIdVariante, fuenteDePlantilla } from '../marcadores/utils';
 import { soporteDePlantilla } from '../marcadores/soporte';
+import { coloresPorDefecto } from '../marcadores/coloresPorDefecto';
 import MiniPreviewMarcador from '../marcadores/MiniPreviewMarcador';
 import { CATALOGO_ICONOS, IconoSvg } from '../marcadores/iconosLibres';
 import { CATALOGO_FORMAS, clipPathDeForma } from '../marcadores/ElementosLibres';
@@ -460,17 +461,39 @@ const PRESETS_CREADOR = [
 // elegida. Reusado en todo lugar donde se elige tipografía (Marcador/
 // Nómina/Estadísticas/Anuncios y el Creador), a pedido — antes cada uno
 // era un <select> con solo el nombre en texto plano.
+// Lista desplegable propia (un <select> nativo no dibuja cada opción en su
+// fuente en todos los navegadores): cada fila se ve con su tipo de letra.
 function SelectorFuente({ value, onChange, incluirAutomatica = true, fuentePorDefecto = "'Oswald', sans-serif" }) {
-  const fuenteMuestra = value || fuentePorDefecto;
+  const [abierto, setAbierto] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!abierto) return undefined;
+    const cerrar = (e) => { if (!ref.current?.contains(e.target)) setAbierto(false); };
+    const tecla = (e) => { if (e.key === 'Escape') setAbierto(false); };
+    document.addEventListener('mousedown', cerrar);
+    document.addEventListener('keydown', tecla);
+    return () => { document.removeEventListener('mousedown', cerrar); document.removeEventListener('keydown', tecla); };
+  }, [abierto]);
+  const opciones = [...(incluirAutomatica ? [{ id: '', etiqueta: 'Automática (la del diseño)' }] : []), ...FUENTES_DISPONIBLES.filter((f) => f.id)];
+  const actual = opciones.find((f) => f.id === (value || '')) || opciones[0];
+  const elegir = (id) => { onChange(id); setAbierto(false); };
   return (
-    <div className="selector-fuente-wrap">
-      <select value={value || ''} onChange={(e) => onChange(e.target.value)}>
-        {incluirAutomatica && <option value="">Automática (la de la plantilla)</option>}
-        {FUENTES_DISPONIBLES.filter((f) => f.id).map((f) => (
-          <option key={f.id} value={f.id} style={{ fontFamily: f.id }}>{f.etiqueta}</option>
-        ))}
-      </select>
-      <div className="selector-fuente-muestra" style={{ fontFamily: fuenteMuestra }}>Aa Bb 88 — Ejemplo</div>
+    <div className="selector-fuente" ref={ref}>
+      <button type="button" className="selector-fuente-boton" aria-haspopup="listbox" aria-expanded={abierto} onClick={() => setAbierto((v) => !v)}>
+        <span style={{ fontFamily: value || fuentePorDefecto }}>Aa 88</span>
+        <span className="selector-fuente-nombre">{actual.etiqueta}</span>
+        <span aria-hidden>▾</span>
+      </button>
+      {abierto && (
+        <div className="selector-fuente-lista" role="listbox">
+          {opciones.map((f) => (
+            <button key={f.id || 'auto'} type="button" role="option" aria-selected={f.id === (value || '')} className={f.id === (value || '') ? 'activa' : ''} onClick={() => elegir(f.id)}>
+              <span className="selector-fuente-ejemplo" style={{ fontFamily: f.id || fuentePorDefecto }}>Aa 88 — LOCAL 72</span>
+              <span className="selector-fuente-nombre">{f.etiqueta}</span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -1209,8 +1232,11 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
   }));
   const restablecerTamanosTexto = () => setConfig((c) => ({ ...c, tamanoTextoMarcador: 100, tamanoTextoNombre: 100 }));
   const soporte = soporteDePlantilla(plantillaBase);
+  const colorBase = coloresPorDefecto(idBasePlantilla(plantillaBase));
+  const posicionLogo = config.logoPosicion || 'costado';
+  const modoCajaLogo = config.logoCajaModo || 'dentro';
   const presetActual = PRESETS_POSICION.find((p) => Math.abs(p.x - posX) < 1.5 && Math.abs(p.y - posY) < 1.5);
-  const nombreFuente = (FUENTES_DISPONIBLES.find((f) => f.id && f.id === config.fuenteMarcador)?.etiqueta || 'la del diseño').split(' — ')[0];
+  const nombreFuente = (FUENTES_DISPONIBLES.find((f) => f.id && f.id === (config.fuenteMarcador || fuenteDePlantilla(plantillaBase)))?.etiqueta || fuenteDePlantilla(plantillaBase).split(',')[0].replace(/'/g, '')).split(' — ')[0];
   // Un bloque abierto por pestaña (acordeón): el panel queda corto y
   // ordenado, y cada pestaña recuerda cuál estabas tocando.
   const [bloquesAbiertos, setBloquesAbiertos] = useState({ marcador: 'tamano', nomina: 'ubicacion', estadisticas: 'ubicacion', intertanto: 'cuando', anuncios: 'ubicacion' });
@@ -2361,7 +2387,7 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
 
           <Bloque
             id="colores" {...bloque('marcador')} icono="🎨" titulo="Colores"
-            resumen={<><Muestras colores={[config.colorTablero, config.colorBanner, config.colorMarcador, config.colorTexto]} />{config.coloresEquipo ? ` según ${config.coloresEquipo === 'ganador' ? 'quien gana' : `el ${config.coloresEquipo}`}` : (config.colorTablero || config.colorBanner || config.colorMarcador || config.colorTexto) ? ' personalizados' : ' los del diseño'}</>}
+            resumen={<><Muestras colores={[config.colorTablero || colorBase.tablero, config.colorBanner || colorBase.banner, config.colorMarcador || colorBase.marcador, config.colorTexto || colorBase.texto]} />{config.coloresEquipo ? ` según ${config.coloresEquipo === 'ganador' ? 'quien gana' : `el ${config.coloresEquipo}`}` : (config.colorTablero || config.colorBanner || config.colorMarcador || config.colorTexto) ? ' personalizados' : ' los del diseño'}</>}
           >
             <div className="fila-form" style={{ margin: 0 }}>
               <label style={{ flex: '1 1 200px' }}>
@@ -2384,10 +2410,10 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
               )}
             </div>
             <div className="fila-form" style={{ alignItems: 'stretch' }}>
-              <SelectorColor etiqueta="Tablero" valor={config.colorTablero} alpha={config.colorTableroAlpha} porDefecto="#0a0c12" onCambiarColor={(v) => cambiarConfig('colorTablero', v)} onCambiarAlpha={(v) => cambiarConfig('colorTableroAlpha', v)} />
-              <SelectorColor etiqueta="Acento" valor={config.colorBanner} alpha={config.colorBannerAlpha} porDefecto="#ffb703" onCambiarColor={(v) => cambiarConfig('colorBanner', v)} onCambiarAlpha={(v) => cambiarConfig('colorBannerAlpha', v)} />
-              <SelectorColor etiqueta="Números" valor={config.colorMarcador} alpha={config.colorMarcadorAlpha} porDefecto="#ffffff" onCambiarColor={(v) => cambiarConfig('colorMarcador', v)} onCambiarAlpha={(v) => cambiarConfig('colorMarcadorAlpha', v)} />
-              <SelectorColor etiqueta="Textos" valor={config.colorTexto} alpha={config.colorTextoAlpha} porDefecto="#ffffff" onCambiarColor={(v) => cambiarConfig('colorTexto', v)} onCambiarAlpha={(v) => cambiarConfig('colorTextoAlpha', v)} />
+              <SelectorColor etiqueta="Tablero" valor={config.colorTablero} alpha={config.colorTableroAlpha} porDefecto={colorBase.tablero} onCambiarColor={(v) => cambiarConfig('colorTablero', v)} onCambiarAlpha={(v) => cambiarConfig('colorTableroAlpha', v)} />
+              <SelectorColor etiqueta="Acento" valor={config.colorBanner} alpha={config.colorBannerAlpha} porDefecto={colorBase.banner} onCambiarColor={(v) => cambiarConfig('colorBanner', v)} onCambiarAlpha={(v) => cambiarConfig('colorBannerAlpha', v)} />
+              <SelectorColor etiqueta="Números" valor={config.colorMarcador} alpha={config.colorMarcadorAlpha} porDefecto={colorBase.marcador} onCambiarColor={(v) => cambiarConfig('colorMarcador', v)} onCambiarAlpha={(v) => cambiarConfig('colorMarcadorAlpha', v)} />
+              <SelectorColor etiqueta="Textos" valor={config.colorTexto} alpha={config.colorTextoAlpha} porDefecto={colorBase.texto} onCambiarColor={(v) => cambiarConfig('colorTexto', v)} onCambiarAlpha={(v) => cambiarConfig('colorTextoAlpha', v)} />
             </div>
             <p className="texto-tenue bloque-nota">Se aplican a todas las capas (nómina, estadísticas, intertanto y anuncios), salvo que una capa tenga su propio color.</p>
             <button type="button" className="btn-link bloque-restablecer" onClick={restablecerColores}>↺ Volver a los colores del diseño</button>
@@ -2399,7 +2425,7 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
           >
             <label>
               Tipo de letra (se usa también en nómina, estadísticas y anuncios)
-              <SelectorFuente value={config.fuenteMarcador} onChange={(v) => cambiarConfig('fuenteMarcador', v)} />
+              <SelectorFuente value={config.fuenteMarcador} fuentePorDefecto={fuenteDePlantilla(plantillaBase)} onChange={(v) => cambiarConfig('fuenteMarcador', v)} />
             </label>
             <div className="fila-form">
               <CampoRango etiqueta="Números" valor={Number.isFinite(config.tamanoTextoMarcador) ? config.tamanoTextoMarcador : 100} min={5} max={220} onChange={(v) => cambiarConfig('tamanoTextoMarcador', v)} />
@@ -2442,58 +2468,52 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
 
           <Bloque
             id="logo" {...bloque('marcador')} icono="🛡️" titulo="Escudos de los equipos"
-            resumen={soporte.logo === 'ninguno' ? 'Este diseño no usa escudos' : !config.mostrarLogo ? 'Ocultos' : soporte.logo === 'fijo' ? 'Visibles, en su lugar del diseño' : ({ costado: 'Dentro del marcador', arriba: 'Arriba', abajo: 'Abajo', costados: 'A los costados', fondo: 'Marca de agua' })[config.logoPosicion || 'costado']}
+            resumen={!mostrar(config, 'mostrarLogo') ? 'Ocultos' : (posicionLogo === 'costado' && !soporte.logoAdentro) ? 'Elegí dónde mostrarlos' : ({ costado: 'Dentro del marcador', arriba: 'Arriba, sobre cada equipo', abajo: 'Abajo, bajo cada equipo', costados: `A los costados, ${modoCajaLogo === 'dentro' ? 'dentro de la caja' : 'afuera'}`, fondo: 'Marca de agua', libre: 'Posición libre en espejo' })[posicionLogo]}
           >
-            {soporte.logo === 'ninguno' ? (
-              <p className="texto-tenue" style={{ margin: 0 }}>Este diseño identifica a cada equipo con su sigla y su color (o con el escudo de la competencia), así que no dibuja escudos. Para sumar un logo usá la pestaña <strong>Logos libres</strong>.</p>
-            ) : (
+            <Toggle etiqueta="Mostrar escudos" checked={mostrar(config, 'mostrarLogo')} onChange={(v) => cambiarConfig('mostrarLogo', v)} />
+            {mostrar(config, 'mostrarLogo') && (
               <>
-                <Toggle etiqueta="Mostrar escudos" checked={config.mostrarLogo} onChange={(v) => cambiarConfig('mostrarLogo', v)} />
-                {config.mostrarLogo && (
-                  <>
-                    <div className="fila-form">
-                      <CampoRango etiqueta="Tamaño" valor={config.logoTamanoMarcador} unidad="px" min={20} max={180} onChange={(v) => cambiarConfig('logoTamanoMarcador', v)} />
-                      <CampoRango etiqueta="Opacidad" valor={config.logoOpacidadMarcador} min={10} max={100} onChange={(v) => cambiarConfig('logoOpacidadMarcador', v)} />
-                    </div>
-                    {soporte.logo === 'fijo' ? (
-                      <p className="texto-tenue bloque-nota">En este diseño el escudo tiene un lugar fijo dentro de su forma.</p>
-                    ) : (
-                      <>
-                        <label>
-                          Ubicación
-                          <select value={config.logoPosicion || 'costado'} onChange={(e) => cambiarConfig('logoPosicion', e.target.value)}>
-                            <option value="costado">Dentro del marcador</option>
-                            <option value="arriba">Arriba del marcador</option>
-                            <option value="abajo">Abajo del marcador</option>
-                            <option value="costados">A los costados (uno a cada lado)</option>
-                            <option value="fondo">Marca de agua detrás del marcador</option>
-                          </select>
-                        </label>
-                        {['arriba', 'abajo', 'costados'].includes(config.logoPosicion) && (
-                          <>
-                            <div className="segmentado segmentado-ancho" role="group" aria-label="Cómo se ve el escudo">
-                              <button type="button" className={(config.logoCajaModo || 'dentro') === 'dentro' ? 'activo' : ''} onClick={() => cambiarConfig('logoCajaModo', 'dentro')}>Pegado a la caja</button>
-                              <button type="button" className={config.logoCajaModo === 'fuera' ? 'activo' : ''} onClick={() => cambiarConfig('logoCajaModo', 'fuera')}>Flotando, sin fondo</button>
-                            </div>
-                            {config.logoPosicion === 'costados' && (config.logoCajaModo || 'dentro') === 'dentro' && (
-                              <CampoRango etiqueta="Tamaño de la burbuja" valor={Number.isFinite(config.logoCostadoTamano) ? config.logoCostadoTamano : 100} min={5} max={200} step={5} onChange={(v) => cambiarConfig('logoCostadoTamano', v)} />
-                            )}
-                            <div className="fila-form">
-                              <CampoRango
-                                etiqueta={config.logoPosicion === 'costados' ? 'Separación del tablero' : 'Corrimiento horizontal'}
-                                valor={Number.isFinite(config.logoFlotanteOffsetX) ? config.logoFlotanteOffsetX : 0} unidad="px" min={-300} max={300} step={5}
-                                onChange={(v) => cambiarConfig('logoFlotanteOffsetX', v)}
-                              />
-                              <CampoRango etiqueta="Corrimiento vertical" valor={Number.isFinite(config.logoFlotanteOffsetY) ? config.logoFlotanteOffsetY : 0} unidad="px" min={-200} max={200} step={5} onChange={(v) => cambiarConfig('logoFlotanteOffsetY', v)} />
-                            </div>
-                          </>
-                        )}
-                        {config.logoPosicion === 'fondo' && (
-                          <CampoRango etiqueta="Tamaño de la marca de agua" valor={config.logoTamanoFondo} min={5} max={90} onChange={(v) => cambiarConfig('logoTamanoFondo', v)} ayuda="Si tapa los números, bajá la opacidad a 30-40%." />
-                        )}
-                      </>
-                    )}
-                  </>
+                <label>
+                  Ubicación
+                  <select value={posicionLogo === 'costado' && !soporte.logoAdentro ? '' : posicionLogo} onChange={(e) => cambiarConfig('logoPosicion', e.target.value)}>
+                    {soporte.logoAdentro ? <option value="costado">Dentro del marcador (como viene el diseño)</option> : <option value="" disabled>Este diseño no trae escudo: elegí dónde ponerlo</option>}
+                    <option value="costados">A los costados (uno a cada lado)</option>
+                    <option value="arriba">Arriba, sobre cada equipo</option>
+                    <option value="abajo">Abajo, bajo cada equipo</option>
+                    <option value="libre">Posición libre (el visita va en espejo)</option>
+                    <option value="fondo">Marca de agua detrás del marcador</option>
+                  </select>
+                </label>
+                {['arriba', 'abajo', 'costados'].includes(posicionLogo) && (
+                  <div className="segmentado segmentado-ancho" role="group" aria-label="Cómo se ve el escudo">
+                    <button type="button" className={modoCajaLogo === 'dentro' ? 'activo' : ''} onClick={() => cambiarConfig('logoCajaModo', 'dentro')}>Dentro de la caja</button>
+                    <button type="button" className={modoCajaLogo === 'fuera' ? 'activo' : ''} onClick={() => cambiarConfig('logoCajaModo', 'fuera')}>Afuera, solo el escudo</button>
+                  </div>
+                )}
+                <div className="fila-form">
+                  {posicionLogo === 'costados' && modoCajaLogo === 'dentro'
+                    ? <CampoRango etiqueta="Zoom del escudo (no agranda la caja)" valor={Number.isFinite(config.logoZoomCaja) ? config.logoZoomCaja : 80} min={30} max={100} onChange={(v) => cambiarConfig('logoZoomCaja', v)} />
+                    : posicionLogo !== 'fondo' && <CampoRango etiqueta="Tamaño" valor={Number.isFinite(config.logoTamanoMarcador) ? config.logoTamanoMarcador : 40} unidad="px" min={20} max={180} onChange={(v) => cambiarConfig('logoTamanoMarcador', v)} />}
+                  <CampoRango etiqueta="Opacidad" valor={Number.isFinite(config.logoOpacidadMarcador) ? config.logoOpacidadMarcador : 100} min={10} max={100} onChange={(v) => cambiarConfig('logoOpacidadMarcador', v)} />
+                </div>
+                {['arriba', 'abajo', 'costados'].includes(posicionLogo) && (
+                  <div className="fila-form">
+                    <CampoRango
+                      etiqueta={posicionLogo === 'costados' ? 'Separación del tablero' : 'Corrimiento horizontal'}
+                      valor={Number.isFinite(config.logoFlotanteOffsetX) ? config.logoFlotanteOffsetX : 0} unidad="px" min={posicionLogo === 'costados' && modoCajaLogo === 'dentro' ? 0 : -300} max={300} step={5}
+                      onChange={(v) => cambiarConfig('logoFlotanteOffsetX', v)}
+                    />
+                    <CampoRango etiqueta="Corrimiento vertical" valor={Number.isFinite(config.logoFlotanteOffsetY) ? config.logoFlotanteOffsetY : 0} unidad="px" min={-200} max={200} step={5} onChange={(v) => cambiarConfig('logoFlotanteOffsetY', v)} />
+                  </div>
+                )}
+                {posicionLogo === 'libre' && (
+                  <div className="fila-form">
+                    <CampoRango etiqueta="Escudo local ↔ (visita en espejo)" valor={Number.isFinite(config.logoLibreX) ? config.logoLibreX : 30} min={0} max={50} onChange={(v) => cambiarConfig('logoLibreX', v)} />
+                    <CampoRango etiqueta="Altura ↕" valor={Number.isFinite(config.logoLibreY) ? config.logoLibreY : 80} min={0} max={100} onChange={(v) => cambiarConfig('logoLibreY', v)} />
+                  </div>
+                )}
+                {posicionLogo === 'fondo' && (
+                  <CampoRango etiqueta="Tamaño de la marca de agua" valor={config.logoTamanoFondo} min={5} max={90} onChange={(v) => cambiarConfig('logoTamanoFondo', v)} ayuda="Si tapa los números, bajá la opacidad a 30-40%." />
                 )}
               </>
             )}
@@ -2531,7 +2551,7 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
                 <Toggle etiqueta="Faltas de equipo (y BONUS)" checked={mostrar(config, 'mostrarFaltas')} onChange={(v) => cambiarConfig('mostrarFaltas', v)} />
                 {mostrar(config, 'mostrarFaltas') && soporte.estiloFaltas && (
                   <div className="segmentado segmentado-ancho" role="group" aria-label="Cómo se muestran las faltas">
-                    {[{ id: 'numero', etiqueta: '3' }, { id: 'puntos', etiqueta: '●●●' }, { id: 'lineas', etiqueta: '|||' }].map((o) => (
+                    {[{ id: 'numero', etiqueta: 'Número  3' }, { id: 'puntos', etiqueta: 'Puntos  ●●●○○' }, { id: 'lineas', etiqueta: 'Guiones  ▰▰▰▱▱' }].map((o) => (
                       <button key={o.id} type="button" className={(config.estiloFaltas || 'numero') === o.id ? 'activo' : ''} onClick={() => cambiarConfig('estiloFaltas', o.id)}>{o.etiqueta}</button>
                     ))}
                   </div>
@@ -2555,8 +2575,8 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
                 </label>
                 <CampoRango etiqueta="Tamaño" valor={Number.isFinite(config.tituloTamano) ? config.tituloTamano : 100} min={5} max={200} onChange={(v) => cambiarConfig('tituloTamano', v)} />
                 <div className="fila-form" style={{ alignItems: 'stretch' }}>
-                  <SelectorColor etiqueta="Fondo" valor={config.colorTitulo} alpha={config.colorTituloAlpha} porDefecto="#ffb703" onCambiarColor={(v) => cambiarConfig('colorTitulo', v)} onCambiarAlpha={(v) => cambiarConfig('colorTituloAlpha', v)} />
-                  <SelectorColor etiqueta="Letras" valor={config.colorTituloTexto} alpha={config.colorTituloTextoAlpha} porDefecto="#0a0c12" onCambiarColor={(v) => cambiarConfig('colorTituloTexto', v)} onCambiarAlpha={(v) => cambiarConfig('colorTituloTextoAlpha', v)} />
+                  <SelectorColor etiqueta="Fondo" valor={config.colorTitulo} alpha={config.colorTituloAlpha} porDefecto={colorBase.banner} onCambiarColor={(v) => cambiarConfig('colorTitulo', v)} onCambiarAlpha={(v) => cambiarConfig('colorTituloAlpha', v)} />
+                  <SelectorColor etiqueta="Letras" valor={config.colorTituloTexto} alpha={config.colorTituloTextoAlpha} porDefecto={colorBase.tablero} onCambiarColor={(v) => cambiarConfig('colorTituloTexto', v)} onCambiarAlpha={(v) => cambiarConfig('colorTituloTextoAlpha', v)} />
                 </div>
               </>
             )}
@@ -2564,7 +2584,7 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
 
           <Bloque
             id="animacion" {...bloque('marcador')} icono="✨" titulo="Animación al anotar"
-            resumen={mostrar(config, 'mostrarAnimacionPuntos') ? `${({ clasica: 'Clásica', rebote: 'Rebote', deslizar: 'Deslizar', destello: 'Destello' })[config.animacionPuntosEstilo || 'clasica']} · ${({ costado: 'al costado', arriba: 'arriba', centro: 'al centro', libre: 'posición libre' })[config.animacionPuntosPosicion || 'costado']}` : 'Apagada'}
+            resumen={mostrar(config, 'mostrarAnimacionPuntos') ? `${({ 'balon-animado': 'Balón que pica', 'mano-nba': 'Mano NBA' })[config.animacionPuntosIcono] || ({ clasica: 'Clásica', rebote: 'Rebote', deslizar: 'Deslizar', destello: 'Destello' })[config.animacionPuntosEstilo || 'clasica']} · ${({ costado: 'al costado', arriba: 'arriba', centro: 'al centro', libre: 'posición libre' })[config.animacionPuntosPosicion || 'costado']}` : 'Apagada'}
           >
             <Toggle etiqueta="Mostrar +1 / +2 / +3 al sumar" checked={mostrar(config, 'mostrarAnimacionPuntos')} onChange={(v) => cambiarConfig('mostrarAnimacionPuntos', v)} />
             {mostrar(config, 'mostrarAnimacionPuntos') && (
@@ -2587,6 +2607,8 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
                       <option value="dedos">Solo dedos (☝️ ✌️ 🤟)</option>
                       <option value="estrellas">Estrellas ⭐</option>
                       <option value="balones">Balones 🏀</option>
+                      <option value="balon-animado">Balón que pica (uno por punto)</option>
+                      <option value="mano-nba">Mano estilo NBA (1, 2 o 3 dedos)</option>
                     </select>
                   </label>
                 </div>

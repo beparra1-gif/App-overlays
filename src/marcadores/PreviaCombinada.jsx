@@ -111,7 +111,10 @@ export default function PreviaCombinada({
   // ninguno): esta medida la usan LogoFlotante/TituloMarcador/VistaAnuncios
   // para anclarse al borde real de la caja del marcador.
   const lienzoRef = useRef(null);
-  const caja = useCajaMarcador(lienzoRef, [plantillaId, config]);
+  const caja = useCajaMarcador(lienzoRef, [plantillaId, config], [
+    equipoLocalPreview?.nombre || (partidoReal || PARTIDO_DEMO).equipoLocal?.nombre,
+    equipoVisitaPreview?.nombre || (partidoReal || PARTIDO_DEMO).equipoVisita?.nombre,
+  ]);
   // El marco (recuadro visible) puede terminar en cualquier ancho según el
   // layout de la pantalla — la escala real del lienzo (1920×1080 fijo) se
   // recalcula a partir de ESE ancho, no de un porcentaje fijo, para que lo

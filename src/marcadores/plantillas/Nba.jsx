@@ -1,9 +1,9 @@
-import { formatearReloj, etiquetaPeriodo, usePulso, estiloPersonalizado, mostrar } from '../utils';
+import { formatearReloj, etiquetaPeriodo, usePulso, estiloPersonalizado, mostrar, logoAdentro } from '../utils';
 import PatrocinadorBanner from '../PatrocinadorBanner';
 import '../plantillas.css';
 
 function LogoCirculo({ equipo, config }) {
-  if (!mostrar(config, 'mostrarLogo')) return null;
+  if (!logoAdentro(config)) return null;
   const tam = config?.logoTamano || 44;
   if (equipo.logo_url) {
     return <img className="pn-logo-img" src={equipo.logo_url} alt={equipo.nombre} style={{ width: tam, height: tam }} />;

@@ -55,6 +55,28 @@ export function parsearReloj(textoCrudo, previo = null) {
   return null;
 }
 
+// Dígitos que el OCR confunde en marcadores LED / 7 segmentos (un 0 con un
+// segmento encendido de más se lee 8, un 9 sin la colita se lee 0, etc.).
+const PARECIDOS = { 0: '869', 1: '7', 2: '7', 3: '8', 5: '68', 6: '085', 7: '1', 8: '06953', 9: '08' };
+const variantesDeUnDigito = (t) => [...t].flatMap((c, i) => [...(PARECIDOS[c] || '')].map((d) => t.slice(0, i) + d + t.slice(i + 1)));
+
+// Si la lectura directa es imposible (p. ej. 89:12 en un cuarto de 10 min)
+// o queda lejos de lo esperado (`referencia` ± `cerca`), prueba cambiando
+// UN dígito por su parecido y se queda con la variante posible más cercana.
+// Sin una variante mejor, devuelve la directa (puede ser un cambio real).
+export function corregirLectura(textoCrudo, interpretar, { posible = () => true, referencia = null, cerca = Infinity } = {}) {
+  const t = limpiar(textoCrudo);
+  const directo = interpretar(t);
+  const okDirecto = directo != null && posible(directo);
+  const cercano = (v) => referencia == null || Math.abs(v - referencia) <= cerca;
+  if (okDirecto && cercano(directo)) return directo;
+  const candidatos = [...new Set(variantesDeUnDigito(t).map(interpretar))].filter((v) => v != null && posible(v) && cercano(v));
+  if (candidatos.length === 1 || (candidatos.length > 1 && referencia != null)) {
+    return candidatos.sort((x, y) => Math.abs(x - (referencia ?? 0)) - Math.abs(y - (referencia ?? 0)))[0];
+  }
+  return okDirecto ? directo : null;
+}
+
 export function parsearEntero(textoCrudo, max = 999) {
   const t = limpiar(textoCrudo).replace(/[^0-9]/g, '');
   if (!t || t.length > 3) return null;
@@ -68,7 +90,7 @@ export function parsearEntero(textoCrudo, max = 999) {
 // opcionalmente, engorda los trazos para unir los segmentos de los dígitos
 // de 7 segmentos, que si no el OCR ve como rayitas sueltas.
 // `fuente`: el <video> o una instantánea (canvas) del cuadro ya tomada.
-export function prepararRecorte(video, zona, canvas, { unirSegmentos = true } = {}) {
+export function prepararRecorte(video, zona, canvas, { unirSegmentos = true, radio: radioFijo = null } = {}) {
   const vw = video.videoWidth || video.width;
   const vh = video.videoHeight || video.height;
   const sx = Math.max(0, zona.x * vw);
@@ -133,7 +155,7 @@ export function prepararRecorte(video, zona, canvas, { unirSegmentos = true } = 
 
   let final = tinta;
   if (unirSegmentos) {
-    const radio = Math.max(1, Math.round(canvas.height / 45));
+    const radio = radioFijo ?? Math.max(1, Math.round(canvas.height / 45));
     final = dilatar(tinta, canvas.width, canvas.height, radio);
   }
   for (let i = 0, p = 0; p < n; i += 4, p++) {
@@ -309,3 +331,63 @@ export function estimarRelojFisicoDetalle(muestras, ahora, { redondeaArriba = fa
 }
 
 export const estimarRelojFisico = (muestras, ahora, opciones) => estimarRelojFisicoDetalle(muestras, ahora, opciones).valor;
+
+// Detección automática del tablero: con las palabras que el OCR vio en el
+// cuadro COMPLETO (texto + bbox en px) ubica el reloj (el "MM:SS" más
+// grande que quepa en un cuarto), los dos puntajes (los dos números más
+// grandes de altura parecida, el de la izquierda es el local) y el cuarto
+// (un dígito suelto entre ambos). Devuelve { zonaId: {x, y, w, h} } en
+// fracción del cuadro; lo que no encuentra, no lo toca.
+export function zonasDesdePalabras(palabrasCrudas, ancho, alto, maxSeg = 600) {
+  const alturaDe = (p) => p.bbox.y1 - p.bbox.y0;
+  const centroX = (p) => (p.bbox.x0 + p.bbox.x1) / 2;
+  const centroY = (p) => (p.bbox.y0 + p.bbox.y1) / 2;
+  const palabras = palabrasCrudas
+    .map((p) => ({ ...p, text: limpiar(p.text).replace(/[^0-9:.]/g, '') }))
+    .filter((p) => p.text && alturaDe(p) > 0)
+    .sort((a, b) => a.bbox.x0 - b.bbox.x0);
+  // Un reloj LED a veces llega partido en "09" y "12" (los dos puntos no se ven).
+  const unidas = [];
+  for (const p of palabras) {
+    const prev = unidas[unidas.length - 1];
+    const h = prev && alturaDe(prev);
+    if (prev && /^\d{1,2}$/.test(prev.text) && /^\d{2}$/.test(p.text) && Math.abs(alturaDe(p) - h) < h * 0.25
+      && Math.abs(centroY(p) - centroY(prev)) < h * 0.4 && p.bbox.x0 - prev.bbox.x1 < h * 0.9) {
+      unidas.push({ text: `${prev.text}:${p.text}`, bbox: { x0: prev.bbox.x0, y0: Math.min(prev.bbox.y0, p.bbox.y0), x1: p.bbox.x1, y1: Math.max(prev.bbox.y1, p.bbox.y1) }, partes: [prev, p] });
+    }
+    unidas.push(p);
+  }
+  const caja = (b, margen, anchoMinimo = 0) => {
+    const h = b.y1 - b.y0;
+    const w = Math.max(b.x1 - b.x0, h * anchoMinimo);
+    const cx = (b.x0 + b.x1) / 2;
+    const x = Math.max(0, (cx - w / 2 - h * margen) / ancho);
+    const y = Math.max(0, (b.y0 - h * margen) / alto);
+    return { x, y, w: Math.min(1 - x, (w + 2 * h * margen) / ancho), h: Math.min(1 - y, (h * (1 + 2 * margen)) / alto) };
+  };
+  const res = {};
+  const reloj = unidas
+    // Para UBICARLO alcanza con que sea un reloj posible, aunque un dígito venga mal leído (89:12).
+    .filter((p) => /^\d{1,2}[:.]\d{2}$/.test(p.text) && corregirLectura(p.text, parsearReloj, { posible: (v) => v <= maxSeg }) != null)
+    .sort((a, b) => alturaDe(b) - alturaDe(a))[0];
+  const usadas = new Set(reloj ? [reloj, ...(reloj.partes || [])] : []);
+  // Ancho de sobra: el primer dígito del reloj suele venir recortado en el bbox.
+  if (reloj) res.reloj = caja(reloj.bbox, 0.35, 2.9);
+  const numeros = palabras.filter((p) => !usadas.has(p) && /^\d{1,3}$/.test(p.text)).sort((a, b) => alturaDe(b) - alturaDe(a));
+  for (let i = 0; i < numeros.length && !res.ptsLocal; i++) {
+    const a = numeros[i];
+    const b = numeros.slice(i + 1).find((n) => Math.abs(alturaDe(n) - alturaDe(a)) <= alturaDe(a) * 0.3 && Math.abs(centroX(n) - centroX(a)) > alturaDe(a) * 1.5);
+    if (!b) continue;
+    const [local, visita] = [a, b].sort((x, y) => centroX(x) - centroX(y));
+    // Lugar para 3 dígitos aunque hoy el puntaje tenga 1 o 2.
+    res.ptsLocal = caja(local.bbox, 0.3, 1.9);
+    res.ptsVisita = caja(visita.bbox, 0.3, 1.9);
+    const periodo = numeros.find((n) => n !== a && n !== b && /^[1-9]$/.test(n.text) && centroX(n) > centroX(local) && centroX(n) < centroX(visita));
+    // Si no se vio el cuarto, el lugar típico: entre los dos puntajes.
+    const h = alturaDe(local);
+    const medio = (centroX(local) + centroX(visita)) / 2;
+    res.periodo = periodo ? caja(periodo.bbox, 0.5, 0.9)
+      : caja({ x0: medio - h * 0.45, x1: medio + h * 0.45, y0: centroY(local) - h * 0.5, y1: centroY(local) + h * 0.5 }, 0.15);
+  }
+  return res;
+}

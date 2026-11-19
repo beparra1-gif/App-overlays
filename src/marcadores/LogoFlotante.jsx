@@ -1,4 +1,5 @@
-import { mostrar, estiloAnclaLogo, estiloAnclaLogoCaja, estiloTema, fuenteEfectiva } from './utils';
+import { mostrar, estiloTema, idBasePlantilla, familiaDePlantilla } from './utils';
+import { coloresPorDefecto } from './coloresPorDefecto';
 import './logoFlotante.css';
 
 // Logo arriba/abajo/costados del marcador — ancla cerca de la caja y
@@ -24,7 +25,7 @@ import './logoFlotante.css';
 // siempre así no desaparecen un instante.
 export default function LogoFlotante({ equipoLocal, equipoVisita, config, plantillaId, caja }) {
   const posicion = config?.logoPosicion;
-  if (posicion !== 'arriba' && posicion !== 'abajo' && posicion !== 'costados') return null;
+  if (!['arriba', 'abajo', 'costados', 'libre'].includes(posicion)) return null;
   if (!mostrar(config, 'mostrarLogo')) return null;
 
   const opacidadRaw = Number.isFinite(config?.logoOpacidadMarcador) ? config.logoOpacidadMarcador : config?.logoOpacidad;
@@ -40,6 +41,24 @@ export default function LogoFlotante({ equipoLocal, equipoVisita, config, planti
   // recalcula solo).
   const offsetX = Number(config?.logoFlotanteOffsetX) || 0;
   const offsetY = Number(config?.logoFlotanteOffsetY) || 0;
+  // Colores reales del tablero elegido (no un negro genérico) y su familia
+  // visual, para que la franja/burbuja se lea como parte del mismo diseño.
+  const base = coloresPorDefecto(idBasePlantilla(plantillaId));
+  const tema = { '--pm-tablero': base.tablero, '--pm-banner': base.banner, ...estiloTema(config) };
+  const claseFamilia = `fam-${familiaDePlantilla(plantillaId)}`;
+  const img = (equipo, estilo) => equipo?.logo_url && (
+    <img src={equipo.logo_url} alt="" style={{ height: tamano, width: 'auto', maxWidth: tamano * 1.8, objectFit: 'contain', opacity: opacidad, ...estilo }} />
+  );
+
+  // Posición libre: un punto elegido para el local y el visita va en espejo.
+  if (posicion === 'libre') {
+    const x = Number.isFinite(config?.logoLibreX) ? config.logoLibreX : 30;
+    const y = Number.isFinite(config?.logoLibreY) ? config.logoLibreY : 80;
+    const punto = (equipo, left) => equipo?.logo_url && (
+      <div style={{ position: 'fixed', left: `${left}%`, top: `${y}%`, transform: 'translate(-50%, -50%)', pointerEvents: 'none' }}>{img(equipo)}</div>
+    );
+    return <>{punto(equipoLocal, x)}{punto(equipoVisita, 100 - x)}</>;
+  }
 
   if (posicion === 'costados') {
     if (!caja) return null;
@@ -69,23 +88,13 @@ export default function LogoFlotante({ equipoLocal, equipoVisita, config, planti
       // luna finita, con lugar de sobra para un logo de tamaño normal.
       // `logoCostadoTamano` (config, 50-200%) escala esa fracción entera —
       // antes la burbuja no tenía NINGÚN control de tamaño propio.
-      const escalaCostado = Number.isFinite(config?.logoCostadoTamano) ? config.logoCostadoTamano / 100 : 1;
-      const factor = 0.68 * escalaCostado;
-      const diametroAncho = caja.height * factor;
-      const diametroAlto = caja.heightAlto * factor;
-      const anchoBurbuja = diametroAncho * 0.85;
-      const centroVerticalAlto = caja.topAlto + caja.heightAlto / 2;
-      const topBurbuja = centroVerticalAlto - diametroAlto / 2;
-      // Solape MÍNIMO hacia ADENTRO de la caja, con la burbuja pintada
-      // ENCIMA (nunca detrás, ver más abajo): antes tenía z-index NEGATIVO
-      // pensado para "esconder" el solape detrás del fondo opaco de la
-      // caja, pero eso tapaba el logo de verdad en cuanto la burbuja crecía.
-      // Pintarla encima resolvió eso, pero un solape grande (0.6%, ~11px)
-      // ahora se notaba PARA EL OTRO LADO: la burbuja quedaba pisando el
-      // borde/contorno de la caja, como "superpuesta" en vez de pegada al
-      // borde. Un solape apenas de un par de píxeles (menos de un décimo de
-      // punto porcentual) alcanza de sobra contra el redondeo de sub-píxel
-      // de la medición, sin comerse el borde de la caja.
+      // La burbuja mide lo mismo que el alto real del tablero (se lee como
+      // parte de la caja) y el escudo hace zoom ADENTRO de ella: agrandarlo
+      // nunca agranda la caja ni un solo lado del marcador.
+      const zoom = Number.isFinite(config?.logoZoomCaja) ? Math.min(100, Math.max(30, config.logoZoomCaja)) : 80;
+      const diametroAlto = caja.heightAlto;
+      const anchoBurbuja = caja.height * 0.95;
+      const topBurbuja = caja.topAlto;
       const solape = 0.08;
       // Mismo ajuste fino que "arriba"/"abajo" (offsetX/offsetY, ya
       // leídos más arriba) — antes acá no tenían ningún efecto: los
@@ -101,7 +110,7 @@ export default function LogoFlotante({ equipoLocal, equipoVisita, config, planti
         const offsetLado = ladoIzquierdo ? -offsetX : offsetX;
         return (
           <div
-            className={`lf-burbuja ${ladoIzquierdo ? 'lf-burbuja-izquierda' : 'lf-burbuja-derecha'}`}
+            className={`lf-burbuja ${ladoIzquierdo ? 'lf-burbuja-izquierda' : 'lf-burbuja-derecha'} ${claseFamilia}`}
             style={{
               position: 'fixed',
               top: `${topBurbuja}%`,
@@ -113,10 +122,10 @@ export default function LogoFlotante({ equipoLocal, equipoVisita, config, planti
               alignItems: 'center',
               justifyContent: 'center',
               transform: `translate(${offsetLado}px, ${offsetY}px)`,
-              ...estiloTema(config),
+              ...tema,
             }}
           >
-            <img src={equipo.logo_url} alt="" style={{ width: '74%', height: '74%', objectFit: 'contain', opacity: opacidad }} />
+            <img src={equipo.logo_url} alt="" style={{ width: `${zoom}%`, height: `${zoom}%`, objectFit: 'contain', opacity: opacidad }} />
           </div>
         );
       };
@@ -166,39 +175,21 @@ export default function LogoFlotante({ equipoLocal, equipoVisita, config, planti
     );
   }
 
-  if (dentro) {
-    const estiloAncla = {
-      position: 'fixed', inset: 0, display: 'flex', pointerEvents: 'none',
-      ...estiloTema(config), '--pm-fuente': fuenteEfectiva(config, plantillaId), ...estiloAnclaLogoCaja(config, posicion, caja),
-      transform: `translate(${offsetX}px, ${offsetY}px)`,
-    };
-    return (
-      <div style={estiloAncla}>
-        <div className={`lf-dentro lf-dentro-${posicion}`}>
-          <div className="lf-logos">
-            {equipoLocal?.logo_url && (
-              <img src={equipoLocal.logo_url} alt="" style={{ height: tamano, width: 'auto', maxWidth: tamano * 1.8, objectFit: 'contain', opacity: opacidad }} />
-            )}
-            {equipoVisita?.logo_url && (
-              <img src={equipoVisita.logo_url} alt="" style={{ height: tamano, width: 'auto', maxWidth: tamano * 1.8, objectFit: 'contain', opacity: opacidad }} />
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const estiloAncla = estiloAnclaLogo(config, posicion, caja);
+  // Arriba/abajo: cada escudo sobre (o bajo) SU equipo — local a la
+  // izquierda, visita a la derecha — con el mismo ancho real de la caja.
+  // 'dentro' lo pinta como una franja del propio tablero; 'fuera', solos.
+  if (!caja) return null;
+  const arriba = posicion === 'arriba';
+  const estiloFranja = {
+    position: 'fixed', left: `${caja.left}%`, width: `${caja.width}%`,
+    ...(arriba ? { bottom: `${100 - caja.topAlto}%` } : { top: `${caja.topAlto + caja.heightAlto}%` }),
+    display: 'flex', justifyContent: 'space-between', alignItems: 'center', pointerEvents: 'none', boxSizing: 'border-box',
+    transform: `translate(${offsetX}px, ${offsetY}px)`, ...tema,
+  };
   return (
-    <div style={{ position: 'fixed', inset: 0, display: 'flex', pointerEvents: 'none', ...estiloAncla, transform: `translate(${offsetX}px, ${offsetY}px)` }}>
-      <div style={{ display: 'flex', gap: 16, transform: 'translateX(-50%)' }}>
-        {equipoLocal?.logo_url && (
-          <img src={equipoLocal.logo_url} alt="" style={{ height: tamano, width: 'auto', maxWidth: tamano * 1.8, objectFit: 'contain', opacity: opacidad }} />
-        )}
-        {equipoVisita?.logo_url && (
-          <img src={equipoVisita.logo_url} alt="" style={{ height: tamano, width: 'auto', maxWidth: tamano * 1.8, objectFit: 'contain', opacity: opacidad }} />
-        )}
-      </div>
+    <div className={dentro ? `lf-dentro lf-dentro-${posicion} ${claseFamilia}` : 'lf-fuera'} style={estiloFranja}>
+      {img(equipoLocal) || <span />}
+      {img(equipoVisita) || <span />}
     </div>
   );
 }

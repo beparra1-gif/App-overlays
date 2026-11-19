@@ -102,3 +102,34 @@
   opacity: 0;
   animation: pm-pop-icono-anim .85s cubic-bezier(.34, 1.56, .64, 1) forwards;
 }
+
+/* Mano estilo NBA: los dedos que cuentan se levantan uno por uno. */
+.pm-pop-mano-nba { display: inline-flex; align-items: center; gap: calc(6px * var(--pm-pop-escala, 1)); animation: pm-mano-entra 1.6s cubic-bezier(.34, 1.56, .64, 1) forwards; }
+.pm-pop-mano-nba svg { width: calc(64px * var(--pm-pop-escala, 1)); height: auto; overflow: visible; filter: drop-shadow(0 4px 8px rgba(0,0,0,.45)); }
+.pm-pop-mano-nba .palma, .pm-pop-mano-nba .dedo { fill: var(--pm-marcador, #fff); stroke: var(--pm-tablero, #0a0c12); stroke-width: 3; }
+.pm-pop-mano-nba .muneca { fill: var(--pm-banner, #ffb703); }
+.pm-pop-mano-nba .dedo-arriba { transform-box: fill-box; transform-origin: 50% 100%; transform: scaleY(.3); animation: pm-dedo-sube .32s cubic-bezier(.34, 1.56, .64, 1) forwards; }
+.pm-pop-mano-nba-num { font-size: calc(34px * var(--pm-pop-escala, 1)); }
+@keyframes pm-dedo-sube { to { transform: scaleY(1); } }
+@keyframes pm-mano-entra {
+  0% { opacity: 0; transform: translateY(30%) rotate(-12deg) scale(.6); }
+  25% { opacity: 1; transform: translateY(0) rotate(4deg) scale(1.05); }
+  40%, 60% { transform: rotate(-4deg); }
+  50%, 70% { transform: rotate(4deg); }
+  85% { opacity: 1; transform: none; }
+  100% { opacity: 0; transform: translateY(-30%); }
+}
+
+/* Balón que cae y pica (uno por punto). */
+.pm-pop-balon { width: calc(34px * var(--pm-pop-escala, 1)); height: auto; opacity: 0; animation: pm-balon-pica 1.5s cubic-bezier(.3, 0, .5, 1) forwards; filter: drop-shadow(0 4px 6px rgba(0,0,0,.4)); }
+.pm-pop-balon circle { fill: #e8772e; stroke: #3a1d0b; stroke-width: 2; }
+.pm-pop-balon path { fill: none; stroke: #3a1d0b; stroke-width: 1.8; }
+@keyframes pm-balon-pica {
+  0% { opacity: 1; transform: translateY(-120%) rotate(0); }
+  30% { transform: translateY(0) rotate(120deg) scale(1.1, .88); }
+  45% { transform: translateY(-45%) rotate(170deg); }
+  60% { transform: translateY(0) rotate(220deg) scale(1.05, .94); }
+  70% { transform: translateY(-15%) rotate(240deg); }
+  80% { opacity: 1; transform: translateY(0) rotate(260deg); }
+  100% { opacity: 0; transform: translateY(0) rotate(270deg); }
+}

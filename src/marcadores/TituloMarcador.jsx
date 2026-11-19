@@ -1,4 +1,4 @@
-import { estiloTema, fuenteEfectiva, hexConAlpha } from './utils';
+import { estiloTema, fuenteEfectiva, hexConAlpha, familiaDePlantilla } from './utils';
 import './titulo.css';
 
 // Encabezado opcional del marcador — capa compuesta (mismo truco de apilado
@@ -46,7 +46,7 @@ export default function TituloMarcador({ config, plantillaId, caja, suprimir = f
   };
 
   return (
-    <div style={estilo}>
+    <div style={estilo} className={`fam-${familiaDePlantilla(plantillaId)}`}>
       <div className="pm-titulo-ancla">
         <div className="pm-titulo-texto" style={estiloTexto}>{texto}</div>
       </div>

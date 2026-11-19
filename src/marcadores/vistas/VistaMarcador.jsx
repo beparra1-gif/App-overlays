@@ -39,7 +39,7 @@ export default function VistaMarcador({ partido, diseno, oculto = false, suprimi
   // "resizea", así que hace falta además re-medir cuando cambia `config`
   // (cualquier ajuste de posición/escala/tamaño de texto) o la plantilla.
   const contenedorRef = useRef(null);
-  const caja = useCajaMarcador(contenedorRef, [plantillaId, config]);
+  const caja = useCajaMarcador(contenedorRef, [plantillaId, config], [partido?.equipoLocal?.nombre, partido?.equipoVisita?.nombre]);
   return (
     <div
       ref={contenedorRef}

@@ -539,46 +539,6 @@ export function estiloAnclaAlerta(tema = {}, modo = 'arriba', lado = 'izquierda'
   };
 }
 
-// Ancla el logo flotante (modo 'arriba'/'abajo') cerca de la caja del
-// marcador, igual que estiloAnclaAlerta — reusa la misma corrección de
-// aspect-ratio para que "arriba"/"abajo" apunten donde realmente se ve, y la
-// misma mitad proporcional para que la cercanía no se rompa al agrandar.
-// `caja` (opcional, real, medida): reemplaza posX/posY/mitadCajaProporcional
-// cuando está disponible — ver el comentario de estiloAnclaAlerta, mismo
-// motivo (la aproximación fija queda corrida en cuanto el diseño se aleja
-// del tamaño "típico" que asume).
-export function estiloAnclaLogo(tema = {}, modo = 'arriba', caja = null) {
-  const posX = caja ? caja.left + caja.width / 2 : (Number.isFinite(tema?.posX) ? tema.posX : 50);
-  const posY = caja ? caja.topAlto + caja.heightAlto / 2 : (Number.isFinite(tema?.posY) ? tema.posY : 88);
-  const mitad = caja ? { x: caja.width / 2, y: caja.heightAlto / 2 } : mitadCajaProporcional(tema);
-  const y = modo === 'abajo' ? Math.min(100, posY + mitad.y + 2) : Math.max(0, posY - mitad.y - 16);
-  return {
-    justifyContent: 'flex-start',
-    alignItems: 'flex-start',
-    paddingLeft: `${Math.max(0, Math.min(96, posX - mitad.x * 0.5))}%`,
-    paddingTop: paddingTopDesdeY(y),
-  };
-}
-
-// Ancla el logo "dentro de la caja" (config.logoCajaModo === 'dentro') justo
-// en el borde superior/inferior del marcador, sin ningún hueco — mismo
-// criterio de "pegado + transform fijo en CSS" que estiloAnclaAlerta/Titulo,
-// para que el marcador se vea "más alto" en vez de tener un logo flotando
-// aparte. Distinta de estiloAnclaLogo (el modo 'fuera', que sí deja hueco).
-// `caja`: mismo reemplazo de la aproximación que en estiloAnclaLogo.
-export function estiloAnclaLogoCaja(tema = {}, modo = 'arriba', caja = null) {
-  const posX = caja ? caja.left + caja.width / 2 : (Number.isFinite(tema?.posX) ? tema.posX : 50);
-  const posY = caja ? caja.topAlto + caja.heightAlto / 2 : (Number.isFinite(tema?.posY) ? tema.posY : 88);
-  const mitad = caja ? { x: caja.width / 2, y: caja.heightAlto / 2 } : mitadCajaProporcional(tema);
-  const y = modo === 'abajo' ? Math.min(100, posY + mitad.y) : Math.max(0, posY - mitad.y);
-  return {
-    justifyContent: 'flex-start',
-    alignItems: 'flex-start',
-    paddingLeft: `${posX}%`,
-    paddingTop: paddingTopDesdeY(y),
-  };
-}
-
 // Ancla el "+N" que aparece al anotar. Tres modos elegibles desde el diseño
 // (config.animacionPuntosPosicion):
 // - 'costado' (por defecto): pegado al costado del marcador — izquierda
@@ -649,19 +609,23 @@ export function estiloAnclaPop(tema = {}, lado, posicion = 'costado', caja = nul
 // vienen en la config (diseño no personalizado, o venía de antes de que
 // existiera esta opción) se muestran por defecto.
 export const mostrar = (config, clave) => config?.[clave] !== false;
+// El escudo va DENTRO del tablero solo con la posición 'costado'; las demás
+// (arriba/abajo/costados/fondo/libre) lo dibujan LogoFlotante/LogoMarcaAgua.
+export const logoAdentro = (config) => mostrar(config, 'mostrarLogo') && (config?.logoPosicion || 'costado') === 'costado';
 
 // Cómo se leen las faltas en el tablero: número (comportamiento de siempre),
 // puntos o líneas tipo tarja — capado para no desbordar la caja si el
 // partido acumula muchas faltas (el número real sigue contando aparte, acá
 // solo cambia cómo se dibuja).
-const TOPE_INDICADOR_FALTAS = 8;
+const CASILLAS_FALTAS = 5;
 export function indicadorFaltas(cantidad, estilo) {
   const n = Math.max(0, Number(cantidad) || 0);
   if (estilo === 'puntos' || estilo === 'lineas') {
-    const simbolo = estilo === 'puntos' ? '●' : '|';
-    const visibles = Math.min(n, TOPE_INDICADOR_FALTAS);
-    const extra = n > TOPE_INDICADOR_FALTAS ? `+${n - TOPE_INDICADOR_FALTAS}` : '';
-    return `${simbolo.repeat(visibles)}${extra}`;
+    // 'lineas' (id histórico) = guiones medios, como los tableros profesionales.
+    // 5 casillas fijas (llenas/vacías, el ancho no salta); FIBA da bonus a la 4.ª.
+    const [lleno, vacio, sep] = estilo === 'puntos' ? ['●', '○', ' '] : ['▰', '▱', ''];
+    const casillas = Array.from({ length: CASILLAS_FALTAS }, (_, i) => (i < n ? lleno : vacio)).join(sep);
+    return n > CASILLAS_FALTAS ? `${casillas}+${n - CASILLAS_FALTAS}` : casillas;
   }
   return String(n);
 }
@@ -836,7 +800,46 @@ export function usePatrocinadorActual(patrocinadores) {
 // otra unidad, para quien necesite anclar con `top`/`height` en vez de
 // `padding-top` (como los logos "a los costados": van con `top`/`height`
 // porque tienen que estirarse a lo alto de la caja, no colgar de un punto).
-export function useCajaMarcador(contenedorRef, dependencias = []) {
+// REGLA: un nombre de club largo nunca agranda solo un lado del tablero.
+// Busca en la caja los dos textos que son el nombre de cada equipo y les da
+// el MISMO ancho (el del más largo, con tope); si uno pasa el tope, se achica
+// su letra (hasta 70 %) y recién después se corta con "…".
+const TOPE_NOMBRE_PX = 260;
+export function igualarNombres(raiz, nombres) {
+  const [a, b] = (nombres || []).map((n) => String(n || '').trim().toLowerCase());
+  if (!raiz || !a || !b) return;
+  const hojas = [...raiz.querySelectorAll('*')].filter((el) => el.children.length === 0 && el.textContent.trim());
+  const de = (n) => hojas.filter((el) => el.textContent.trim().toLowerCase() === n);
+  let locales = de(a);
+  let visitas = de(b);
+  if (a === b) { visitas = locales.filter((_, i) => i % 2); locales = locales.filter((_, i) => !(i % 2)); }
+  for (let i = 0; i < Math.min(locales.length, visitas.length); i++) {
+    const par = [locales[i], visitas[i]];
+    for (const el of par) {
+      for (const prop of ['min-width', 'max-width', 'font-size', 'overflow', 'text-overflow', 'white-space', 'text-align']) el.style.removeProperty(prop);
+      if (getComputedStyle(el).display === 'inline') el.style.display = 'inline-block';
+    }
+    for (const el of par) {
+      // Si el diseño ya le pone un ancho máximo (o pasa el tope), primero se
+      // achica la letra para que el nombre entre completo.
+      const disponible = Math.min(TOPE_NOMBRE_PX, el.scrollWidth > el.clientWidth + 1 ? el.clientWidth : Infinity);
+      if (el.scrollWidth > disponible) {
+        const base = parseFloat(getComputedStyle(el).fontSize);
+        el.style.fontSize = `${base * Math.max(0.7, disponible / el.scrollWidth)}px`;
+      }
+    }
+    // +2: offsetWidth redondea hacia abajo y medio píxel de menos ya dispara el "…".
+    const ancho = Math.min(TOPE_NOMBRE_PX, Math.max(...par.map((el) => el.offsetWidth)) + 2);
+    for (const el of par) {
+      Object.assign(el.style, { minWidth: `${ancho}px`, maxWidth: `${ancho}px`, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' });
+      // En columna centrada (nombre sobre el puntaje) el texto más corto sigue centrado.
+      const padre = getComputedStyle(el.parentElement);
+      if (padre.flexDirection === 'column' && padre.alignItems === 'center') el.style.textAlign = 'center';
+    }
+  }
+}
+
+export function useCajaMarcador(contenedorRef, dependencias = [], nombres = null) {
   const [caja, setCaja] = useState(null);
 
   useEffect(() => {
@@ -846,6 +849,7 @@ export function useCajaMarcador(contenedorRef, dependencias = []) {
     const elementoCaja = wrapper?.firstElementChild;
     if (!elementoCaja) return undefined;
 
+    if (nombres) igualarNombres(elementoCaja, nombres);
     const medir = () => {
       const rectCaja = elementoCaja.getBoundingClientRect();
       const rectContenedor = contenedor.getBoundingClientRect();
@@ -861,16 +865,24 @@ export function useCajaMarcador(contenedorRef, dependencias = []) {
     };
 
     medir();
+    let vivo = true;
+    // Las fuentes web cargan después: recién ahí el ancho real de cada nombre es el definitivo.
+    // (ready puede resolverse antes de que empiece a bajar la fuente del diseño: también se escucha loadingdone).
+    const reigualar = () => { if (vivo && nombres) { igualarNombres(elementoCaja, nombres); medir(); } };
+    document.fonts?.ready.then(reigualar);
+    document.fonts?.addEventListener?.('loadingdone', reigualar);
     const observer = new ResizeObserver(medir);
     observer.observe(elementoCaja);
     observer.observe(contenedor);
     window.addEventListener('resize', medir);
     return () => {
+      vivo = false;
+      document.fonts?.removeEventListener?.('loadingdone', reigualar);
       observer.disconnect();
       window.removeEventListener('resize', medir);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, dependencias);
+  }, [...dependencias, nombres?.[0], nombres?.[1]]);
 
   return caja;
 }

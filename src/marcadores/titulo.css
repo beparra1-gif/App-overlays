@@ -19,3 +19,34 @@
   white-space: nowrap;
   box-shadow: 0 -6px 18px rgba(0, 0, 0, 0.35);
 }
+
+/* La pestaña del título toma la forma de cada familia visual (misma
+   identidad que la nómina/anuncios de ese diseño). Los colores elegidos a
+   mano llegan inline y siempre ganan. */
+.fam-broadcast .pm-titulo-texto { border-radius: 0; box-shadow: inset 0 -4px 0 rgba(0,0,0,.25), 0 -6px 18px rgba(0,0,0,.35); letter-spacing: 2px; }
+.fam-neon .pm-titulo-texto { background: var(--pm-tablero, #0a0c12); color: var(--pm-banner, #ffb703); border: 2px solid currentColor; border-bottom: 0; border-radius: 10px 10px 0 0; text-shadow: 0 0 10px currentColor; box-shadow: 0 0 18px color-mix(in srgb, var(--pm-banner, #ffb703) 55%, transparent); }
+.fam-streetball .pm-titulo-texto { border-radius: 0; transform: skewX(-10deg); box-shadow: 6px 0 0 rgba(0,0,0,.35); font-style: italic; }
+.fam-cristal .pm-titulo-texto { background: color-mix(in srgb, var(--pm-tablero, #0a0c12) 55%, transparent); color: var(--pm-marcador, #fff); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,.18); border-bottom: 0; border-radius: 16px 16px 0 0; font-weight: 600; letter-spacing: 3px; }
+.fam-holografico .pm-titulo-texto { background: linear-gradient(90deg, #7df9ff, #b388ff, #ff80ab); color: #0a0c12; border-radius: 14px 14px 0 0; }
+.fam-editorial .pm-titulo-texto { background: var(--pm-tablero, #fff); color: var(--pm-texto, #111); border-radius: 0; border-top: 4px solid var(--pm-banner, #c00); font-family: Georgia, 'Times New Roman', serif; font-style: italic; text-transform: none; letter-spacing: 0; }
+.fam-madera .pm-titulo-texto { border-radius: 6px 6px 0 0; border: 3px solid #5a3a1e; border-bottom: 0; }
+.fam-tactico .pm-titulo-texto { border-radius: 0; clip-path: polygon(12px 0, calc(100% - 12px) 0, 100% 100%, 0 100%); letter-spacing: 4px; }
+
+[class*="fam-sx-"] .pm-titulo-texto {
+  border-radius: min(var(--sx-radio, 8px), 16px) min(var(--sx-radio, 8px), 16px) 0 0;
+  border: var(--sx-borde, none); border-bottom: 0;
+  background-image: var(--sx-textura, none);
+  text-transform: var(--sx-mayus, uppercase); letter-spacing: var(--sx-esp, 1px);
+  color: var(--sx-sobre, var(--pm-tablero, #0a0c12));
+}
+.fam-sx-crossover .pm-titulo-texto { transform: skewX(-8deg); font-style: italic; box-shadow: 6px 6px 0 rgba(0,0,0,.35); }
+.fam-sx-brutalista .pm-titulo-texto { border: 4px solid #0d0d0d; border-bottom: 0; box-shadow: 6px -6px 0 #0d0d0d; }
+.fam-sx-sticker .pm-titulo-texto { rotate: -2deg; border: 4px solid #fff; border-radius: 16px; margin-bottom: 6px; box-shadow: 0 6px 0 rgba(0,0,0,.25); }
+.fam-sx-reacciones .pm-titulo-texto { border-radius: 999px; margin-bottom: 8px; }
+.fam-sx-noventero .pm-titulo-texto, .fam-sx-torre .pm-titulo-texto, .fam-sx-momentum .pm-titulo-texto { border-radius: 16px; margin-bottom: 6px; }
+.fam-sx-trapecio .pm-titulo-texto { clip-path: polygon(14px 0, calc(100% - 14px) 0, 100% 100%, 0 100%); padding-inline: 34px !important; }
+.fam-sx-ticket .pm-titulo-texto { border: 2px dashed currentColor; border-bottom: 0; }
+.fam-sx-riso .pm-titulo-texto { box-shadow: 5px -5px 0 #3d5afe; }
+.fam-sx-terminal .pm-titulo-texto::before { content: '> '; opacity: .7; }
+.fam-sx-grunge .pm-titulo-texto { rotate: -1.5deg; clip-path: polygon(0 8%, 6% 0, 40% 6%, 70% 0, 100% 7%, 100% 100%, 0 100%); }
+.fam-sx-pizarra .pm-titulo-texto { border: 4px solid #6b4a2b; border-bottom: 0; }
