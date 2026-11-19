@@ -82,28 +82,60 @@ export default function LogoMarcaAgua({ equipoLocal, equipoVisita, config, caja 
       } else {
         // Crecen TODAS las piezas por igual (la fila sigue pareja).
         const p = lado === 'arriba' ? 'paddingTop' : 'paddingBottom';
-        for (const el of pz.grandesEl) lista.push({ el, local: el === pz.izquierdaEl, visita: el === pz.derechaEl, padding: [p] });
+        // El panel de cada equipo puede estar ADENTRO de una pieza más grande (p. ej. Halo Digital).
+        for (const el of pz.grandesEl) lista.push({ el, local: el.contains(pz.izquierdaEl), visita: el.contains(pz.derechaEl), padding: [p] });
       }
       for (const d of lista) {
         preparar(d.el);
-        guardar(d.el, d.padding);
+        guardar(d.el, [...d.padding, 'height', 'width']);
         const cs = getComputedStyle(d.el);
+        const antes = { alto: d.el.offsetHeight, ancho: d.el.offsetWidth };
         for (const p of d.padding) d.el.style[p] = `${(parseFloat(cs[p]) || 0) + extra}px`;
+        // Pieza con medida fija (border-box): crece también, si no el contenido queda cortado (p. ej. las alas de Trapecio).
+        if (cs.boxSizing === 'border-box') {
+          if (d.padding.some((p) => p === 'paddingTop' || p === 'paddingBottom')) d.el.style.height = `${antes.alto + extra}px`;
+          if (d.padding.some((p) => p === 'paddingLeft' || p === 'paddingRight')) d.el.style.width = `${antes.ancho + extra * d.padding.filter((p) => p === 'paddingLeft' || p === 'paddingRight').length}px`;
+        }
         destinos.push({ ...d, lado });
+      }
+      // Si la FILA que contiene las piezas tiene alto fijo (p. ej. .sxw-fila
+      // de Alas en Trapecio), crece lo mismo: si no, las piezas no pueden
+      // agrandarse y el puntaje queda cortado.
+      if (lado !== 'costados') {
+        const filas = new Set(lista.map((d) => d.el.parentElement).filter((f) => f && f !== elemento.parentElement && elemento.contains(f)));
+        for (const fila of filas) {
+          if (fila.scrollHeight <= fila.clientHeight + 1 && lista.every((d) => d.el.parentElement !== fila || d.el.scrollHeight <= d.el.clientHeight + 1)) continue;
+          guardar(fila, ['height']);
+          fila.style.height = `${fila.offsetHeight + extra}px`;
+        }
       }
     }
     if (fondo) { preparar(elemento); destinos.push({ el: elemento, lado: 'fondo', local: true, visita: true }); }
 
     // Con la caja ya agrandada: dónde está cada equipo, y recién ahí se saca el nombre de su lugar original.
-    const x = centros(elemento, elsNombre);
-    // Se oculta conservando su ANCHO (solo colapsa el alto): el tablero no se angosta y cada nombre queda alineado con su equipo.
-    const colapsar = ['visibility', 'height', 'minHeight', 'lineHeight', 'marginTop', 'marginBottom', 'paddingTop', 'paddingBottom', 'overflow'];
+    let x = centros(elemento, elsNombre);
+    // En columna (nombre sobre el puntaje) se oculta conservando su ANCHO
+    // (solo colapsa el alto): el tablero no se angosta. En fila (nombre al
+    // lado del puntaje, p. ej. Lower Third) se saca del todo para no dejar
+    // un hueco, y cada nombre se centra sobre el elemento que quedó a su lado.
+    const colapsar = ['visibility', 'height', 'minHeight', 'lineHeight', 'marginTop', 'marginBottom', 'paddingTop', 'paddingBottom', 'overflow', 'display'];
     if (nombreLado) {
+      const enFila = elsNombre.some((el) => el && getComputedStyle(el.parentElement).flexDirection.startsWith('row') && getComputedStyle(el.parentElement).display.includes('flex'));
       elsNombre.forEach((el) => {
         if (!el) return;
         guardar(el, colapsar);
-        Object.assign(el.style, { visibility: 'hidden', height: '0px', minHeight: '0px', lineHeight: '0', marginTop: '0px', marginBottom: '0px', paddingTop: '0px', paddingBottom: '0px', overflow: 'hidden' });
+        if (enFila) el.style.display = 'none';
+        else Object.assign(el.style, { visibility: 'hidden', height: '0px', minHeight: '0px', lineHeight: '0', marginTop: '0px', marginBottom: '0px', paddingTop: '0px', paddingBottom: '0px', overflow: 'hidden' });
       });
+      if (enFila) {
+        const vecino = (el, local) => {
+          if (!el) return null;
+          let v = local ? el.nextElementSibling : el.previousElementSibling;
+          while (v && v.offsetParent === null) v = local ? v.nextElementSibling : v.previousElementSibling;
+          return v || (local ? el.previousElementSibling : el.nextElementSibling);
+        };
+        x = centros(elemento, [vecino(elsNombre[0], true), vecino(elsNombre[1], false)]);
+      }
     }
     setPlan({ destinos, x, textoNombre, coloresNombre });
     return () => { restaurar.reverse().forEach(([el, previo]) => Object.assign(el.style, previo)); };

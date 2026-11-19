@@ -1,4 +1,4 @@
-import { estiloTema, estiloTemaCapa, familiaEfectiva, fuenteEfectiva, formatearReloj, mostrar } from '../utils';
+import { estiloTema, estiloTemaCapa, familiaEfectiva, fuenteEfectiva, formatearReloj, mostrar, varsPaletaTablero } from '../utils';
 import { urlFotoJugador } from '../../api/client';
 import LogoEquipo from '../LogoEquipo';
 import { comparativaEquipos, lideresPartido, tablaPorPeriodo, tituloIntertanto } from '../intertanto';
@@ -62,23 +62,95 @@ function BarraComparativa({ fila, colorLocal, colorVisita }) {
 // cuarto y, SI hay nóminas cargadas, comparativa de equipo y líderes. Usa
 // los colores/tipografía del diseño (capa propia "intertanto", con
 // respaldo en los de Estadísticas y del marcador).
-export default function VistaIntertanto({ partido, tema = {}, plantillaId, saliendo = false }) {
+// La jugadora más valiosa: más puntos; a igualdad, más rebotes + asistencias.
+function elegirMvp(partido) {
+  const todos = [
+    ...partido.equipoLocal.roster.map((j) => ({ ...j, equipo: partido.equipoLocal })),
+    ...partido.equipoVisita.roster.map((j) => ({ ...j, equipo: partido.equipoVisita })),
+  ];
+  const valor = (j) => (j.pts || 0) * 1000 + (j.reb || 0) + (j.ast || 0);
+  const mejor = todos.reduce((a, b) => (!a || valor(b) > valor(a) ? b : a), null);
+  return mejor && (mejor.pts || mejor.reb || mejor.ast) ? mejor : null;
+}
+
+function TarjetaMvp({ jugador, grande = false }) {
+  const color = jugador.equipo.color || '#ffb703';
+  return (
+    <section className={`it-mvp it-anim ${grande ? 'it-mvp-grande' : ''}`} style={{ '--it-delay': '200ms', '--it-mvp-color': color }}>
+      <span className="it-mvp-etiqueta">⭐ Jugadora del partido</span>
+      <Avatar jugador={jugador} color={color} />
+      <div className="it-mvp-datos">
+        <strong>{jugador.nombre || `#${jugador.dorsal}`}</strong>
+        <span>{jugador.dorsal != null ? `#${jugador.dorsal} · ` : ''}{jugador.equipo.nombre}</span>
+      </div>
+      <div className="it-mvp-numeros">
+        {[['pts', 'PTS'], ['reb', 'REB'], ['ast', 'AST']].map(([k, et]) => <span key={k}><b>{jugador[k] || 0}</b>{et}</span>)}
+      </div>
+    </section>
+  );
+}
+
+// Tabla de posiciones de la categoría (partidos guardados de la temporada);
+// los dos equipos que juegan ahora quedan resaltados.
+function TablaPosiciones({ tabla, enJuego }) {
+  if (!tabla) return <p className="it-mvp-vacio">Cargando la tabla…</p>;
+  if (!tabla.tabla?.length) return <p className="it-mvp-vacio">Todavía no hay partidos guardados de esta categoría.</p>;
+  const juegan = enJuego.map((n) => n.toLowerCase());
+  return (
+    <table className="it-tabla it-anim" style={{ '--it-delay': '120ms' }}>
+      <thead><tr><th>#</th><th className="it-tabla-equipo">Equipo</th><th>PJ</th><th>G</th><th>P</th><th>+/-</th></tr></thead>
+      <tbody>
+        {tabla.tabla.slice(0, 10).map((e, i) => (
+          <tr key={e.nombre} className={juegan.includes(e.nombre.toLowerCase()) ? 'it-tabla-juega' : ''}>
+            <td>{i + 1}</td>
+            <td className="it-tabla-equipo">
+              {e.logoUrl ? <img src={e.logoUrl} alt="" /> : <i style={{ background: e.color || '#888' }} />}
+              {e.nombre}
+            </td>
+            <td>{e.partidosJugados}</td><td>{e.victorias}</td><td>{e.derrotas}</td>
+            <td>{e.diferencia > 0 ? `+${e.diferencia}` : e.diferencia}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+// modo: 'intertanto' (entre cuartos, por defecto), 'previa' (antes de
+// empezar: escudos y "VS"), 'final' (resultado, cuartos, líderes y la
+// jugadora del partido) o 'mvp' (solo la jugadora del partido).
+export default function VistaIntertanto({ partido, tema = {}, plantillaId, saliendo = false, caja = null, modo = 'intertanto', tabla = null }) {
   if (!partido?.equipoLocal || !partido?.equipoVisita) return null;
   const { equipoLocal: local, equipoVisita: visita } = partido;
   const familia = familiaEfectiva(tema, 'intertanto', plantillaId);
-  const { titulo, subtitulo } = tituloIntertanto(partido);
+  const competicion = Array.isArray(tema.logosLibres) ? tema.logosLibres[0]?.logoUrl : null;
+  const textoPartido = tema.mostrarTitulo && (tema.tituloTexto || '').trim();
+  const base = tituloIntertanto(partido);
+  const { titulo, subtitulo } = modo === 'previa'
+    ? { titulo: textoPartido || 'Previa del partido', subtitulo: 'Comienza en instantes' }
+    : modo === 'final' ? { titulo: 'Final', subtitulo: textoPartido || 'Resultado final' }
+      : modo === 'mvp' ? { titulo: 'Jugadora del partido', subtitulo: textoPartido || `${local.nombre} ${partido.ptsLocal} – ${partido.ptsVisita} ${visita.nombre}` }
+        : modo === 'tabla' ? { titulo: 'Tabla de posiciones', subtitulo: [tabla?.categoria, tabla?.rama === 'femenino' ? 'Femenino' : tabla?.rama === 'masculino' ? 'Masculino' : null].filter(Boolean).join(' · ') || textoPartido || 'Temporada' }
+          : base;
+  const mvp = modo === 'final' || modo === 'mvp' ? elegirMvp(partido) : null;
   const columnas = tablaPorPeriodo(partido);
   const categorias = Array.isArray(tema.intertantoCategorias) && tema.intertantoCategorias.length ? tema.intertantoCategorias : CATEGORIAS_POR_DEFECTO;
-  const lideres = tema.intertantoLideres !== false ? lideresPartido(partido, categorias) : [];
-  const comparativa = tema.intertantoComparativa !== false ? comparativaEquipos(partido) : [];
-  const mostrarCuartos = tema.intertantoCuartos !== false;
+  const conDetalle = modo === 'intertanto' || modo === 'final';
+  const lideres = conDetalle && tema.intertantoLideres !== false ? lideresPartido(partido, categorias) : [];
+  const comparativa = modo === 'intertanto' && tema.intertantoComparativa !== false ? comparativaEquipos(partido) : [];
+  const mostrarCuartos = conDetalle && tema.intertantoCuartos !== false;
   const colorLocal = local.color || '#0a84ff';
   const colorVisita = visita.color || '#ff3b30';
   const ganaLocal = partido.ptsLocal > partido.ptsVisita;
   const ganaVisita = partido.ptsVisita > partido.ptsLocal;
   const offsetY = Number(tema.intertantoOffsetY) || 0;
 
+  // Por defecto, los colores y la forma del tablero real en pantalla; lo
+  // elegido a mano (colores del marcador o del Intertanto) va encima y manda.
+  const p = caja?.paleta;
   const estilo = {
+    ...varsPaletaTablero(caja),
+    ...(p ? { '--it-radio': p.radio, '--it-borde': p.borde, '--it-textura': p.textura } : {}),
     ...estiloTema(tema),
     ...estiloTemaCapa(tema, 'estadisticas'),
     ...estiloTemaCapa(tema, 'intertanto'),
@@ -91,28 +163,37 @@ export default function VistaIntertanto({ partido, tema = {}, plantillaId, salie
   const sinDetalle = lideres.length === 0 && comparativa.length === 0;
 
   return (
-    <div className={`it-overlay fam-${familia} ${saliendo ? 'it-saliendo' : ''} ${tema.intertantoColorFondo ? 'it-fondo-propio' : ''} ${tema.intertantoColorTexto ? 'it-texto-propio' : ''} ${tema.intertantoColorTitulo ? 'it-titulo-propio' : ''}`} style={estilo}>
+    <div className={`it-overlay fam-${familia} it-modo-${modo} ${saliendo ? 'it-saliendo' : ''} ${tema.intertantoColorFondo ? 'it-fondo-propio' : ''} ${tema.intertantoColorTexto ? 'it-texto-propio' : ''} ${tema.intertantoColorTitulo ? 'it-titulo-propio' : ''}`} style={estilo}>
       <div className={`it-panel ${sinDetalle ? 'it-panel-compacto' : ''}`}>
         <div className="it-cabecera it-anim" style={{ '--it-delay': '0ms' }}>
+          {competicion && (modo === 'previa' || modo === 'final') && <img className="it-competicion" src={competicion} alt="" />}
           <span className="it-titulo">{titulo}</span>
           <span className="it-subtitulo">
             {subtitulo}
-            {(Number(partido.relojSegundos) || 0) > 0 && <> · {formatearReloj(partido.relojSegundos)}</>}
+            {modo === 'intertanto' && (Number(partido.relojSegundos) || 0) > 0 && <> · {formatearReloj(partido.relojSegundos)}</>}
           </span>
         </div>
+
+        {modo === 'mvp' && (mvp ? <TarjetaMvp jugador={mvp} grande /> : <p className="it-mvp-vacio">Todavía no hay estadísticas de jugadoras.</p>)}
+        {modo === 'tabla' && <TablaPosiciones tabla={tabla} enJuego={[local.nombre, visita.nombre]} />}
+        {modo !== 'mvp' && modo !== 'tabla' && (<>
 
         <div className="it-marcador it-anim" style={{ '--it-delay': '80ms' }}>
           <div className="it-equipo it-equipo-local">
             <Escudo equipo={local} tema={tema} />
-            <span className="it-equipo-nombre">{local.nombre}</span>
+            <span className={`it-equipo-nombre ${(local.nombre || '').length > 12 ? 'it-nombre-largo' : ''}`}>{local.nombre}</span>
           </div>
-          <div className="it-puntos">
-            <span className={`it-pts ${ganaLocal ? 'it-pts-gana' : ''}`}>{partido.ptsLocal}</span>
-            <span className="it-pts-sep">–</span>
-            <span className={`it-pts ${ganaVisita ? 'it-pts-gana' : ''}`}>{partido.ptsVisita}</span>
-          </div>
+          {modo === 'previa' ? (
+            <div className="it-puntos it-vs"><span className="it-pts">VS</span></div>
+          ) : (
+            <div className="it-puntos">
+              <span className={`it-pts ${ganaLocal ? 'it-pts-gana' : ''}`}>{partido.ptsLocal}</span>
+              <span className="it-pts-sep">–</span>
+              <span className={`it-pts ${ganaVisita ? 'it-pts-gana' : ''}`}>{partido.ptsVisita}</span>
+            </div>
+          )}
           <div className="it-equipo it-equipo-visita">
-            <span className="it-equipo-nombre">{visita.nombre}</span>
+            <span className={`it-equipo-nombre ${(visita.nombre || '').length > 12 ? 'it-nombre-largo' : ''}`}>{visita.nombre}</span>
             <Escudo equipo={visita} tema={tema} />
           </div>
         </div>
@@ -171,6 +252,8 @@ export default function VistaIntertanto({ partido, tema = {}, plantillaId, salie
             )}
           </div>
         )}
+        {mvp && <TarjetaMvp jugador={mvp} />}
+        </>)}
       </div>
     </div>
   );

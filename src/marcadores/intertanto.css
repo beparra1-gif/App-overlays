@@ -17,7 +17,7 @@ html:has(.it-overlay) { background: transparent; }
   font-family: var(--intertanto-titulo-fuente, 'Oswald', 'Arial Narrow', sans-serif);
   color: var(--intertanto-texto, var(--estadisticas-texto, var(--pm-texto, #fff)));
   --it-acento: var(--intertanto-titulo, var(--pm-banner, #ffb703));
-  --it-fondo: var(--intertanto-fondo, var(--estadisticas-fondo, rgba(9, 11, 18, 0.9)));
+  --it-fondo: var(--intertanto-fondo, var(--estadisticas-fondo, var(--pm-tablero, rgba(9, 11, 18, 0.9))));
   --it-linea: color-mix(in srgb, currentColor 12%, transparent);
   --it-tenue: color-mix(in srgb, currentColor 58%, transparent);
   z-index: 40;
@@ -27,12 +27,14 @@ html:has(.it-overlay) { background: transparent; }
   position: relative;
   width: 1240px;
   padding: 34px 44px 38px;
-  border-radius: 26px;
+  /* Forma, borde y textura del tablero real (VistaIntertanto los lee de la caja). */
+  border-radius: var(--it-radio, 26px);
   background:
     radial-gradient(120% 70% at 0% 0%, color-mix(in srgb, var(--it-local) 26%, transparent), transparent 60%),
     radial-gradient(120% 70% at 100% 0%, color-mix(in srgb, var(--it-visita) 26%, transparent), transparent 60%),
+    var(--it-textura, none),
     var(--it-fondo);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: var(--it-borde, 1px solid rgba(255, 255, 255, 0.12));
   box-shadow: 0 40px 90px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(14px);
   overflow: hidden;
@@ -98,7 +100,7 @@ html:has(.it-overlay) { background: transparent; }
 .it-equipo-visita { justify-content: flex-start; }
 .it-equipo-nombre {
   font-size: calc(40px * var(--intertanto-escala-titulo, 1));
-  font-weight: 700;
+  font-weight: var(--intertanto-titulo-peso, 700);
   text-transform: uppercase;
   letter-spacing: 1px;
   line-height: 1.05;
@@ -338,3 +340,35 @@ html:has(.it-overlay) { background: transparent; }
 .it-overlay.it-texto-propio .it-pts, .it-overlay.it-texto-propio .it-cuartos-celda,
 .it-overlay.it-texto-propio .it-lider-valor, .it-overlay.it-texto-propio .it-comp-num { color: var(--intertanto-texto) !important; text-shadow: none; }
 .it-overlay.it-titulo-propio .it-titulo { background: var(--intertanto-titulo) !important; }
+
+/* Nombre largo: se ve completo en hasta dos líneas, con la letra un poco más chica (no "CULT…"). */
+.it-equipo-nombre { white-space: normal; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow-wrap: anywhere; }
+.it-equipo-nombre.it-nombre-largo { font-size: calc(30px * var(--intertanto-escala-titulo, 1)); }
+
+/* Previa, final y jugadora del partido (mismo panel del Intertanto). */
+.it-competicion { height: 64px; width: auto; object-fit: contain; margin: 0 auto 6px; display: block; }
+.it-vs .it-pts { font-size: calc(72px * var(--intertanto-escala-texto, 1)); letter-spacing: 4px; color: var(--it-acento); }
+.it-mvp {
+  display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 14px 18px; margin-top: 18px;
+  padding: 16px 20px; border-radius: 18px; background: color-mix(in srgb, var(--it-mvp-color) 16%, transparent);
+  border: 2px solid color-mix(in srgb, var(--it-mvp-color) 60%, transparent);
+}
+.it-mvp-etiqueta { grid-column: 1 / -1; font-size: calc(15px * var(--intertanto-escala-texto, 1)); letter-spacing: 2px; text-transform: uppercase; color: var(--it-acento); font-weight: 700; }
+.it-mvp .it-avatar { width: 84px; height: 84px; font-size: 28px; }
+.it-mvp-datos { display: flex; flex-direction: column; min-width: 0; }
+.it-mvp-datos strong { font-size: calc(30px * var(--intertanto-escala-titulo, 1)); line-height: 1.1; }
+.it-mvp-datos span { color: var(--it-tenue); font-size: calc(16px * var(--intertanto-escala-texto, 1)); }
+.it-mvp-numeros { display: flex; gap: 18px; }
+.it-mvp-numeros span { display: flex; flex-direction: column; align-items: center; font-size: 13px; color: var(--it-tenue); letter-spacing: 1px; }
+.it-mvp-numeros b { font-family: var(--pm-fuente, inherit); font-size: calc(40px * var(--intertanto-escala-texto, 1)); color: var(--intertanto-texto, var(--pm-marcador, #fff)); line-height: 1; }
+.it-mvp-grande { margin-top: 26px; padding: 26px 30px; }
+.it-mvp-grande .it-avatar { width: 150px; height: 150px; font-size: 48px; }
+.it-mvp-grande .it-mvp-datos strong { font-size: calc(46px * var(--intertanto-escala-titulo, 1)); }
+.it-mvp-vacio { text-align: center; color: var(--it-tenue); margin: 20px 0 0; }
+.it-tabla { width: 100%; border-collapse: collapse; margin-top: 18px; font-size: calc(22px * var(--intertanto-escala-texto, 1)); font-variant-numeric: tabular-nums; }
+.it-tabla th { font-size: calc(14px * var(--intertanto-escala-texto, 1)); letter-spacing: 2px; color: var(--it-tenue); font-weight: 700; padding: 6px 10px; text-align: center; }
+.it-tabla td { padding: 9px 10px; text-align: center; border-top: 1px solid var(--it-linea); }
+.it-tabla .it-tabla-equipo { text-align: left; display: flex; align-items: center; gap: 12px; }
+.it-tabla td.it-tabla-equipo img { width: 34px; height: 34px; object-fit: contain; }
+.it-tabla td.it-tabla-equipo i { width: 14px; height: 14px; border-radius: 50%; display: inline-block; }
+.it-tabla tr.it-tabla-juega td { background: color-mix(in srgb, var(--it-acento) 16%, transparent); font-weight: 800; }

@@ -119,6 +119,44 @@ function SeccionPassword({ usuario }) {
   );
 }
 
+// Operadores de Mesa: un enlace para que otra persona maneje el partido en
+// vivo (reloj, puntos, faltas, cambios) sin acceso al resto de la cuenta.
+function SeccionOperadores() {
+  const [enlace, setEnlace] = useState('');
+  const [mensaje, setMensaje] = useState('');
+  const [error, setError] = useState('');
+  const crear = async () => {
+    setError(''); setMensaje('');
+    try {
+      const { token } = await api.crearEnlaceOperador();
+      const url = `${window.location.origin}/operador#${token}`;
+      setEnlace(url);
+      navigator.clipboard?.writeText(url).then(() => setMensaje('Enlace copiado ✓ Mandáselo a quien vaya a manejar la Mesa.')).catch(() => {});
+    } catch (err) { setError(err.message); }
+  };
+  const anular = async () => {
+    if (!window.confirm('¿Anular TODOS los enlaces de operador entregados? Quienes los estén usando quedan afuera.')) return;
+    setError(''); setMensaje('');
+    try { await api.anularOperadores(); setEnlace(''); setMensaje('Enlaces anulados ✓'); } catch (err) { setError(err.message); }
+  };
+  return (
+    <section className="tarjeta perfil-seccion">
+      <h2>🎛️ Operadores de Mesa</h2>
+      <p className="texto-tenue" style={{ marginTop: 0 }}>
+        Quien abra este enlace entra directo a la Mesa del partido en vivo: puede manejar el reloj, los puntos, las faltas,
+        los cambios y la nómina, pero no puede borrar nada ni tocar diseños, equipos, logos ni tu cuenta. Vale 30 días.
+      </p>
+      {error && <p className="mensaje-error">{error}</p>}
+      {mensaje && <p className="mensaje-exito">{mensaje}</p>}
+      {enlace && <input readOnly value={enlace} onFocus={(e) => e.target.select()} style={{ width: '100%', marginBottom: 8 }} />}
+      <div className="fila-form" style={{ margin: 0 }}>
+        <button className="btn-primario" onClick={crear}>＋ Crear enlace de operador</button>
+        <button className="btn-link btn-peligro-link" onClick={anular}>Anular todos los enlaces</button>
+      </div>
+    </section>
+  );
+}
+
 export default function Perfil() {
   const { usuario, actualizarPerfil } = useAuth();
   if (!usuario) return null;
@@ -140,6 +178,7 @@ export default function Perfil() {
 
       <SeccionDatos usuario={usuario} onGuardar={actualizarPerfil} />
       <SeccionPassword usuario={usuario} />
+      {!usuario.operador && <SeccionOperadores />}
     </div>
   );
 }

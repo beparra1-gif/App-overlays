@@ -1,0 +1,18 @@
+.pub-pausa {
+  position: fixed; left: 50%; bottom: 4%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 18px; padding: 14px 26px;
+  background: var(--pm-tablero, rgba(10, 12, 20, .9)); color: var(--pm-texto, #fff);
+  border: var(--pub-borde, 1px solid rgba(255, 255, 255, .15)); border-radius: var(--pub-radio, 16px);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, .45); z-index: 45; pointer-events: none;
+  animation: pub-entra .5s cubic-bezier(.2, .9, .3, 1.1) both;
+}
+.pub-pausa img { height: 90px; max-width: 520px; object-fit: contain; animation: pub-cambia .5s ease both; }
+.pub-etiqueta { font-family: var(--pm-fuente, inherit); font-size: 15px; letter-spacing: 3px; text-transform: uppercase; opacity: .7; }
+.pub-saliendo { animation: pub-sale .4s ease forwards; }
+@keyframes pub-entra { from { opacity: 0; transform: translate(-50%, 30px); } to { opacity: 1; transform: translate(-50%, 0); } }
+@keyframes pub-sale { to { opacity: 0; transform: translate(-50%, 30px); } }
+@keyframes pub-cambia { from { opacity: 0; transform: scale(.94); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .pub-pausa, .pub-pausa img { animation: none; } }
+.pub-pausa.pub-esquina { left: auto; right: 3%; bottom: auto; top: 3%; transform: none; padding: 10px 18px; animation-name: pub-entra-esquina; }
+.pub-esquina img { height: 64px; }
+@keyframes pub-entra-esquina { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: none; } }

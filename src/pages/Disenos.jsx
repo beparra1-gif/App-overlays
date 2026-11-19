@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { api, urlLogo } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { PLANTILLAS_MARCADOR } from '../marcadores/registro';
-import { PRESETS_POSICION, mostrar, FUENTES_DISPONIBLES, idBasePlantilla, esVariante, nuevoIdVariante, fuenteDePlantilla } from '../marcadores/utils';
+import { PRESETS_POSICION, mostrar, FUENTES_DISPONIBLES, idBasePlantilla, esVariante, nuevoIdVariante, fuenteDePlantilla, aHex } from '../marcadores/utils';
 import { soporteDePlantilla } from '../marcadores/soporte';
 import { coloresPorDefecto } from '../marcadores/coloresPorDefecto';
 import MiniPreviewMarcador from '../marcadores/MiniPreviewMarcador';
@@ -365,7 +365,7 @@ const PESTANAS_PERSONALIZACION = [
   { id: 'estadisticas', etiqueta: 'Estadísticas', icono: '📊' },
   { id: 'intertanto', etiqueta: 'Intertanto', icono: '⏱️' },
   { id: 'anuncios', etiqueta: 'Anuncios', icono: '📣' },
-  { id: 'logos', etiqueta: 'Logos libres', icono: '🖼️' },
+  { id: 'logos', etiqueta: 'Competición', icono: '🏆' },
   { id: 'creador', etiqueta: 'Creador', icono: '🎨' },
 ];
 
@@ -584,7 +584,8 @@ const OPCIONES_ANIMACION_FAMILIA = [
 // `tituloSeparado=false` (Anuncios, que no tiene un "título" propio aparte
 // del texto del aviso) oculta el tamaño/color de título y relabelea tipo de
 // letra/negrita para que hablen del aviso entero.
-function SeccionEstiloCapa({ prefijo, config, cambiarConfig, tituloSeparado = true, etiquetaTitulo = 'Título' }) {
+// `colores`: los que la capa usa si no se elige ninguno (los del tablero en pantalla).
+function SeccionEstiloCapa({ prefijo, config, cambiarConfig, tituloSeparado = true, etiquetaTitulo = 'Título', colores = {} }) {
   const g = (sufijo) => config[`${prefijo}${sufijo}`];
   const set = (sufijo) => (v) => cambiarConfig(`${prefijo}${sufijo}`, v);
   return (
@@ -605,10 +606,10 @@ function SeccionEstiloCapa({ prefijo, config, cambiarConfig, tituloSeparado = tr
       </div>
       <p className="seccion-titulo">Colores (vacío = los del marcador)</p>
       <div className="fila-form" style={{ alignItems: 'stretch' }}>
-        <SelectorColor etiqueta="Fondo" valor={g('ColorFondo')} alpha={g('ColorFondoAlpha')} porDefecto="#0a0c12" onCambiarColor={set('ColorFondo')} onCambiarAlpha={set('ColorFondoAlpha')} />
-        <SelectorColor etiqueta="Texto" valor={g('ColorTexto')} alpha={g('ColorTextoAlpha')} porDefecto="#ffffff" onCambiarColor={set('ColorTexto')} onCambiarAlpha={set('ColorTextoAlpha')} />
+        <SelectorColor etiqueta="Fondo" valor={g('ColorFondo')} alpha={g('ColorFondoAlpha')} porDefecto={colores.fondo || '#0a0c12'} onCambiarColor={set('ColorFondo')} onCambiarAlpha={set('ColorFondoAlpha')} />
+        <SelectorColor etiqueta="Texto" valor={g('ColorTexto')} alpha={g('ColorTextoAlpha')} porDefecto={colores.texto || '#ffffff'} onCambiarColor={set('ColorTexto')} onCambiarAlpha={set('ColorTextoAlpha')} />
         {tituloSeparado && (
-          <SelectorColor etiqueta={etiquetaTitulo} valor={g('ColorTitulo')} alpha={g('ColorTituloAlpha')} porDefecto="#ffb703" onCambiarColor={set('ColorTitulo')} onCambiarAlpha={set('ColorTituloAlpha')} />
+          <SelectorColor etiqueta={etiquetaTitulo} valor={g('ColorTitulo')} alpha={g('ColorTituloAlpha')} porDefecto={colores.titulo || '#ffb703'} onCambiarColor={set('ColorTitulo')} onCambiarAlpha={set('ColorTituloAlpha')} />
         )}
       </div>
       <label>
@@ -623,20 +624,32 @@ function SeccionEstiloCapa({ prefijo, config, cambiarConfig, tituloSeparado = tr
           <SelectorFuente value={g('TituloFuente')} onChange={set('TituloFuente')} />
         </label>
       </div>
-      <Toggle etiqueta={`${tituloSeparado ? etiquetaTitulo : 'Aviso'} en negrita`} checked={Boolean(g('TituloNegrita'))} onChange={set('TituloNegrita')} />
+      <Toggle etiqueta={`${tituloSeparado ? etiquetaTitulo : 'Aviso'} en negrita`} checked={g('TituloNegrita') ?? NEGRITA_POR_DEFECTO[prefijo]} onChange={set('TituloNegrita')} />
+      <button
+        type="button" className="btn-link bloque-restablecer"
+        onClick={() => SUFIJOS_ESTILO_CAPA.forEach((s) => cambiarConfig(`${prefijo}${s}`, undefined))}
+      >
+        ↺ Volver al estilo del tablero
+      </button>
     </>
   );
 }
 
+// Todo lo que guarda "Estilo visual" de una capa (para volverlo al del tablero).
+const SUFIJOS_ESTILO_CAPA = ['Escala', 'TamanoTexto', 'TamanoTitulo', 'ColorFondo', 'ColorFondoAlpha', 'ColorTexto', 'ColorTextoAlpha', 'ColorTitulo', 'ColorTituloAlpha', 'EstiloAnimacion', 'TituloFuente', 'TituloNegrita'];
+
+// Negrita con la que viene cada capa si no se elige (la de su CSS).
+const NEGRITA_POR_DEFECTO = { nomina: false, estadisticas: true, intertanto: true, anuncios: true };
+
 // Resumen de una línea del estilo de una capa, para la cabecera del bloque.
-function resumenEstiloCapa(config, prefijo) {
+function resumenEstiloCapa(config, prefijo, colores = {}) {
   const escala = Number.isFinite(config[`${prefijo}Escala`]) ? config[`${prefijo}Escala`] : 100;
   const animacion = OPCIONES_ANIMACION_FAMILIA.find((o) => o.id === (config[`${prefijo}EstiloAnimacion`] || ''))?.etiqueta || '';
   const propio = config[`${prefijo}ColorFondo`] || config[`${prefijo}ColorTexto`] || config[`${prefijo}ColorTitulo`];
   return (
     <>
-      <Muestras colores={[config[`${prefijo}ColorFondo`], config[`${prefijo}ColorTexto`], config[`${prefijo}ColorTitulo`]]} />
-      {` ${escala}% · ${propio ? 'colores propios' : 'colores del marcador'} · ${animacion.startsWith('Automática') ? 'animación del diseño' : animacion}`}
+      <Muestras colores={[config[`${prefijo}ColorFondo`] || colores.fondo, config[`${prefijo}ColorTexto`] || colores.texto, config[`${prefijo}ColorTitulo`] || colores.titulo]} />
+      {` ${escala}% · ${propio ? 'colores propios' : 'colores del tablero'} · ${animacion.startsWith('Automática') ? 'animación del diseño' : animacion}`}
     </>
   );
 }
@@ -1231,6 +1244,21 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
   const restablecerTamanosTexto = () => setConfig((c) => ({ ...c, tamanoTextoMarcador: 100, tamanoTextoNombre: 100 }));
   const soporte = soporteDePlantilla(plantillaBase);
   const colorBase = coloresPorDefecto(idBasePlantilla(plantillaBase));
+  // Colores reales del tablero en pantalla (los informa la vista previa): con
+  // ellos arrancan los selectores de color de cada "Estilo visual".
+  const [paletaTablero, setPaletaTablero] = useState(null);
+  // Colores reales del tablero en pantalla (si todavía no se midió, la tabla fija).
+  const colorReal = {
+    tablero: aHex(paletaTablero?.fondo) || colorBase.tablero,
+    banner: colorBase.banner,
+    marcador: aHex(paletaTablero?.numeros) || colorBase.marcador,
+    texto: aHex(paletaTablero?.texto) || colorBase.texto,
+  };
+  const coloresCapa = {
+    fondo: config.colorTablero || colorReal.tablero,
+    texto: config.colorTexto || colorReal.texto,
+    titulo: config.colorBanner || colorReal.banner,
+  };
   const posicionLogo = config.logoPosicion || 'costado';
   // Arriba/abajo (dentro del tablero) sirve para todos los diseños; costados/libre
   // es el modo flotante propio del Clásico (clasicoNombrePosicion).
@@ -1440,6 +1468,26 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
   // nuevo (con logo y nómina) o dejar los que ya estaban, antes de tocar
   // este botón. Si sale bien, vuelve solo a "Juego en vivo" a mostrar la
   // Mesa con el partido ya armado.
+  // Cruces guardados (local + visita), dentro del propio diseño.
+  const guardarCruce = async () => {
+    try {
+      const [loc, vis] = await Promise.all([equipoLocalRef.current?.obtener(), equipoVisitaRef.current?.obtener()]);
+      if (!loc?.id || !vis?.id) return setError('Elegí los dos equipos antes de guardar el cruce');
+      const sugerido = `${equipoLocalVivo?.nombre || 'Local'} vs ${equipoVisitaVivo?.nombre || 'Visita'}`;
+      const nombre = window.prompt('Nombre del cruce (ej: Liga Sub-15 · Fecha 3)', sugerido);
+      if (!nombre?.trim()) return;
+      cambiarConfig('crucesGuardados', [...(config.crucesGuardados || []), { id: Date.now(), nombre: nombre.trim().slice(0, 60), localId: loc.id, visitaId: vis.id }]);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+  const aplicarCruce = async (c) => {
+    try {
+      await Promise.all([equipoLocalRef.current?.elegir(c.localId), equipoVisitaRef.current?.elegir(c.visitaId)]);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
   const confirmarPartidoNuevo = async () => {
     await prepararPartido();
     setPreparandoPartidoNuevo(false);
@@ -1552,6 +1600,7 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
             <PreviaCombinada
               plantillaId={plantillaBase}
               config={config}
+              onPaleta={setPaletaTablero}
               equipoLocalPreview={equipoLocalVivo}
               equipoVisitaPreview={equipoVisitaVivo}
               partidoReal={partidoEnVivo}
@@ -2187,6 +2236,7 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
             <PreviaCombinada
               plantillaId={plantillaBase}
               config={config}
+              onPaleta={setPaletaTablero}
               equipoLocalPreview={equipoLocalVivo}
               equipoVisitaPreview={equipoVisitaVivo}
               partidoReal={partidoEnVivo}
@@ -2235,7 +2285,19 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
                     después confirmá acá. El partido anterior, si ya tenía jugadas, queda guardado en "Partidos" y el
                     enlace de OBS sigue siendo el mismo.
                   </p>
+                  {(config.crucesGuardados || []).length > 0 && (
+                    <div className="cruces-guardados">
+                      <span className="texto-tenue">Cruces guardados:</span>
+                      {config.crucesGuardados.map((c) => (
+                        <span key={c.id} className="chip-guardado">
+                          <button type="button" title="Cargar estos dos equipos" onClick={() => aplicarCruce(c)}>{c.nombre}</button>
+                          <button type="button" aria-label={`Borrar ${c.nombre}`} onClick={() => cambiarConfig('crucesGuardados', config.crucesGuardados.filter((x) => x.id !== c.id))}>✕</button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
                   <div className="fila-form" style={{ margin: 0 }}>
+                    <button type="button" className="btn-secundario" onClick={guardarCruce} title="Guardar este local + visita para cargarlos de un toque la próxima vez">💾 Guardar este cruce</button>
                     <button type="button" className="btn-primario" disabled={preparandoPartido} onClick={confirmarPartidoNuevo}>
                       {preparandoPartido ? 'Preparando…' : '✓ Confirmar y empezar partido nuevo'}
                     </button>
@@ -2395,7 +2457,7 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
 
           <Bloque
             id="colores" {...bloque('marcador')} icono="🎨" titulo="Colores"
-            resumen={<><Muestras colores={[config.colorTablero || colorBase.tablero, config.colorBanner || colorBase.banner, config.colorMarcador || colorBase.marcador, config.colorTexto || colorBase.texto]} />{config.coloresEquipo ? ` según ${config.coloresEquipo === 'ganador' ? 'quien gana' : `el ${config.coloresEquipo}`}` : (config.colorTablero || config.colorBanner || config.colorMarcador || config.colorTexto) ? ' personalizados' : ' los del diseño'}</>}
+            resumen={<><Muestras colores={[config.colorTablero || colorReal.tablero, config.colorBanner || colorReal.banner, config.colorMarcador || colorReal.marcador, config.colorTexto || colorReal.texto]} />{config.coloresEquipo ? ` según ${config.coloresEquipo === 'ganador' ? 'quien gana' : `el ${config.coloresEquipo}`}` : (config.colorTablero || config.colorBanner || config.colorMarcador || config.colorTexto) ? ' personalizados' : ' los del diseño'}</>}
           >
             <div className="fila-form" style={{ margin: 0 }}>
               <label style={{ flex: '1 1 200px' }}>
@@ -2418,10 +2480,10 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
               )}
             </div>
             <div className="fila-form" style={{ alignItems: 'stretch' }}>
-              <SelectorColor etiqueta="Tablero" valor={config.colorTablero} alpha={config.colorTableroAlpha} porDefecto={colorBase.tablero} onCambiarColor={(v) => cambiarConfig('colorTablero', v)} onCambiarAlpha={(v) => cambiarConfig('colorTableroAlpha', v)} />
-              <SelectorColor etiqueta="Acento" valor={config.colorBanner} alpha={config.colorBannerAlpha} porDefecto={colorBase.banner} onCambiarColor={(v) => cambiarConfig('colorBanner', v)} onCambiarAlpha={(v) => cambiarConfig('colorBannerAlpha', v)} />
-              <SelectorColor etiqueta="Números" valor={config.colorMarcador} alpha={config.colorMarcadorAlpha} porDefecto={colorBase.marcador} onCambiarColor={(v) => cambiarConfig('colorMarcador', v)} onCambiarAlpha={(v) => cambiarConfig('colorMarcadorAlpha', v)} />
-              <SelectorColor etiqueta="Textos" valor={config.colorTexto} alpha={config.colorTextoAlpha} porDefecto={colorBase.texto} onCambiarColor={(v) => cambiarConfig('colorTexto', v)} onCambiarAlpha={(v) => cambiarConfig('colorTextoAlpha', v)} />
+              <SelectorColor etiqueta="Tablero" valor={config.colorTablero} alpha={config.colorTableroAlpha} porDefecto={colorReal.tablero} onCambiarColor={(v) => cambiarConfig('colorTablero', v)} onCambiarAlpha={(v) => cambiarConfig('colorTableroAlpha', v)} />
+              <SelectorColor etiqueta="Acento" valor={config.colorBanner} alpha={config.colorBannerAlpha} porDefecto={colorReal.banner} onCambiarColor={(v) => cambiarConfig('colorBanner', v)} onCambiarAlpha={(v) => cambiarConfig('colorBannerAlpha', v)} />
+              <SelectorColor etiqueta="Números" valor={config.colorMarcador} alpha={config.colorMarcadorAlpha} porDefecto={colorReal.marcador} onCambiarColor={(v) => cambiarConfig('colorMarcador', v)} onCambiarAlpha={(v) => cambiarConfig('colorMarcadorAlpha', v)} />
+              <SelectorColor etiqueta="Textos" valor={config.colorTexto} alpha={config.colorTextoAlpha} porDefecto={colorReal.texto} onCambiarColor={(v) => cambiarConfig('colorTexto', v)} onCambiarAlpha={(v) => cambiarConfig('colorTextoAlpha', v)} />
             </div>
             <p className="texto-tenue bloque-nota">Se aplican a todas las capas (nómina, estadísticas, intertanto y anuncios), salvo que una capa tenga su propio color.</p>
             <button type="button" className="btn-link bloque-restablecer" onClick={restablecerColores}>↺ Volver a los colores del diseño</button>
@@ -2448,6 +2510,23 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
               ))}
             </div>
             <CampoRango etiqueta="Tamaño del nombre" valor={Number.isFinite(config.tamanoTextoNombre) ? config.tamanoTextoNombre : 100} min={5} max={220} onChange={(v) => cambiarConfig('tamanoTextoNombre', v)} />
+            <div className="segmentado segmentado-ancho" role="group" aria-label="Nombres largos">
+              {[
+                { id: 'cortar', etiqueta: 'Cortar a 12' },
+                { id: 'completo', etiqueta: 'Completo' },
+                { id: 'ajustar', etiqueta: 'Ajustar (achica)' },
+              ].map((o) => {
+                const activo = (config.nombreLargo || 'cortar') === o.id;
+                return <button key={o.id} type="button" className={activo ? 'activo' : ''} aria-pressed={activo} onClick={() => cambiarConfig('nombreLargo', o.id)}>{o.etiqueta}</button>;
+              })}
+            </div>
+            <p className="texto-tenue bloque-nota">
+              {({
+                cortar: 'Los nombres de más de 12 letras se cortan.',
+                completo: 'Se ve el nombre entero; el tablero se ensancha lo necesario (los dos lados quedan parejos).',
+                ajustar: 'Se ve el nombre entero sin agrandar el tablero: la letra se achica (hasta la mitad) para que entre en el lugar de 12 letras.',
+              })[config.nombreLargo || 'cortar']} Los diseños con sigla de 3 letras siguen con su sigla.
+            </p>
             {['arriba', 'abajo'].includes(config.nombrePosicion) && (
               <p className="texto-tenue bloque-nota">Va dentro del tablero (que crece lo justo), sobre o bajo su equipo, con la misma letra y color del diseño.</p>
             )}
@@ -2567,6 +2646,9 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
                 ))}
               </div>
             )}
+            {config.mostrarRelojPosesion && (
+              <CampoRango etiqueta='Tamaño del reloj de 24"' valor={Number.isFinite(config.posesionTamano) ? config.posesionTamano : 100} min={40} max={200} step={5} onChange={(v) => cambiarConfig('posesionTamano', v)} />
+            )}
             {soporte.faltas ? (
               <>
                 <Toggle etiqueta="Faltas de equipo (y BONUS)" checked={mostrar(config, 'mostrarFaltas')} onChange={(v) => cambiarConfig('mostrarFaltas', v)} />
@@ -2607,8 +2689,8 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
                 )}
                 <CampoRango etiqueta="Tamaño" valor={Number.isFinite(config.tituloTamano) ? config.tituloTamano : 100} min={5} max={200} onChange={(v) => cambiarConfig('tituloTamano', v)} />
                 <div className="fila-form" style={{ alignItems: 'stretch' }}>
-                  <SelectorColor etiqueta="Fondo" valor={config.colorTitulo} alpha={config.colorTituloAlpha} porDefecto={colorBase.banner} onCambiarColor={(v) => cambiarConfig('colorTitulo', v)} onCambiarAlpha={(v) => cambiarConfig('colorTituloAlpha', v)} />
-                  <SelectorColor etiqueta="Letras" valor={config.colorTituloTexto} alpha={config.colorTituloTextoAlpha} porDefecto={colorBase.tablero} onCambiarColor={(v) => cambiarConfig('colorTituloTexto', v)} onCambiarAlpha={(v) => cambiarConfig('colorTituloTextoAlpha', v)} />
+                  <SelectorColor etiqueta="Fondo" valor={config.colorTitulo} alpha={config.colorTituloAlpha} porDefecto={colorReal.banner} onCambiarColor={(v) => cambiarConfig('colorTitulo', v)} onCambiarAlpha={(v) => cambiarConfig('colorTituloAlpha', v)} />
+                  <SelectorColor etiqueta="Letras" valor={config.colorTituloTexto} alpha={config.colorTituloTextoAlpha} porDefecto={colorReal.tablero} onCambiarColor={(v) => cambiarConfig('colorTituloTexto', v)} onCambiarAlpha={(v) => cambiarConfig('colorTituloTextoAlpha', v)} />
                 </div>
               </>
             )}
@@ -2778,8 +2860,8 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
                 )}
               </Bloque>
 
-              <Bloque id="estilo" {...bloque('nomina')} icono="🎨" titulo="Estilo visual" resumen={resumenEstiloCapa(config, 'nomina')}>
-                <SeccionEstiloCapa prefijo="nomina" config={config} cambiarConfig={cambiarConfig} etiquetaTitulo="Título" />
+              <Bloque id="estilo" {...bloque('nomina')} icono="🎨" titulo="Estilo visual" resumen={resumenEstiloCapa(config, 'nomina', coloresCapa)}>
+                <SeccionEstiloCapa colores={coloresCapa} prefijo="nomina" config={config} cambiarConfig={cambiarConfig} etiquetaTitulo="Título" />
               </Bloque>
             </>
           )}
@@ -2809,8 +2891,8 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
                   </div>
                 )}
               </Bloque>
-              <Bloque id="estilo" {...bloque('estadisticas')} icono="🎨" titulo="Estilo visual" resumen={resumenEstiloCapa(config, 'estadisticas')}>
-                <SeccionEstiloCapa prefijo="estadisticas" config={config} cambiarConfig={cambiarConfig} etiquetaTitulo="Nombre del equipo" />
+              <Bloque id="estilo" {...bloque('estadisticas')} icono="🎨" titulo="Estilo visual" resumen={resumenEstiloCapa(config, 'estadisticas', coloresCapa)}>
+                <SeccionEstiloCapa colores={coloresCapa} prefijo="estadisticas" config={config} cambiarConfig={cambiarConfig} etiquetaTitulo="Nombre del equipo" />
               </Bloque>
             </>
           )}
@@ -2862,8 +2944,15 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
                 )}
                 <p className="texto-tenue bloque-nota">La comparativa y las líderes necesitan nómina cargada.</p>
               </Bloque>
-              <Bloque id="estilo" {...bloque('intertanto')} icono="🎨" titulo="Estilo visual" resumen={resumenEstiloCapa(config, 'intertanto')}>
-                <SeccionEstiloCapa prefijo="intertanto" config={config} cambiarConfig={cambiarConfig} etiquetaTitulo="Nombres y textos" />
+              <Bloque id="publicidad" {...bloque('intertanto')} icono="💼" titulo="Publicidad en las pausas" resumen={config.publicidadEnPausas ? `En tiempos muertos (${Number(config.publicidadDuracionSeg) || 30}s) e intertanto` : 'Apagada'}>
+                <Toggle etiqueta="Mostrar patrocinadores en tiempos muertos, intertanto y entretiempo" checked={Boolean(config.publicidadEnPausas)} onChange={(v) => cambiarConfig('publicidadEnPausas', v)} />
+                {config.publicidadEnPausas && (
+                  <CampoRango etiqueta="Segundos en pantalla tras pedir un tiempo muerto" valor={Number(config.publicidadDuracionSeg) || 30} unidad="s" min={10} max={90} step={5} onChange={(v) => cambiarConfig('publicidadDuracionSeg', v)} />
+                )}
+                <p className="texto-tenue bloque-nota">Rotan los patrocinadores activos de la página Publicidad, con los colores del tablero.</p>
+              </Bloque>
+              <Bloque id="estilo" {...bloque('intertanto')} icono="🎨" titulo="Estilo visual" resumen={resumenEstiloCapa(config, 'intertanto', coloresCapa)}>
+                <SeccionEstiloCapa colores={coloresCapa} prefijo="intertanto" config={config} cambiarConfig={cambiarConfig} etiquetaTitulo="Nombres y textos" />
               </Bloque>
             </>
           )}
@@ -2919,8 +3008,8 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
                 <Toggle etiqueta="Anunciar también las faltas" checked={Boolean(config.anunciarFaltas)} onChange={(v) => cambiarConfig('anunciarFaltas', v)} />
                 <SelectorDuracion etiqueta="Segundos visible cada aviso" valor={config.anunciosDuracionSeg} porDefecto={4} onChange={(v) => cambiarConfig('anunciosDuracionSeg', v)} />
               </Bloque>
-              <Bloque id="estilo" {...bloque('anuncios')} icono="🎨" titulo="Estilo visual" resumen={resumenEstiloCapa(config, 'anuncios')}>
-                <SeccionEstiloCapa prefijo="anuncios" config={config} cambiarConfig={cambiarConfig} tituloSeparado={false} />
+              <Bloque id="estilo" {...bloque('anuncios')} icono="🎨" titulo="Estilo visual" resumen={resumenEstiloCapa(config, 'anuncios', coloresCapa)}>
+                <SeccionEstiloCapa colores={coloresCapa} prefijo="anuncios" config={config} cambiarConfig={cambiarConfig} tituloSeparado={false} />
               </Bloque>
             </>
           )}
@@ -2928,12 +3017,30 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
 
         {/* ───────── LOGOS LIBRES ───────── */}
         <div className="grupo-personalizacion" hidden={seccionAbierta !== 'logos'}>
-          <div className="grupo-titulo">🖼️ Logos libres (competencia, torneo, liga…)</div>
+          <div className="grupo-titulo">🏆 Logos de competición</div>
           <p className="texto-tenue" style={{ margin: '0 0 10px' }}>
-            Subí el logo y agregalo a la pantalla — después arrastralo directo en la vista previa de arriba para ubicarlo donde quieras.
-            El tamaño y la transparencia se ajustan acá abajo, por cada logo.
+            Tocá un logo para sumarlo al tablero y después arrastralo en la vista previa. Salen de Logos → Competiciones.
           </p>
-          <SelectorLogo logos={logos} value="" onChange={agregarLogoLibre} onLogoSubido={(l) => { setLogos((prev) => [l, ...prev]); agregarLogoLibre(urlLogo(l.filename)); }} />
+          {logos.some((l) => l.categoria === 'competicion') ? (
+            <div className="grilla-logos-competicion">
+              {logos.filter((l) => l.categoria === 'competicion').map((l) => {
+                const url = urlLogo(l.filename);
+                const enUso = logosLibres.some((x) => x.logoUrl === url);
+                return (
+                  <button key={l.id} type="button" className={`logo-competicion ${enUso ? 'en-uso' : ''}`} onClick={() => agregarLogoLibre(url)} title={enUso ? 'Ya está en el tablero (tocá para sumarlo otra vez)' : 'Sumar al tablero'}>
+                    <img src={url} alt="" />
+                    <span>{l.nombre}</span>
+                    <small>{enUso ? '✓ En el tablero' : '+ Agregar'}</small>
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="texto-tenue">Todavía no hay logos en Competiciones. Subí uno acá abajo, o mové uno desde la página Logos.</p>
+          )}
+          <p className="seccion-titulo">Subir o buscar otro</p>
+          <SelectorLogo categoria="competicion" logos={logos} value="" onChange={agregarLogoLibre} onLogoSubido={(l) => { setLogos((prev) => [{ ...l, categoria: 'competicion' }, ...prev]); agregarLogoLibre(urlLogo(l.filename)); }} />
+          <p className="seccion-titulo">En el tablero</p>
 
           {logosLibres.length === 0 ? (
             <p className="texto-tenue" style={{ marginTop: 10 }}>Todavía no agregaste ningún logo libre.</p>
@@ -2993,7 +3100,13 @@ export default function Disenos() {
   const [plantillasPersonalizadas, setPlantillasPersonalizadas] = useState([]);
 
   const cargar = () => {
-    api.listarDisenos().then((d) => setDisenos(d.disenos));
+    api.listarDisenos().then((d) => {
+      setDisenos(d.disenos);
+      // Enlace directo desde la Mesa: /disenos?editar=<id> abre ese diseño.
+      const pedido = new URLSearchParams(window.location.search).get('editar');
+      const diseno = pedido && d.disenos.find((x) => String(x.id) === pedido);
+      if (diseno) { setEditando(diseno); window.history.replaceState(null, '', '/disenos'); }
+    }).catch((err) => setError(err.message));
     api.listarPlantillasOcultas().then((d) => setPlantillasOcultas(d.plantillas));
     api.listarPlantillasPersonalizadas().then((d) => setPlantillasPersonalizadas(d.plantillas));
   };

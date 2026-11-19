@@ -7,6 +7,7 @@ import EquipoRoster from '../components/EquipoRoster';
 import TablaEstadisticas from '../components/TablaEstadisticas';
 import PanelMarcadorCamara from '../components/PanelMarcadorCamara';
 import { hayNominas, lideresPartido, tablaPorPeriodo, tituloIntertanto } from '../marcadores/intertanto';
+import { ATAJOS_MESA, sonarBocina, useAtajosMesa } from './mesaAyudas';
 import './mesa.css';
 
 // Los 4 tipos de falta del reglamento FIBA vigente (personal/técnica/
@@ -799,6 +800,11 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
   const [error, setError] = useState('');
   const [accionPendiente, setAccionPendiente] = useState(null);
   const [jugadas, setJugadas] = useState([]);
+  // Conexión con el servidor: si se corta, se avisa (Socket.IO guarda las
+  // jugadas y las manda solas al volver).
+  const [conectado, setConectado] = useState(true);
+  const [bocinaActiva, setBocinaActiva] = useState(() => { try { return localStorage.getItem('mesa_bocina') !== 'no'; } catch { return true; } });
+  const [verAtajos, setVerAtajos] = useState(false);
   const [mostrarResumen, setMostrarResumen] = useState(false);
   const [enPantallaCompleta, setEnPantallaCompleta] = useState(false);
   // Interruptor manual, independiente de Nómina/Estadísticas — decide si el
@@ -967,7 +973,17 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
   const alternarIntertanto = () => {
     const activo = !intertantoActivo;
     setIntertantoActivo(activo);
+    setPantallaEspecial(null);
     emitirAccion('INTERTANTO', { activo, ocultarMarcador: true });
+  };
+  // Previa / Final / Jugadora del partido: el mismo panel grande con otro
+  // contenido. Tocar el que ya está en pantalla lo saca.
+  const [pantallaEspecial, setPantallaEspecial] = useState(null);
+  const mostrarPantalla = (modo) => {
+    const activo = pantallaEspecial !== modo;
+    setPantallaEspecial(activo ? modo : null);
+    setIntertantoActivo(false);
+    emitirAccion('INTERTANTO', { activo, modo, ocultarMarcador: true });
   };
 
   const solicitarTimeout = (equipo) => {
@@ -998,7 +1014,9 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
 
       const socket = crearSocket();
       socketRef.current = socket;
-      socket.on('connect', () => socket.emit('unirse_mesa', { publicToken: d.partido.publicToken }));
+      socket.on('connect', () => { setConectado(true); socket.emit('unirse_mesa', { publicToken: d.partido.publicToken }); });
+      socket.on('disconnect', () => setConectado(false));
+      socket.io.on('reconnect_attempt', () => setConectado(false));
       socket.on('estado', (estado) => {
         setPartido(estado);
         // Reabrir "Juego en vivo" con un rival distinto (ver POST /partidos)
@@ -1077,6 +1095,34 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
 
   // Reloj interpolado (mismo cálculo que OBS): no espera el tick del servidor.
   const relojVivo = useRelojVivo(partido);
+  // Bocina al llegar a 0:00 el reloj de juego (fin de cuarto).
+  const relojPrevioRef = useRef(null);
+  useEffect(() => {
+    const previo = relojPrevioRef.current;
+    relojPrevioRef.current = relojVivo;
+    if (bocinaActiva && previo > 0 && relojVivo <= 0) sonarBocina(1.2);
+  }, [relojVivo, bocinaActiva]);
+  const alternarBocina = () => setBocinaActiva((v) => {
+    try { localStorage.setItem('mesa_bocina', v ? 'no' : 'si'); } catch { /* opcional */ }
+    if (!v) sonarBocina(0.25, 520); // muestra cómo suena
+    return !v;
+  });
+  const deshacerUltima = () => partido?.ultimaJugada && emitirAccion('DESHACER', { eventoId: partido.ultimaJugada.id });
+  const describirUltima = (u) => {
+    if (!u) return '';
+    const equipo = u.equipo === 'visita' ? partido.equipoVisita.nombre : partido.equipoLocal.nombre;
+    const que = { PUNTO: `+${u.puntos}`, TIRO_LIBRE: `TL ${u.puntos}`, FALTA: 'Falta', REBOTE: 'Rebote', ASISTENCIA: 'Asistencia', ROBO: 'Robo', PERDIDA: 'Pérdida', TIMEOUT: 'Tiempo muerto' }[u.tipo] || u.tipo;
+    return `${que} ${equipo}${u.jugador ? ` (${u.jugador})` : ''}`;
+  };
+  // Teclado: solo con la Mesa en vivo a la vista (también embebida en "Juego en vivo").
+  useAtajosMesa(() => Boolean(partido?.estado === 'en_curso' && mesaEnVivoRef.current?.offsetParent), {
+    reloj: () => emitirAccion(partido.relojCorriendo ? 'RELOJ_PAUSAR' : 'RELOJ_INICIAR'),
+    puntos: (n) => emitirAccion('PUNTO', { equipo: equipoActivo, jugadorId: jugadorSeleccionadoId || null, puntos: n }),
+    falta: () => emitirAccion('FALTA', { equipo: equipoActivo, jugadorId: jugadorSeleccionadoId || null, tipoFalta: 'personal' }),
+    timeout: () => emitirAccion('TIMEOUT', { equipo: equipoActivo }),
+    equipo: (e) => { setEquipoActivo(e); setJugadorSeleccionadoId(null); },
+    deshacer: deshacerUltima,
+  });
   const posesionViva = useRelojPosesion(partido);
   const destacarTimeoutLocal = useDestaque(partido?.timeoutsLocal);
   const destacarTimeoutVisita = useDestaque(partido?.timeoutsVisita);
@@ -1436,6 +1482,11 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
 
       <div className="fila-form">
         <button className="btn-secundario" onClick={() => setMostrarResumen(true)}>📊 Resumen / intertanto</button>
+        {[['previa', '🎬 Previa'], ['final', '🏁 Final'], ['mvp', '⭐ Jugadora del partido'], ['tabla', '🏆 Tabla de posiciones']].map(([modo, etiqueta]) => (
+          <button key={modo} className={pantallaEspecial === modo ? 'btn-peligro-suave' : 'btn-secundario'} onClick={() => mostrarPantalla(modo)} title="Se muestra en la transmisión; tocá de nuevo para sacarla">
+            {pantallaEspecial === modo ? `✕ Quitar ${etiqueta.replace(/^\S+ /, '')}` : etiqueta}
+          </button>
+        ))}
         <button className="btn-secundario" onClick={() => setMostrarGestionEscenas((v) => !v)}>
           {mostrarGestionEscenas ? 'Ocultar gestión de escenas' : 'Gestión avanzada de escenas'}
         </button>
@@ -1453,6 +1504,22 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
         <div className={`mv-wrap ${enPantallaCompleta ? 'mv-pantalla-completa' : ''}`} ref={mesaEnVivoRef}>
           <div className="mv-topbar">
             {!embebido && <Link className="mv-pill" to={`/mesa/${id}/simple`}>📋 Mesa simple</Link>}
+            {!embebido && escenaMarcadorActual?.diseno_id && <Link className="mv-pill" to={`/disenos?editar=${escenaMarcadorActual.diseno_id}`}>🎨 Personalizar</Link>}
+            <span className={`mv-pill ${conectado ? '' : 'mv-pill-alerta'}`} title={conectado ? 'Conectado al servidor' : 'Sin conexión: las jugadas se guardan y se envían solas al volver'}>
+              {conectado ? '🟢 Conectado' : '🔴 Sin conexión · se envía al volver'}
+            </span>
+            <button className="mv-pill" disabled={!partido.ultimaJugada} onClick={deshacerUltima} title="Deshacer la última jugada (Ctrl+Z)">
+              ↶ {partido.ultimaJugada ? `Deshacer: ${describirUltima(partido.ultimaJugada)}` : 'Nada para deshacer'}
+            </button>
+            <button className={`mv-pill ${bocinaActiva ? 'activa' : ''}`} onClick={alternarBocina} title="Bocina al terminar cada cuarto">
+              {bocinaActiva ? '🔔 Bocina' : '🔕 Bocina'}
+            </button>
+            <button className={`mv-pill ${verAtajos ? 'activa' : ''}`} onClick={() => setVerAtajos((v) => !v)} title="Atajos de teclado">⌨️ Atajos</button>
+            {verAtajos && (
+              <div className="mv-atajos" role="note">
+                {ATAJOS_MESA.map(([tecla, que]) => <span key={tecla}><kbd>{tecla}</kbd> {que}</span>)}
+              </div>
+            )}
             {/* A diferencia de "Mesa simple" (navega a otra página, no tiene
                 sentido ofrecerlo adentro de "Juego en vivo" embebido), este
                 botón solo copia al portapapeles — no saca de la pantalla, así
@@ -1855,7 +1922,10 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
       {partido.estado === 'finalizado' && (
         <div className="pagina-centrada">
           <p>Este partido ya finalizó. Marcador final: {partido.ptsLocal} - {partido.ptsVisita}</p>
-          <button className="btn-secundario" onClick={reiniciarPartido}>🔄 Reiniciar partido (mismo enlace)</button>
+          <div className="fila-form" style={{ justifyContent: 'center' }}>
+            <button className="btn-secundario" onClick={reiniciarPartido}>🔄 Reiniciar partido (mismo enlace)</button>
+            {!embebido && <Link className="btn-secundario" to="/partidos">📊 Ver estadísticas en Partidos</Link>}
+          </div>
         </div>
       )}
 

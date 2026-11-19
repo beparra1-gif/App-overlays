@@ -11,14 +11,30 @@ export async function versionDeSesion(userId) {
 }
 
 // Payload del token si es válido, está vigente y su versión es la actual; si no, null.
+// Los enlaces de operador además tienen su propia versión (`ov`): subirla los anula a todos.
 export async function verificarSesion(token) {
   try {
     const payload = jwt.verify(token, process.env.JWT_SECRET);
-    const version = await versionDeSesion(payload.userId);
-    return version !== null && (payload.v || 0) === version ? payload : null;
+    const r = await pool.query('SELECT sesion_version, operador_version FROM usuarios WHERE id = $1', [payload.userId]);
+    const u = r.rows[0];
+    if (!u || (payload.v || 0) !== u.sesion_version) return null;
+    if (payload.scope === 'operador' && (payload.ov || 0) !== u.operador_version) return null;
+    return payload;
   } catch {
     return null;
   }
+}
+
+// Qué puede hacer un operador por la API: leer todo y manejar el partido
+// (quintetos, enlace del lector, sumar jugadoras a la nómina), nunca borrar
+// ni tocar diseños, equipos, logos, publicidad o la cuenta.
+function operadorPuede(req) {
+  if (req.method === 'GET') return true;
+  const ruta = `${req.baseUrl}${req.path}`;
+  if (req.method === 'DELETE') return false;
+  return ruta.startsWith('/api/partidos/')
+    || (req.method === 'POST' && /^\/api\/equipos\/\d+\/jugadores$/.test(ruta))
+    || (req.method === 'PUT' && /^\/api\/jugadores\/\d+$/.test(ruta));
 }
 
 export async function authenticate(req, res, next) {
@@ -30,9 +46,17 @@ export async function authenticate(req, res, next) {
   // Tokens de alcance limitado (p. ej. el enlace del lector por cámara,
   // `scope: 'lector'`) NO sirven para la API: solo para las acciones
   // puntuales que el socket les permite.
-  if (!payload || payload.scope) return res.status(401).json({ error: 'Sesión inválida o expirada' });
+  if (!payload || (payload.scope && payload.scope !== 'operador')) return res.status(401).json({ error: 'Sesión inválida o expirada' });
+  if (payload.scope === 'operador' && !operadorPuede(req)) return res.status(403).json({ error: 'Un operador de Mesa no puede hacer esto' });
   req.userId = payload.userId;
+  req.esOperador = payload.scope === 'operador';
   next();
+}
+
+// Enlace de operador: maneja la Mesa de los partidos de la cuenta, sin
+// acceso a lo demás. Dura 30 días o hasta que el dueño los anule.
+export function firmarTokenOperador(userId, version, versionOperador) {
+  return jwt.sign({ userId, scope: 'operador', v: version, ov: versionOperador }, process.env.JWT_SECRET, { expiresIn: '30d' });
 }
 
 export function firmarToken(userId, version = 0) {

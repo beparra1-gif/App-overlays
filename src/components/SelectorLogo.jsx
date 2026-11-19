@@ -7,7 +7,10 @@ import { api, urlLogo } from '../api/client';
 // varios cargados. Separado a propósito del nombre del club (ese vive en el
 // campo de al lado, en el formulario que usa esto): acá solo se busca/elige
 // la imagen.
-export default function SelectorLogo({ logos, value, onChange, onLogoSubido }) {
+// `categoria` ('normal' = clubes, 'competicion', 'fondo'): muestra solo ese
+// apartado de Logos y sube los nuevos ahí. Sin `categoria`, todos.
+export default function SelectorLogo({ logos: todos, value, onChange, onLogoSubido, categoria }) {
+  const logos = categoria ? todos.filter((l) => (l.categoria || 'normal') === categoria) : todos;
   const logoActual = logos.find((l) => urlLogo(l.filename) === value);
   const [busqueda, setBusqueda] = useState(logoActual?.nombre || '');
   const [abierto, setAbierto] = useState(false);
@@ -58,7 +61,7 @@ export default function SelectorLogo({ logos, value, onChange, onLogoSubido }) {
     setError('');
     setSubiendo(true);
     try {
-      const { logo } = await api.subirLogo(archivo, nombreNuevo.trim() || archivo.name.replace(/\.[^.]+$/, ''));
+      const { logo } = await api.subirLogo(archivo, nombreNuevo.trim() || archivo.name.replace(/\.[^.]+$/, ''), categoria);
       onChange(urlLogo(logo.filename));
       setBusqueda(logo.nombre);
       setAbierto(false);
@@ -90,7 +93,11 @@ export default function SelectorLogo({ logos, value, onChange, onLogoSubido }) {
           </div>
           {abierto && (
             <div className="buscador-logo-lista">
-              {coincidencias.length === 0 && <p className="texto-tenue" style={{ margin: '8px 12px' }}>Sin resultados.</p>}
+              {coincidencias.length === 0 && (
+                <p className="texto-tenue" style={{ margin: '8px 12px' }}>
+                  {logos.length === 0 ? 'Todavía no hay logos en este apartado: subí uno acá o movelo desde Logos.' : 'Sin resultados.'}
+                </p>
+              )}
               {coincidencias.map((l) => (
                 <button type="button" key={l.id} className="buscador-logo-item" onClick={() => elegir(l)}>
                   <img src={urlLogo(l.filename)} alt="" />

@@ -9,6 +9,7 @@ import VistaAnuncios from '../marcadores/vistas/VistaAnuncios';
 import VistaIntertanto from '../marcadores/vistas/VistaIntertanto';
 import AlertaMarcador from '../marcadores/vistas/AlertaMarcador';
 import RelojPosesion from '../marcadores/RelojPosesion';
+import VistaPublicidad from '../marcadores/vistas/VistaPublicidad';
 import ErrorBoundary from '../components/ErrorBoundary';
 import { aplicarColoresEquipo, equipoParaColores, useCajaMarcador, useRelojVivo } from '../marcadores/utils';
 
@@ -44,6 +45,10 @@ export default function EscenaPublica() {
   // real queda oculto detrás (ver ocultarMarcadorAhora, más abajo) y este
   // cartel ocupa exactamente su lugar.
   const [alertaMarcador, setAlertaMarcador] = useState(null);
+  // Publicidad en el tiempo muerto: visible hasta esta hora (0 = no).
+  const [publicidadHasta, setPublicidadHasta] = useState(0);
+  // Tabla de posiciones (pantalla "Tabla"): se pide cuando se muestra.
+  const [tablaPosiciones, setTablaPosiciones] = useState(null);
   // Intertanto (resumen grande entre cuartos): null o { ocultarMarcador,
   // ts, saliendo }. Lo prende/apaga la Mesa (o el servidor solo, al llegar
   // el reloj a 0 si el diseño lo pide) y se apaga al arrancar el reloj.
@@ -106,7 +111,7 @@ export default function EscenaPublica() {
     socket.on('marcador_alerta', ({ texto, equipo, autoOcultar }) => activo && setAlertaMarcador(texto ? { texto, equipo, autoOcultar: !!autoOcultar, ts: Date.now() } : null));
     socket.on('intertanto', (d) => {
       if (!activo) return;
-      if (d?.activo) setIntertanto({ ocultarMarcador: d.ocultarMarcador !== false, ts: d.ts || Date.now() });
+      if (d?.activo) setIntertanto({ ocultarMarcador: d.ocultarMarcador !== false, ts: d.ts || Date.now(), modo: d.modo || 'intertanto' });
       // Se apaga en dos pasos (fade de salida, después se saca del DOM).
       else setIntertanto((prev) => (prev ? { ...prev, saliendo: true } : prev));
     });
@@ -184,6 +189,21 @@ export default function EscenaPublica() {
     return () => clearTimeout(temporizador);
   }, [alertaMarcador?.ts, alertaMarcador?.autoOcultar, duracionAnunciosMs]);
 
+  useEffect(() => {
+    if (intertanto?.modo !== 'tabla' || !datos?.partido?.publicToken) return;
+    api.obtenerTablaPublica(datos.partido.publicToken).then(setTablaPosiciones).catch(() => setTablaPosiciones({ tabla: [] }));
+  }, [intertanto?.modo, intertanto?.ts, datos?.partido?.publicToken]);
+
+  // Tiempo muerto ("MINUTO SOLICITADO"): la publicidad queda en pantalla el
+  // tiempo elegido en el diseño (por defecto 30 s), aunque el cartel se vaya antes.
+  const segundosPublicidad = Number(datos?.diseno?.config?.publicidadDuracionSeg) || 30;
+  useEffect(() => {
+    if (alertaMarcador?.texto !== 'MINUTO SOLICITADO') return undefined;
+    setPublicidadHasta(Date.now() + segundosPublicidad * 1000);
+    const t = setTimeout(() => setPublicidadHasta(0), segundosPublicidad * 1000);
+    return () => clearTimeout(t);
+  }, [alertaMarcador?.ts, alertaMarcador?.texto, segundosPublicidad]);
+
   // Colores según equipo: se recalcula solo cuando cambia el equipo que
   // "manda" el color (p. ej. cuando cambia quién va ganando), no en cada tick.
   const colorManda = equipoParaColores(datos?.diseno?.config, datos?.partido)?.color || '';
@@ -253,7 +273,7 @@ export default function EscenaPublica() {
           )}
           {cfg.mostrarNomina && nomina && (
             <ErrorBoundary>
-              <VistaNomina key={nomina.ts} partido={datos.partido} modo={nomina.modo} claveAnimacion={nomina.ts} config={cfg} plantillaId={plantillaId} saliendo={nomina.saliendo} jugadorIds={nomina.jugadorIds} equipoPresentacion={nomina.equipo} />
+              <VistaNomina key={nomina.ts} partido={datos.partido} modo={nomina.modo} claveAnimacion={nomina.ts} config={cfg} plantillaId={plantillaId} saliendo={nomina.saliendo} jugadorIds={nomina.jugadorIds} equipoPresentacion={nomina.equipo} caja={caja} />
             </ErrorBoundary>
           )}
           {cfg.mostrarEstadisticas && stats && (
@@ -264,12 +284,18 @@ export default function EscenaPublica() {
                 config={configEstadisticas(stats)}
                 tema={cfg}
                 plantillaId={plantillaId}
+                caja={caja}
               />
             </ErrorBoundary>
           )}
           {intertantoVisible && (
             <ErrorBoundary>
-              <VistaIntertanto key={intertanto.ts} partido={{ ...datos.partido, relojSegundos: relojVivo }} tema={cfg} plantillaId={plantillaId} saliendo={intertanto.saliendo} />
+              <VistaIntertanto key={intertanto.ts} partido={{ ...datos.partido, relojSegundos: relojVivo }} tema={cfg} plantillaId={plantillaId} saliendo={intertanto.saliendo} caja={caja} modo={intertanto.modo} tabla={tablaPosiciones} />
+            </ErrorBoundary>
+          )}
+          {cfg.publicidadEnPausas && ((intertantoVisible && !intertanto.saliendo && intertanto.modo !== 'mvp') || publicidadHasta > 0) && (
+            <ErrorBoundary>
+              <VistaPublicidad patrocinadores={datos.partido.patrocinadores} caja={caja} esquina={Boolean(intertantoVisible && !intertanto.saliendo)} />
             </ErrorBoundary>
           )}
           {cfg.anunciarJugadas && (

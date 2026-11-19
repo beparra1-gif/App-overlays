@@ -1,4 +1,4 @@
-import { estiloTema, estiloTemaCapa, familiaEfectiva, fuenteEfectiva } from '../utils';
+import { estiloTema, estiloTemaCapa, familiaEfectiva, fuenteEfectiva, varsPaletaTablero } from '../utils';
 import { urlFotoJugador } from '../../api/client';
 import LogoEquipo from '../LogoEquipo';
 import PresentacionQuinteto from './PresentacionQuinteto';
@@ -14,7 +14,7 @@ function conTitularesPrimero(roster, quintetoIds) {
   return [...titulares, ...banca];
 }
 
-export default function VistaNomina({ partido, modo = 'ambos', claveAnimacion = 0, config, plantillaId, saliendo = false, jugadorIds, equipoPresentacion }) {
+export default function VistaNomina({ partido, modo = 'ambos', claveAnimacion = 0, config, plantillaId, saliendo = false, jugadorIds, equipoPresentacion, caja = null }) {
   // Nómina COMPLETA (antes solo se mostraba el quinteto en cancha) — quien
   // está arrancando en cancha se distingue con una insignia en su fila, no
   // ocultando al resto del plantel.
@@ -134,7 +134,7 @@ export default function VistaNomina({ partido, modo = 'ambos', claveAnimacion = 
   // sin tener que elegir un preset distinto para cada corrimiento chico.
   const offsetY = Number(config?.nominaOffsetY) || 0;
   const estilo = {
-    ...estiloTema(config), ...estiloTemaCapa(config, 'nomina'),
+    ...varsPaletaTablero(caja), ...estiloTema(config), ...estiloTemaCapa(config, 'nomina'),
     alignItems, justifyContent, '--pm-fuente': fuenteEfectiva(config, plantillaId),
     '--nomina-foto-tamano': `${fotoTamano}px`,
     '--nomina-foto-pos': `${fotoPosX}% ${fotoPosY}%`,

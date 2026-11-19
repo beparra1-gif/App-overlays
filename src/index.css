@@ -1822,3 +1822,68 @@ input[type='checkbox'], input[type='radio'] { accent-color: var(--primario); }
 .bloque-ajuste.abierto { overflow: visible; }
 .bloque-ajuste-cuerpo .selector-color { flex: 1 1 200px; min-width: 0; }
 .btn-peligro-link { color: var(--peligro) !important; }
+
+/* Logos de competición para sumar al tablero (Personalizar → Competición) */
+.grilla-logos-competicion { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; margin-bottom: 8px; }
+.logo-competicion {
+  all: unset; box-sizing: border-box; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 10px 8px; border: 1px solid var(--borde); border-radius: 12px; background: var(--tarjeta); text-align: center; transition: all .15s;
+}
+.logo-competicion:hover { border-color: color-mix(in srgb, var(--primario) 55%, var(--borde)); transform: translateY(-1px); }
+.logo-competicion:focus-visible { box-shadow: var(--anillo); }
+.logo-competicion img { width: 64px; height: 64px; object-fit: contain; }
+.logo-competicion span { font-size: 12.5px; font-weight: 600; color: var(--texto); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.logo-competicion small { font-size: 11.5px; color: var(--primario); }
+.logo-competicion.en-uso { border-color: var(--primario); background: color-mix(in srgb, var(--primario) 8%, var(--tarjeta)); }
+.logo-competicion.en-uso small { color: var(--exito, #16a34a); }
+
+/* ── Equipos: ventana de edición, formulario con etiquetas y tarjetas ── */
+.dialogo {
+  max-height: min(88vh, 820px); overflow-y: auto; box-sizing: border-box;
+  background: var(--tarjeta); color: var(--texto); border: 1px solid var(--borde);
+  border-radius: 18px; padding: 18px 20px 20px; box-shadow: 0 30px 80px -20px rgba(0, 0, 0, .45);
+  animation: v2-modal-in .22s cubic-bezier(.2, .9, .3, 1.15);
+}
+.dialogo-cabecera { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.dialogo-cabecera h2 { margin: 0; font-size: 19px; }
+.dialogo-cabecera .btn-link { font-size: 18px; color: var(--texto-tenue); }
+.form-equipo { display: flex; flex-direction: column; gap: 12px; }
+.form-equipo label { display: flex; flex-direction: column; gap: 5px; font-size: 13px; font-weight: 600; color: var(--texto); }
+.form-equipo label input:not([type=color]) { font-weight: 400; }
+.form-equipo-fila { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.form-equipo-color span { display: flex; align-items: center; gap: 8px; }
+.form-equipo-color input[type=color] { width: 44px; height: 36px; padding: 0; border-radius: 8px; }
+.form-equipo-color code { font-size: 12.5px; color: var(--texto-tenue); }
+.form-equipo-acciones { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+.equipo-previa {
+  display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 14px;
+  background: color-mix(in srgb, var(--color-equipo) 12%, var(--fondo)); border-left: 5px solid var(--color-equipo);
+}
+.equipo-previa img, .tarjeta-equipo-cabeza img { width: 48px; height: 48px; object-fit: contain; flex: none; }
+.equipo-previa div { display: flex; flex-direction: column; min-width: 0; }
+.equipo-previa strong { font-size: 17px; color: var(--color-equipo); }
+.equipo-previa span { font-size: 12.5px; color: var(--texto-tenue); }
+.equipo-previa-sigla {
+  flex: none; width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--color-equipo); color: #fff; font-weight: 800; font-size: 14px; letter-spacing: .5px;
+}
+.equipos-cabecera { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.equipos-cabecera h1 { margin: 0 0 4px; }
+.equipos-cabecera-acciones { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.equipos-cabecera-acciones input { min-width: min(280px, 100%); }
+.tarjeta-equipo { display: flex; flex-direction: column; gap: 10px; border-top: 4px solid var(--color-equipo); }
+.tarjeta-equipo-cabeza { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.tarjeta-equipo-titulo { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.tarjeta-equipo-titulo strong { font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tarjeta-equipo-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.chip-dato { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--borde); color: var(--texto-tenue); }
+.dialogo .panel-jugadores { margin: 0; padding: 0; border: 0; background: none; box-shadow: none; }
+.navbar-link-vivo { font-weight: 700; }
+.navbar-link-vivo.active { color: #ff3b30; }
+.equipos-cabecera-acciones { flex-wrap: nowrap; }
+@media (max-width: 640px) { .equipos-cabecera-acciones { flex-wrap: wrap; width: 100%; } .equipos-cabecera-acciones input { flex: 1; } }
+.equipos-cabecera-acciones .btn-primario { white-space: nowrap; }
+a.btn-primario, a.btn-secundario { text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
+.cruces-guardados { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 10px; }
+.importar-nomina textarea { width: 100%; min-height: 120px; font-family: inherit; box-sizing: border-box; }
+.importar-nomina { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border: 1px dashed var(--borde); border-radius: 12px; margin-bottom: 10px; }

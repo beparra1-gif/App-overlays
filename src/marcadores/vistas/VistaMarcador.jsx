@@ -7,7 +7,7 @@ import PopSumaPuntos from '../PopSumaPuntos';
 import TituloMarcador from '../TituloMarcador';
 import LogosLibres from '../LogosLibres';
 import ElementosLibres from '../ElementosLibres';
-import { idBasePlantilla, useCajaMarcador } from '../utils';
+import { idBasePlantilla, useCajaMarcador, conNombresCortos } from '../utils';
 
 // Referencia ESTABLE para "sin config" — `diseno?.config || {}` con un
 // literal `{}` crea un objeto NUEVO en cada render; como `config` viaja como
@@ -27,9 +27,11 @@ const CONFIG_VACIA = {};
 // aparte — poner un transform en un ANCESTRO de un position:fixed le
 // cambia el "containing block" a ese ancestro en vez del viewport, así que
 // hacerlo acá, sobre el propio elemento fixed, evita ese problema.
-export default function VistaMarcador({ partido, diseno, oculto = false, suprimirTitulo = false }) {
+export default function VistaMarcador({ partido: partidoCompleto, diseno, oculto = false, suprimirTitulo = false }) {
   const plantillaId = diseno?.plantilla_base || 'clasico';
   const config = diseno?.config || CONFIG_VACIA;
+  // En el marcador los nombres se ven con 12 caracteres como máximo (salvo "nombre completo").
+  const partido = conNombresCortos(partidoCompleto, config);
   const { Componente } = obtenerPlantilla(plantillaId);
   // Contenedor de referencia para medir dónde termina la caja REAL del
   // marcador (ver useCajaMarcador) — el título y los logos "a los costados"
@@ -39,7 +41,7 @@ export default function VistaMarcador({ partido, diseno, oculto = false, suprimi
   // "resizea", así que hace falta además re-medir cuando cambia `config`
   // (cualquier ajuste de posición/escala/tamaño de texto) o la plantilla.
   const contenedorRef = useRef(null);
-  const caja = useCajaMarcador(contenedorRef, [plantillaId, config], [partido?.equipoLocal?.nombre, partido?.equipoVisita?.nombre]);
+  const caja = useCajaMarcador(contenedorRef, [plantillaId, config], [partido?.equipoLocal?.nombre, partido?.equipoVisita?.nombre], config.nombreLargo === 'ajustar');
   return (
     <div
       ref={contenedorRef}

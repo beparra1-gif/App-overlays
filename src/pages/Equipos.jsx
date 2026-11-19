@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { api, urlFotoJugador } from '../api/client';
 import SelectorLogo from '../components/SelectorLogo';
+import { parsearListaNomina } from './listaNomina';
 
-function PanelJugadores({ equipo, onCerrar }) {
+function PanelJugadores({ equipo }) {
   const [jugadores, setJugadores] = useState([]);
   const [nombre, setNombre] = useState('');
   const [dorsal, setDorsal] = useState('');
@@ -16,6 +17,8 @@ function PanelJugadores({ equipo, onCerrar }) {
   const [nombreEdit, setNombreEdit] = useState('');
   const [guardandoEdicion, setGuardandoEdicion] = useState(false);
   const [subiendoFotoId, setSubiendoFotoId] = useState(null);
+  const [importando, setImportando] = useState(null); // null = cerrado · string = texto pegado
+  const [guardandoLista, setGuardandoLista] = useState(false);
   const inputFotoRef = useRef(null);
   const jugadorFotoRef = useRef(null);
 
@@ -55,7 +58,7 @@ function PanelJugadores({ equipo, onCerrar }) {
     }
   };
 
-  const cargar = () => api.listarJugadores(equipo.id).then((d) => setJugadores(d.jugadores));
+  const cargar = () => api.listarJugadores(equipo.id).then((d) => setJugadores(d.jugadores)).catch((err) => setError(err.message));
 
   useEffect(() => { cargar(); }, [equipo.id]);
 
@@ -70,6 +73,7 @@ function PanelJugadores({ equipo, onCerrar }) {
       await api.crearJugador(equipo.id, { nombre, dorsal: dorsal || null });
       setNombre('');
       setDorsal('');
+      document.querySelector('.panel-jugadores input')?.focus();
       cargar();
     } catch (err) {
       setError(err.message);
@@ -108,6 +112,32 @@ function PanelJugadores({ equipo, onCerrar }) {
     }
   };
 
+  // Carga en orden todas las jugadoras de la lista pegada; las que ya
+  // estaban (mismo dorsal o mismo nombre) se saltean.
+  const importarLista = async () => {
+    const lista = parsearListaNomina(importando);
+    if (!lista.length) return setError('Pegá al menos una línea');
+    setError('');
+    setGuardandoLista(true);
+    let agregadas = 0;
+    try {
+      for (const j of lista) {
+        const repetida = jugadores.some((x) => (j.dorsal && String(x.dorsal) === j.dorsal) || (j.nombre && x.nombre?.toLowerCase() === j.nombre.toLowerCase()));
+        if (repetida) continue;
+        await api.crearJugador(equipo.id, { nombre: j.nombre, dorsal: j.dorsal });
+        agregadas += 1;
+      }
+      setImportando(null);
+      await cargar();
+      if (agregadas < lista.length) setError(`Se agregaron ${agregadas} de ${lista.length}: las demás ya estaban en la nómina.`);
+    } catch (err) {
+      setError(err.message);
+      cargar();
+    } finally {
+      setGuardandoLista(false);
+    }
+  };
+
   const iniciarEdicion = (j) => {
     setError('');
     setEditandoId(j.id);
@@ -134,16 +164,24 @@ function PanelJugadores({ equipo, onCerrar }) {
 
   return (
     <div className="panel-jugadores">
-      <div className="panel-jugadores-header">
-        <h3>Nómina — {equipo.nombre}</h3>
-        <button className="btn-secundario" onClick={onCerrar}>Cerrar</button>
-      </div>
       {error && <p className="mensaje-error">{error}</p>}
       <form className="fila-form" onSubmit={agregar}>
-        <input placeholder="Dorsal" value={dorsal} onChange={(e) => setDorsal(e.target.value)} style={{ width: '80px' }} />
-        <input placeholder="Nombre del jugador (opcional)" value={nombre} onChange={(e) => setNombre(e.target.value)} />
-        <button className="btn-primario" type="submit">Agregar</button>
+        <input placeholder="N°" inputMode="numeric" value={dorsal} onChange={(e) => setDorsal(e.target.value)} style={{ width: 70 }} aria-label="Dorsal" />
+        <input placeholder="Nombre (opcional)" value={nombre} onChange={(e) => setNombre(e.target.value)} style={{ flex: 1 }} aria-label="Nombre" />
+        <button className="btn-primario" type="submit">＋ Agregar</button>
+        <button className="btn-secundario" type="button" onClick={() => setImportando(importando === null ? '' : null)}>📋 Pegar lista</button>
       </form>
+      {importando !== null && (
+        <div className="importar-nomina">
+          <span className="texto-tenue">Una jugadora por línea, con el número adelante o atrás. Ej: «7 Ana Torres», «#12 - Sofía Díaz» o copiado de Excel.</span>
+          <textarea value={importando} onChange={(e) => setImportando(e.target.value)} placeholder={'4 Ana Torres\n7 Bryana Gálvez\n10 Camila Muñoz'} autoFocus />
+          <div className="fila-form" style={{ margin: 0, justifyContent: 'flex-end' }}>
+            <span className="texto-tenue" style={{ marginRight: 'auto' }}>{parsearListaNomina(importando).length} jugadora(s) detectada(s)</span>
+            <button type="button" className="btn-secundario" onClick={() => setImportando(null)}>Cancelar</button>
+            <button type="button" className="btn-primario" disabled={guardandoLista} onClick={importarLista}>{guardandoLista ? 'Cargando…' : 'Agregar a la nómina'}</button>
+          </div>
+        </div>
+      )}
       <input ref={inputFotoRef} type="file" accept="image/png,image/jpeg,image/webp" style={{ display: 'none' }} onChange={subirFoto} />
       <ul className="lista-jugadores">
         {jugadores.map((j) => (
@@ -179,81 +217,95 @@ function PanelJugadores({ equipo, onCerrar }) {
             )}
           </li>
         ))}
-        {jugadores.length === 0 && <li className="texto-tenue">Sin jugadores todavía</li>}
+        {jugadores.length === 0 && <li className="texto-tenue">Sin jugadores todavía. Cargá el dorsal y el nombre arriba (Enter agrega).</li>}
       </ul>
     </div>
   );
 }
 
-// Categoría (Sub-15, Primera, etc.) y rama (femenino/masculino) son datos
-// PROPIOS del equipo — se cargan y se ven acá, en la tarjeta de "Equipos",
-// pero nunca viajan a los selectores de "elegir equipo" que usan la Mesa de
-// control o el reinicio de partido: ahí solo se muestra el nombre (ver
-// SelectorEquipoReinicio en Mesa.jsx y el desplegable de EquipoFicha.jsx).
-function CamposCategoriaRama({ categoria, rama, onCambiarCategoria, onCambiarRama }) {
+// Ventana (crear / editar equipo y nómina): sobre la página, se cierra con
+// Esc o tocando afuera.
+function Dialogo({ titulo, onCerrar, children, ancho = 560 }) {
+  useEffect(() => {
+    const tecla = (e) => { if (e.key === 'Escape') onCerrar(); };
+    document.addEventListener('keydown', tecla);
+    return () => document.removeEventListener('keydown', tecla);
+  }, [onCerrar]);
   return (
-    <>
-      <input
-        placeholder="Categoría (opcional, ej. Sub-15)"
-        value={categoria}
-        onChange={(e) => onCambiarCategoria(e.target.value)}
-        style={{ maxWidth: 180 }}
-      />
-      <select value={rama} onChange={(e) => onCambiarRama(e.target.value)} style={{ maxWidth: 150 }}>
-        <option value="">Rama (opcional)</option>
-        <option value="femenino">Femenino</option>
-        <option value="masculino">Masculino</option>
-      </select>
-    </>
+    <div className="modal-fondo" onMouseDown={(e) => { if (e.target === e.currentTarget) onCerrar(); }}>
+      <div className="dialogo" role="dialog" aria-modal="true" aria-label={titulo} style={{ width: `min(${ancho}px, 94vw)` }}>
+        <div className="dialogo-cabecera">
+          <h2>{titulo}</h2>
+          <button type="button" className="btn-link" onClick={onCerrar} aria-label="Cerrar">✕</button>
+        </div>
+        {children}
+      </div>
+    </div>
   );
 }
 
-// Identificador corto (ej. "CHI", "USA") — opcional, solo lo usan algunas
-// plantillas de marcador tipo transmisión (FIBA Broadcast) que necesitan
-// pocas letras en vez del nombre completo. El backend ya lo limpia
-// (mayúsculas, solo letras/números, 4 caracteres) — acá alcanza con topar
-// la escritura en el mismo largo para que el campo no "salte" al guardar.
-function CampoCodigo({ codigo, onCambiar }) {
-  return (
-    <input
-      placeholder="Código (opcional, ej. CHI)"
-      value={codigo}
-      onChange={(e) => onCambiar(e.target.value.toUpperCase().slice(0, 4))}
-      style={{ maxWidth: 130 }}
-      title="Identificador corto para plantillas de marcador tipo transmisión (ej. FIBA Broadcast) — sin cargarlo, esas plantillas muestran el nombre completo"
-    />
-  );
-}
-
-function FilaEdicion({ equipo, logos, onLogoSubido, onGuardar, onCancelar }) {
-  const [nombre, setNombre] = useState(equipo.nombre);
-  const [color, setColor] = useState(equipo.color);
-  const [logoUrl, setLogoUrl] = useState(equipo.logo_url || '');
-  const [categoria, setCategoria] = useState(equipo.categoria || '');
-  const [rama, setRama] = useState(equipo.rama || '');
-  const [codigo, setCodigo] = useState(equipo.codigo || '');
+// Formulario de equipo (el mismo para crear y editar), con etiquetas y una
+// vista previa de cómo se ve el equipo.
+function FormularioEquipo({ equipo, logos, onLogoSubido, onGuardar, onCancelar }) {
+  const [nombre, setNombre] = useState(equipo?.nombre || '');
+  const [color, setColor] = useState(equipo?.color || '#0a84ff');
+  const [logoUrl, setLogoUrl] = useState(equipo?.logo_url || '');
+  const [categoria, setCategoria] = useState(equipo?.categoria || '');
+  const [rama, setRama] = useState(equipo?.rama || '');
+  const [codigo, setCodigo] = useState(equipo?.codigo || '');
   const [error, setError] = useState('');
+  const [guardando, setGuardando] = useState(false);
 
   const guardar = async (e) => {
     e.preventDefault();
+    if (!nombre.trim()) return setError('El nombre es obligatorio');
     setError('');
+    setGuardando(true);
     try {
       await onGuardar({ nombre: nombre.trim(), color, logo_url: logoUrl || null, categoria: categoria.trim() || null, rama: rama || null, codigo: codigo.trim() || null });
     } catch (err) {
       setError(err.message);
+    } finally {
+      setGuardando(false);
     }
   };
 
   return (
-    <form className="fila-form" onSubmit={guardar} style={{ flexWrap: 'wrap' }}>
-      {error && <p className="mensaje-error" style={{ width: '100%' }}>{error}</p>}
-      <input value={nombre} onChange={(e) => setNombre(e.target.value)} required />
-      <input type="color" value={color} onChange={(e) => setColor(e.target.value)} />
-      <SelectorLogo logos={logos} value={logoUrl} onChange={setLogoUrl} onLogoSubido={onLogoSubido} />
-      <CamposCategoriaRama categoria={categoria} rama={rama} onCambiarCategoria={setCategoria} onCambiarRama={setRama} />
-      <CampoCodigo codigo={codigo} onCambiar={setCodigo} />
-      <button className="btn-primario" type="submit">Guardar</button>
-      <button className="btn-secundario" type="button" onClick={onCancelar}>Cancelar</button>
+    <form className="form-equipo" onSubmit={guardar}>
+      <div className="equipo-previa" style={{ '--color-equipo': color }}>
+        {logoUrl ? <img src={logoUrl} alt="" /> : <span className="equipo-previa-sigla">{(codigo || nombre || '?').slice(0, 3).toUpperCase()}</span>}
+        <div>
+          <strong>{nombre || 'Nombre del equipo'}</strong>
+          <span>{[categoria, rama === 'femenino' ? 'Femenino' : rama === 'masculino' ? 'Masculino' : null].filter(Boolean).join(' · ') || 'Sin categoría'}</span>
+        </div>
+      </div>
+      {error && <p className="mensaje-error">{error}</p>}
+      <label>Nombre<input value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Ej: Halcones" autoFocus required /></label>
+      <div className="form-equipo-fila">
+        <label className="form-equipo-color">Color
+          <span><input type="color" value={color} onChange={(e) => setColor(e.target.value)} /><code>{color.toUpperCase()}</code></span>
+        </label>
+        <label>Código (opcional)
+          <input value={codigo} onChange={(e) => setCodigo(e.target.value.toUpperCase().slice(0, 4))} placeholder="Ej: HAL" title="Sigla corta que usan algunos tableros (si no, toman las 3 primeras letras del nombre)" />
+        </label>
+      </div>
+      <label>Escudo
+        <SelectorLogo categoria="normal" logos={logos} value={logoUrl} onChange={setLogoUrl} onLogoSubido={onLogoSubido} />
+      </label>
+      <div className="form-equipo-fila">
+        <label>Categoría (opcional)<input value={categoria} onChange={(e) => setCategoria(e.target.value)} placeholder="Ej: Sub-15, Primera" /></label>
+        <label>Rama
+          <span className="segmentado segmentado-ancho">
+            {[{ id: '', etiqueta: 'Sin rama' }, { id: 'femenino', etiqueta: 'Femenino' }, { id: 'masculino', etiqueta: 'Masculino' }].map((o) => (
+              <button key={o.id || 'ninguna'} type="button" className={rama === o.id ? 'activo' : ''} onClick={() => setRama(o.id)}>{o.etiqueta}</button>
+            ))}
+          </span>
+        </label>
+      </div>
+      <div className="form-equipo-acciones">
+        <button type="button" className="btn-secundario" onClick={onCancelar}>Cancelar</button>
+        <button type="submit" className="btn-primario" disabled={guardando}>{guardando ? 'Guardando…' : equipo ? 'Guardar cambios' : 'Crear equipo'}</button>
+      </div>
     </form>
   );
 }
@@ -261,77 +313,54 @@ function FilaEdicion({ equipo, logos, onLogoSubido, onGuardar, onCancelar }) {
 export default function Equipos() {
   const [equipos, setEquipos] = useState([]);
   const [logos, setLogos] = useState([]);
-  const [nombre, setNombre] = useState('');
-  const [color, setColor] = useState('#0a84ff');
-  const [logoUrl, setLogoUrl] = useState('');
-  const [categoria, setCategoria] = useState('');
-  const [rama, setRama] = useState('');
-  const [codigo, setCodigo] = useState('');
   const [error, setError] = useState('');
   const [exito, setExito] = useState('');
+  const [busqueda, setBusqueda] = useState('');
   const [equipoAbierto, setEquipoAbierto] = useState(null);
-  const [editandoId, setEditandoId] = useState(null);
+  // null = sin ventana · 'nuevo' = crear · objeto = editar ese equipo
+  const [editando, setEditando] = useState(null);
 
-  const cargar = () => {
-    api.listarEquipos().then((d) => setEquipos(d.equipos));
-    api.listarLogos().then((d) => setLogos(d.logos));
-  };
+  const cargar = () => Promise.all([
+    api.listarEquipos().then((d) => setEquipos(d.equipos)),
+    api.listarLogos().then((d) => setLogos(d.logos)),
+  ]).catch((err) => setError(err.message));
 
   useEffect(() => { cargar(); }, []);
 
   const avisar = (mensaje) => {
     setExito(mensaje);
-    setTimeout(() => setExito(''), 2000);
+    setTimeout(() => setExito(''), 2500);
   };
 
-  const crear = async (e) => {
-    e.preventDefault();
+  const guardar = async (payload) => {
+    if (editando === 'nuevo') await api.crearEquipo(payload);
+    else await api.actualizarEquipo(editando.id, payload);
+    const fueNuevo = editando === 'nuevo';
+    setEditando(null);
+    await cargar();
+    avisar(fueNuevo ? 'Equipo creado ✓' : 'Equipo actualizado ✓');
+  };
+
+  // Siempre pregunta antes de borrar. Si el equipo tiene partidos, el
+  // backend avisa CUÁNTOS y se pregunta de nuevo explicando qué se pierde.
+  const eliminar = async (equipo) => {
+    if (!window.confirm(`¿Eliminar "${equipo.nombre}" y su nómina? Esta acción no se puede deshacer.`)) return;
     setError('');
     try {
-      await api.crearEquipo({ nombre, color, logo_url: logoUrl || null, categoria: categoria.trim() || null, rama: rama || null, codigo: codigo.trim() || null });
-      setNombre('');
-      setLogoUrl('');
-      setCategoria('');
-      setRama('');
-      setCodigo('');
-      cargar();
-      avisar('Equipo creado ✓');
-    } catch (err) {
-      setError(err.message);
-    }
-  };
-
-  const guardarEdicion = async (id, payload) => {
-    await api.actualizarEquipo(id, payload);
-    setEditandoId(null);
-    cargar();
-    avisar('Equipo actualizado ✓');
-  };
-
-  // Un equipo "en uso" (el que algún diseño tiene puesto como su partido
-  // activo) no se puede borrar — el partido lo sigue necesitando (la base
-  // ya lo impide con una FK, así que ni se ofrece el botón para no toparse
-  // con el error de golpe).
-  const eliminar = async (equipo) => {
-    try {
       await api.eliminarEquipo(equipo.id);
-      cargar();
+      await cargar();
       avisar('Equipo eliminado ✓');
     } catch (err) {
-      // El backend avisa CUÁNTOS partidos lo tienen asociado (ver
-      // DELETE /equipos/:id) — antes esto era un callejón sin salida: el
-      // error decía "verificá que no tenga partidos asociados" pero no había
-      // ningún lugar en la app para ver o borrar esos partidos viejos.
       if (err.data?.partidos_bloqueando) {
         const cantidad = err.data.partidos_bloqueando;
         const confirmado = window.confirm(
           `"${equipo.nombre}" tiene ${cantidad} partido${cantidad === 1 ? '' : 's'} asociado${cantidad === 1 ? '' : 's'}, cada uno con su propio enlace de OBS. ` +
-          `Si los eliminás junto con el equipo, esos enlaces dejan de funcionar. Esta acción no se puede deshacer. ¿Eliminar el equipo Y esos partidos?`
+          'Si los eliminás junto con el equipo, esos enlaces dejan de funcionar. ¿Eliminar el equipo Y esos partidos?'
         );
         if (!confirmado) return;
         try {
           await api.eliminarEquipo(equipo.id, { forzar: true });
-          cargar();
+          await cargar();
           avisar('Equipo y partidos asociados eliminados ✓');
         } catch (err2) {
           setError(err2.message);
@@ -344,111 +373,85 @@ export default function Equipos() {
 
   const agregarLogoALista = (logo) => setLogos((prev) => [logo, ...prev]);
 
-  // Agrupa por NOMBRE de equipo y adentro ordena por rama — un club con
-  // varias categorías/ramas ("Cultura Sub-15 Femenino", "Cultura Sub-17
-  // Masculino", etc., todas con el mismo nombre) antes aparecían salteadas
-  // por toda la grilla en el orden que tocara; ahora quedan todas juntas
-  // bajo un mismo título, separadas por rama adentro.
+  // Una sola grilla: por nombre (un club con varias categorías/ramas queda
+  // junto), después rama y categoría. La búsqueda mira nombre, categoría y código.
   const ORDEN_RAMA = { femenino: 0, masculino: 1 };
-  const gruposEquipos = (() => {
-    const porNombre = new Map();
-    for (const eq of equipos.filter((eq) => !eq.borrador)) {
-      const clave = eq.nombre.trim().toLowerCase();
-      if (!porNombre.has(clave)) porNombre.set(clave, { nombre: eq.nombre, equipos: [] });
-      porNombre.get(clave).equipos.push(eq);
-    }
-    return [...porNombre.values()]
-      .map((grupo) => ({
-        ...grupo,
-        equipos: [...grupo.equipos].sort((a, b) => {
-          const ramaA = ORDEN_RAMA[a.rama] ?? 2;
-          const ramaB = ORDEN_RAMA[b.rama] ?? 2;
-          if (ramaA !== ramaB) return ramaA - ramaB;
-          return (a.categoria || '').localeCompare(b.categoria || '');
-        }),
-      }))
-      .sort((a, b) => a.nombre.localeCompare(b.nombre));
-  })();
+  const texto = busqueda.trim().toLowerCase();
+  const visibles = equipos
+    .filter((eq) => !eq.borrador)
+    .filter((eq) => !texto || [eq.nombre, eq.categoria, eq.codigo, eq.rama].some((v) => (v || '').toLowerCase().includes(texto)))
+    .sort((a, b) => a.nombre.localeCompare(b.nombre) || ((ORDEN_RAMA[a.rama] ?? 2) - (ORDEN_RAMA[b.rama] ?? 2)) || (a.categoria || '').localeCompare(b.categoria || ''));
+  const total = equipos.filter((eq) => !eq.borrador).length;
 
   return (
     <div className="pagina">
-      <h1>Equipos</h1>
+      <div className="equipos-cabecera">
+        <div>
+          <h1>Equipos</h1>
+          <p className="texto-tenue" style={{ margin: 0 }}>{total} equipo{total === 1 ? '' : 's'} · nombre, colores, escudo, categoría y nómina de cada uno.</p>
+        </div>
+        <div className="equipos-cabecera-acciones">
+          {total > 0 && <input type="search" placeholder="🔍 Buscar equipo, categoría o código…" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} />}
+          <button className="btn-primario" onClick={() => setEditando('nuevo')}>＋ Nuevo equipo</button>
+        </div>
+      </div>
       {error && <p className="mensaje-error">{error}</p>}
       {exito && <p className="mensaje-exito">{exito}</p>}
-      <form className="fila-form" onSubmit={crear}>
-        <input placeholder="Nombre del equipo" value={nombre} onChange={(e) => setNombre(e.target.value)} required />
-        <input type="color" value={color} onChange={(e) => setColor(e.target.value)} />
-        <SelectorLogo logos={logos} value={logoUrl} onChange={setLogoUrl} onLogoSubido={agregarLogoALista} />
-        <CamposCategoriaRama categoria={categoria} rama={rama} onCambiarCategoria={setCategoria} onCambiarRama={setRama} />
-        <CampoCodigo codigo={codigo} onCambiar={setCodigo} />
-        <button className="btn-primario" type="submit">Crear equipo</button>
-      </form>
-      {logos.length === 0 && (
-        <p className="texto-tenue" style={{ marginTop: -8 }}>
-          Todavía no subiste logos — podés hacerlo en la sección Logos y después elegirlos acá.
-        </p>
-      )}
 
-      {gruposEquipos.map((grupo) => (
-        <div key={grupo.nombre.toLowerCase()} className="grupo-equipos">
-          <h3 className="grupo-equipos-titulo">{grupo.nombre}</h3>
+      {visibles.length > 0 && (
           <div className="grilla-tarjetas">
-            {grupo.equipos.map((eq) => (
-              <div className="tarjeta" key={eq.id} style={{ borderColor: eq.color }}>
-                {editandoId === eq.id ? (
-                  <FilaEdicion
-                    equipo={eq}
-                    logos={logos}
-                    onLogoSubido={agregarLogoALista}
-                    onGuardar={(payload) => guardarEdicion(eq.id, payload)}
-                    onCancelar={() => setEditandoId(null)}
-                  />
-                ) : (
-                  <>
-                    <div className="tarjeta-header">
-                      {eq.logo_url
-                        ? <img src={eq.logo_url} alt="" style={{ width: 28, height: 28, objectFit: 'contain' }} />
-                        : <span className="chip-color" style={{ background: eq.color }} />}
-                      <strong>{eq.nombre}</strong>
-                      {eq.codigo && (
-                        <span
-                          title="Código corto (usado por plantillas de marcador tipo transmisión, ej. FIBA Broadcast)"
-                          style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.5px', color: 'var(--texto-tenue)', border: '1px solid var(--borde)', borderRadius: 999, padding: '2px 8px' }}
-                        >
-                          {eq.codigo}
-                        </span>
-                      )}
-                      {eq.en_uso && <span className="chip-en-uso" title="Es el equipo que un diseño tiene puesto ahora mismo">🟢 En uso</span>}
-                    </div>
-                    {(eq.categoria || eq.rama) && (
-                      <p className="texto-tenue" style={{ fontSize: 12, margin: '2px 0' }}>
-                        {[eq.categoria, eq.rama === 'femenino' ? 'Femenino' : eq.rama === 'masculino' ? 'Masculino' : null].filter(Boolean).join(' · ')}
-                      </p>
-                    )}
-                    <p className="texto-tenue">{eq.jugadores_count} jugador(es)</p>
-                    <div className="tarjeta-acciones">
-                      <button className="btn-secundario" onClick={() => setEquipoAbierto(eq)}>Nómina</button>
-                      <button className="btn-secundario" onClick={() => setEditandoId(eq.id)}>Editar</button>
-                      {eq.en_uso ? (
-                        <span className="texto-tenue" title="No se puede borrar mientras un diseño lo tenga en uso">Eliminar</span>
-                      ) : (
-                        <button className="btn-link" onClick={() => eliminar(eq)}>Eliminar</button>
-                      )}
-                    </div>
-                  </>
-                )}
+            {visibles.map((eq) => (
+              <div className="tarjeta tarjeta-equipo" key={eq.id} style={{ '--color-equipo': eq.color }}>
+                <div className="tarjeta-equipo-cabeza">
+                  {eq.logo_url
+                    ? <img src={eq.logo_url} alt="" />
+                    : <span className="equipo-previa-sigla">{(eq.codigo || eq.nombre).slice(0, 3).toUpperCase()}</span>}
+                  <div className="tarjeta-equipo-titulo">
+                    <strong title={eq.nombre}>{eq.nombre}</strong>
+                    <span className="tarjeta-equipo-chips">
+                      {eq.categoria && <span className="chip-dato">{eq.categoria}</span>}
+                      {eq.rama && <span className="chip-dato">{eq.rama === 'femenino' ? 'Femenino' : 'Masculino'}</span>}
+                      {eq.codigo && <span className="chip-dato" title="Código corto para los tableros">{eq.codigo}</span>}
+                      {eq.en_uso && <span className="chip-en-uso" title="Es el equipo que un diseño tiene puesto ahora mismo">● En uso</span>}
+                    </span>
+                  </div>
+                </div>
+                <p className="texto-tenue" style={{ margin: 0 }}>👥 {eq.jugadores_count} jugador{Number(eq.jugadores_count) === 1 ? '' : 'es'}</p>
+                <div className="tarjeta-acciones">
+                  <button className="btn-secundario btn-chico" onClick={() => setEquipoAbierto(eq)}>👥 Nómina</button>
+                  <button className="btn-secundario btn-chico" onClick={() => setEditando(eq)}>✎ Editar</button>
+                  {eq.en_uso
+                    ? <span className="texto-tenue" style={{ fontSize: 12 }} title="No se puede borrar mientras un diseño lo tenga en uso">En uso: no se puede borrar</span>
+                    : <button className="btn-link btn-peligro-link" onClick={() => eliminar(eq)}>🗑 Eliminar</button>}
+                </div>
               </div>
             ))}
           </div>
+      )}
+      {total === 0 && (
+        <div className="tarjeta" style={{ textAlign: 'center', padding: 28 }}>
+          <p style={{ margin: '0 0 10px' }}>Todavía no creaste ningún equipo.</p>
+          <button className="btn-primario" onClick={() => setEditando('nuevo')}>＋ Crear el primero</button>
         </div>
-      ))}
-      {gruposEquipos.length === 0 && <p className="texto-tenue">Todavía no creaste ningún equipo.</p>}
-      <p className="texto-tenue" style={{ marginTop: 10, fontSize: 12 }}>
-        Los equipos "En uso" son los que algún diseño tiene puestos ahora mismo en "Juego en vivo" — el resto son equipos
-        sueltos (de pruebas, o de partidos ya terminados) que podés editar, reusar o borrar sin que afecten nada en curso.
-      </p>
+      )}
+      {total > 0 && visibles.length === 0 && <p className="texto-tenue">Ningún equipo coincide con "{busqueda}".</p>}
 
-      {equipoAbierto && <PanelJugadores equipo={equipoAbierto} onCerrar={() => setEquipoAbierto(null)} />}
+      {editando && (
+        <Dialogo titulo={editando === 'nuevo' ? 'Nuevo equipo' : `Editar ${editando.nombre}`} onCerrar={() => setEditando(null)}>
+          <FormularioEquipo
+            equipo={editando === 'nuevo' ? null : editando}
+            logos={logos}
+            onLogoSubido={agregarLogoALista}
+            onGuardar={guardar}
+            onCancelar={() => setEditando(null)}
+          />
+        </Dialogo>
+      )}
+      {equipoAbierto && (
+        <Dialogo titulo={`Nómina · ${equipoAbierto.nombre}`} onCerrar={() => { setEquipoAbierto(null); cargar(); }} ancho={640}>
+          <PanelJugadores equipo={equipoAbierto} />
+        </Dialogo>
+      )}
     </div>
   );
 }

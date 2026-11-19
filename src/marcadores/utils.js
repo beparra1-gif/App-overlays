@@ -430,7 +430,8 @@ export function estiloTemaCapa(config, prefijo) {
   estilo[`--${prefijo}-escala-texto`] = escalaTexto;
   estilo[`--${prefijo}-escala-titulo`] = escalaTitulo;
   if (config?.[`${prefijo}TituloFuente`]) estilo[`--${prefijo}-titulo-fuente`] = config[`${prefijo}TituloFuente`];
-  estilo[`--${prefijo}-titulo-peso`] = config?.[`${prefijo}TituloNegrita`] ? 800 : 400;
+  // Sin elegir, cada capa queda con la negrita propia de su diseño (ver NEGRITA_POR_DEFECTO en el panel).
+  if (typeof config?.[`${prefijo}TituloNegrita`] === 'boolean') estilo[`--${prefijo}-titulo-peso`] = config[`${prefijo}TituloNegrita`] ? 800 : 400;
   return estilo;
 }
 
@@ -826,6 +827,64 @@ export function piezasDeCaja(caja) {
   };
 }
 
+// Paleta REAL del tablero en pantalla: la pieza que contiene el reloj de
+// juego (su fondo, textura, borde, esquinas, sombra) y el color/letra de esos
+// números. La usan el reloj de 24" y el Intertanto para verse del mismo diseño.
+export function paletaDeCaja(caja) {
+  const hojas = [...caja.querySelectorAll('*')].filter((el) => el.children.length === 0 && el.textContent.trim() && !el.closest('.lma-capa'));
+  const reloj = hojas.find((el) => /\d{1,2}[:.]\d{2}/.test(el.textContent)) || hojas[0] || caja;
+  // Sube hasta una pieza con fondo propio y firme (un velo translúcido sobre el tablero no cuenta).
+  const alfa = (color) => { const m = color.match(/rgba\([^)]*,\s*([\d.]+)\)/); return m ? Number(m[1]) : 1; };
+  let pieza = reloj;
+  while (pieza !== caja && !(tieneFondo(getComputedStyle(pieza)) && alfa(getComputedStyle(pieza).backgroundColor) >= 0.5)) pieza = pieza.parentElement;
+  const f = getComputedStyle(pieza);
+  const t = getComputedStyle(reloj);
+  const transparente = /^(transparent|rgba\([^)]*,\s*0\))$/.test(f.backgroundColor);
+  return {
+    // null = no se impone (la pieza no tiene color propio): queda el del diseño.
+    fondo: transparente ? null : f.backgroundColor, textura: f.backgroundImage, radio: f.borderTopLeftRadius, sombra: f.boxShadow,
+    borde: parseFloat(f.borderTopWidth) ? `${f.borderTopWidth} ${f.borderTopStyle} ${f.borderTopColor}` : 'none',
+    texto: t.color, fuente: t.fontFamily, sombraTexto: t.textShadow,
+    // Color de los números grandes (el texto de mayor tamaño: los puntajes).
+    numeros: getComputedStyle(hojas.reduce((a, b) => (parseFloat(getComputedStyle(b).fontSize) > parseFloat(getComputedStyle(a).fontSize) ? b : a), reloj)).color,
+  };
+}
+
+// Colores base de una capa (nómina, estadísticas, anuncios, intertanto): los
+// del tablero real en pantalla. Lo elegido a mano (estiloTema/estiloTemaCapa)
+// se aplica después y manda.
+export function varsPaletaTablero(caja) {
+  const p = caja?.paleta;
+  if (!p) return {};
+  return {
+    ...(p.fondo ? { '--pm-tablero': p.fondo } : {}),
+    ...(p.texto ? { '--pm-texto': p.texto, '--pm-marcador': p.texto } : {}),
+  };
+}
+
+// "rgb(r, g, b)" / "rgba(...)" → "#rrggbb" (para los selectores de color).
+export function aHex(color) {
+  const m = String(color || '').match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/);
+  return m ? `#${m.slice(1, 4).map((n) => Number(n).toString(16).padStart(2, '0')).join('')}` : (/^#[0-9a-f]{6}$/i.test(color || '') ? color : null);
+}
+
+// Nombre que se ve en el marcador: como máximo 12 caracteres (los diseños
+// que usan sigla de 3 letras siguen con la suya). Con config.nombreLargo
+// 'completo' se ve entero y, si no entra, se achica la letra (igualarNombres).
+export const NOMBRE_MAX_MARCADOR = 12;
+// 'completo' (entero, el tablero crece) y 'ajustar' (entero, achicando la
+// letra hasta ocupar lo mismo que 12 letras) no cortan el texto.
+const nombreSinCortar = (config) => config?.nombreLargo === 'completo' || config?.nombreLargo === 'ajustar';
+export const nombreEnMarcador = (nombre, config) => {
+  const n = String(nombre || '').trim();
+  return nombreSinCortar(config) ? n : n.slice(0, NOMBRE_MAX_MARCADOR);
+};
+export const conNombresCortos = (partido, config) => (partido && !nombreSinCortar(config) ? {
+  ...partido,
+  equipoLocal: partido.equipoLocal && { ...partido.equipoLocal, nombre: String(partido.equipoLocal.nombre || '').trim().slice(0, NOMBRE_MAX_MARCADOR) },
+  equipoVisita: partido.equipoVisita && { ...partido.equipoVisita, nombre: String(partido.equipoVisita.nombre || '').trim().slice(0, NOMBRE_MAX_MARCADOR) },
+} : partido);
+
 // REGLA: un nombre de club largo nunca agranda solo un lado del tablero.
 // Busca en la caja los dos textos que son el nombre de cada equipo y les da
 // el MISMO ancho (el del más largo, con tope); si uno pasa el tope, se achica
@@ -836,14 +895,28 @@ const TOPE_NOMBRE_PX = 260;
 export function elementosDeNombres(raiz, nombres) {
   const [a, b] = (nombres || []).map((n) => String(n || '').trim().toLowerCase());
   if (!raiz || !a || !b) return [[], []];
-  const hojas = [...raiz.querySelectorAll('*')].filter((el) => el.children.length === 0 && el.textContent.trim() && !el.closest('.lma-capa'));
-  const de = (n) => hojas.filter((el) => el.textContent.trim().toLowerCase() === n);
+  // Por el texto PROPIO del elemento (sin el de sus hijos): así también se
+  // encuentra el nombre cuando va junto a otro detalle (p. ej. la flecha de
+  // posesión de Riso: "CULTURA FISICA <span>◄</span>").
+  const textoPropio = (el) => [...el.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent).join('').trim().toLowerCase();
+  const candidatos = [...raiz.querySelectorAll('*')].filter((el) => !el.closest('.lma-capa'));
+  const de = (n) => candidatos.filter((el) => textoPropio(el) === n);
   const locales = de(a);
   if (a === b) return [locales.filter((_, i) => !(i % 2)), locales.filter((_, i) => i % 2)];
   return [locales, de(b)];
 }
 
-export function igualarNombres(raiz, nombres) {
+// Ancho que ocuparían las primeras 12 letras de ese texto, con su misma letra.
+let lienzoMedidas;
+function anchoDeDoceLetras(el) {
+  const cs = getComputedStyle(el);
+  const ctx = (lienzoMedidas ||= document.createElement('canvas')).getContext('2d');
+  ctx.font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+  const texto = el.textContent.trim().slice(0, NOMBRE_MAX_MARCADOR);
+  return ctx.measureText(texto).width + (parseFloat(cs.letterSpacing) || 0) * texto.length;
+}
+
+export function igualarNombres(raiz, nombres, ajustar = false) {
   const [locales, visitas] = elementosDeNombres(raiz, nombres);
   for (let i = 0; i < Math.min(locales.length, visitas.length); i++) {
     const par = [locales[i], visitas[i]];
@@ -854,10 +927,11 @@ export function igualarNombres(raiz, nombres) {
     for (const el of par) {
       // Si el diseño ya le pone un ancho máximo (o pasa el tope), primero se
       // achica la letra para que el nombre entre completo.
-      const disponible = Math.min(TOPE_NOMBRE_PX, el.scrollWidth > el.clientWidth + 1 ? el.clientWidth : Infinity);
+      // "Ajustar": el nombre entero tiene que entrar en el lugar de 12 letras.
+      const disponible = Math.min(TOPE_NOMBRE_PX, el.scrollWidth > el.clientWidth + 1 ? el.clientWidth : Infinity, ajustar ? anchoDeDoceLetras(el) : Infinity);
       if (el.scrollWidth > disponible) {
         const base = parseFloat(getComputedStyle(el).fontSize);
-        el.style.fontSize = `${base * Math.max(0.7, disponible / el.scrollWidth)}px`;
+        el.style.fontSize = `${base * Math.max(0.5, disponible / el.scrollWidth)}px`;
       }
     }
     // +2: offsetWidth redondea hacia abajo y medio píxel de menos ya dispara el "…".
@@ -871,7 +945,7 @@ export function igualarNombres(raiz, nombres) {
   }
 }
 
-export function useCajaMarcador(contenedorRef, dependencias = [], nombres = null) {
+export function useCajaMarcador(contenedorRef, dependencias = [], nombres = null, ajustarNombres = false) {
   const [caja, setCaja] = useState(null);
 
   useEffect(() => {
@@ -881,7 +955,7 @@ export function useCajaMarcador(contenedorRef, dependencias = [], nombres = null
     const elementoCaja = wrapper?.firstElementChild;
     if (!elementoCaja) return undefined;
 
-    if (nombres) igualarNombres(elementoCaja, nombres);
+    if (nombres) igualarNombres(elementoCaja, nombres, ajustarNombres);
     const medir = () => {
       const rectCaja = elementoCaja.getBoundingClientRect();
       const rectContenedor = contenedor.getBoundingClientRect();
@@ -895,6 +969,7 @@ export function useCajaMarcador(contenedorRef, dependencias = [], nombres = null
         heightAlto: (rectCaja.height / rectContenedor.height) * 100,
         elemento: elementoCaja,
         fondoPropio: cajaConFondoPropio(elementoCaja),
+        paleta: paletaDeCaja(elementoCaja),
       });
     };
 
@@ -902,7 +977,7 @@ export function useCajaMarcador(contenedorRef, dependencias = [], nombres = null
     let vivo = true;
     // Las fuentes web cargan después: recién ahí el ancho real de cada nombre es el definitivo.
     // (ready puede resolverse antes de que empiece a bajar la fuente del diseño: también se escucha loadingdone).
-    const reigualar = () => { if (vivo && nombres) { igualarNombres(elementoCaja, nombres); medir(); } };
+    const reigualar = () => { if (vivo && nombres) { igualarNombres(elementoCaja, nombres, ajustarNombres); medir(); } };
     document.fonts?.ready.then(reigualar);
     document.fonts?.addEventListener?.('loadingdone', reigualar);
     const observer = new ResizeObserver(medir);
@@ -916,7 +991,7 @@ export function useCajaMarcador(contenedorRef, dependencias = [], nombres = null
       window.removeEventListener('resize', medir);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [...dependencias, nombres?.[0], nombres?.[1]]);
+  }, [...dependencias, nombres?.[0], nombres?.[1], ajustarNombres]);
 
   return caja;
 }

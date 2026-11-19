@@ -58,9 +58,10 @@ router.get('/', async (req, res) => {
 // (igual que el resto de "partidos archivados", que ya guarda todo
 // denormalizado) — si dos equipos distintos comparten nombre exacto
 // quedarían mezclados, un caso raro que no vale la pena resolver acá.
-router.get('/tabla', async (req, res) => {
-  try {
-    const partidos = await partidosDeCategoria(req.userId, req.query.categoria, req.query.rama);
+// Tabla de posiciones de una categoría/rama (la usan esta página y la
+// pantalla "Tabla" de la transmisión, ver routes/public.js).
+export async function calcularTabla(userId, categoria, rama) {
+    const partidos = await partidosDeCategoria(userId, categoria, rama);
     const equipos = new Map();
     const obtenerEquipo = (nombre, color, logoUrl) => {
       if (!equipos.has(nombre)) {
@@ -83,10 +84,14 @@ router.get('/tabla', async (req, res) => {
       if (p.pts_local > p.pts_visita) { local.victorias += 1; visita.derrotas += 1; }
       else if (p.pts_visita > p.pts_local) { visita.victorias += 1; local.derrotas += 1; }
     }
-    const tabla = Array.from(equipos.values())
+    return Array.from(equipos.values())
       .map((e) => ({ ...e, diferencia: e.puntosAFavor - e.puntosEnContra }))
       .sort((a, b) => b.victorias - a.victorias || b.diferencia - a.diferencia || b.puntosAFavor - a.puntosAFavor);
-    res.json({ tabla });
+}
+
+router.get('/tabla', async (req, res) => {
+  try {
+    res.json({ tabla: await calcularTabla(req.userId, req.query.categoria, req.query.rama) });
   } catch (error) {
     console.error('[GET /temporadas/tabla]', error);
     res.status(500).json({ error: 'No se pudo calcular la tabla de posiciones' });

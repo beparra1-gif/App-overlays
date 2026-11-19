@@ -205,7 +205,7 @@ html:has(.nomina-overlay) {
 
 .nomina-stats {
   font-size: calc(11px * var(--nomina-escala-texto, 1));
-  color: var(--nomina-texto, #cfd3dc);
+  color: var(--nomina-texto, var(--pm-texto, #cfd3dc));
   text-align: right;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
@@ -235,7 +235,7 @@ html:has(.nomina-overlay) {
 }
 .nomina-foto-vacia {
   display: flex; align-items: center; justify-content: center;
-  background: rgba(255,255,255,.08); font-weight: 700; color: var(--nomina-texto, #cfd3dc);
+  background: rgba(255,255,255,.08); font-weight: 700; color: var(--nomina-texto, var(--pm-texto, #cfd3dc));
   font-size: calc(var(--nomina-foto-tamano, 34px) * 0.38);
 }
 

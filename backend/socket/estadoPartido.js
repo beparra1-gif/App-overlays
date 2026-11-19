@@ -169,7 +169,7 @@ export async function construirEstado(partido) {
   ]);
 
   const ajustesFaltas = partido.faltas_ajuste || {};
-  const [rosterLocal, rosterVisita, patrocinadores, logoFondoLocal, logoFondoVisita, porPeriodo] = await Promise.all([
+  const [rosterLocal, rosterVisita, patrocinadores, logoFondoLocal, logoFondoVisita, porPeriodo, ultima] = await Promise.all([
     cargarRoster(partido.equipo_local_id, partido.id, minutosPorJugador, partido.convocados_local_ids, ajustesFaltas),
     cargarRoster(partido.equipo_visita_id, partido.id, minutosPorJugador, partido.convocados_visita_ids, ajustesFaltas),
     pool.query(
@@ -179,10 +179,13 @@ export async function construirEstado(partido) {
     logoFondoPara(equipoLocal.rows[0]?.logo_url, partido.user_id),
     logoFondoPara(equipoVisita.rows[0]?.logo_url, partido.user_id),
     puntosPorPeriodo(partido.id),
+    ultimaJugada(partido.id),
   ]);
 
   return {
     id: partido.id,
+    // La última jugada que se puede deshacer (botón "Deshacer" de la Mesa).
+    ultimaJugada: ultima,
     publicToken: partido.public_token,
     estado: partido.estado,
     periodo: partido.periodo,
@@ -333,6 +336,7 @@ export async function registrarPunto(partido, { equipo, jugadorId, puntos }, { s
   const campo = equipo === 'local' ? 'pts_local' : 'pts_visita';
   return sumarYRegistrar(partido.id, `${campo} = ${campo} + $1`, [sumarMarcador ? puntos : 0], {
     partido_id: partido.id, tipo: 'PUNTO', jugador_id: jugadorId || null, equipo, puntos, periodo: partido.periodo, reloj_segundos_evento: relojEvento(partido),
+    metadata: JSON.stringify({ sumado: sumarMarcador }),
   });
 }
 
@@ -340,7 +344,7 @@ export async function registrarTiroLibre(partido, { equipo, jugadorId, convertid
   const campo = equipo === 'local' ? 'pts_local' : 'pts_visita';
   return sumarYRegistrar(partido.id, `${campo} = ${campo} + $1`, [sumarMarcador ? convertidos : 0], {
     partido_id: partido.id, tipo: 'TIRO_LIBRE', jugador_id: jugadorId || null, equipo, puntos: convertidos,
-    metadata: JSON.stringify({ convertidos, intentos }), periodo: partido.periodo, reloj_segundos_evento: relojEvento(partido),
+    metadata: JSON.stringify({ convertidos, intentos, sumado: sumarMarcador }), periodo: partido.periodo, reloj_segundos_evento: relojEvento(partido),
   });
 }
 
@@ -370,7 +374,7 @@ export async function registrarFalta(partido, { equipo, jugadorId, tipoFalta = '
   const campo = equipo === 'local' ? 'faltas_local' : 'faltas_visita';
   const campoPeriodo = equipo === 'local' ? 'faltas_periodo_local' : 'faltas_periodo_visita';
   return sumarYRegistrar(partido.id, `${campo} = ${campo} + 1, ${campoPeriodo} = ${campoPeriodo} + $1`, [sumarFaltasPeriodo ? 1 : 0], {
-    partido_id: partido.id, tipo: 'FALTA', jugador_id: jugadorId || null, equipo, metadata: JSON.stringify({ tipoFalta }),
+    partido_id: partido.id, tipo: 'FALTA', jugador_id: jugadorId || null, equipo, metadata: JSON.stringify({ tipoFalta, sumadoPeriodo: sumarFaltasPeriodo }),
     periodo: partido.periodo, reloj_segundos_evento: relojEvento(partido),
   });
 }
@@ -399,6 +403,56 @@ export async function registrarSustitucion(partido, { equipo, jugadorSaleId, jug
   await pool.query(
     `INSERT INTO eventos_partido (partido_id, tipo, equipo, metadata, periodo, reloj_segundos_evento) VALUES ($1, $2, $3, $4::jsonb, $5, $6)`,
     [partido.id, 'SUSTITUCION', equipo, JSON.stringify({ jugadorSaleId, jugadorEntraId }), partido.periodo, relojEvento(partido)]
+  );
+  return resultado.rows[0];
+}
+
+// ── Deshacer ──
+// Jugadas que el botón "Deshacer" de la Mesa puede revertir (la última de
+// todas, una por vez). Las correcciones manuales y los cambios de reloj no.
+const DESHACIBLES = ['PUNTO', 'TIRO_LIBRE', 'FALTA', 'REBOTE', 'ASISTENCIA', 'ROBO', 'PERDIDA', 'TIMEOUT'];
+
+async function ultimaJugada(partidoId) {
+  const r = await pool.query(
+    `SELECT e.id, e.tipo, e.equipo, e.puntos, e.metadata, j.nombre AS jugador_nombre, j.dorsal AS jugador_dorsal
+     FROM eventos_partido e LEFT JOIN jugadores j ON j.id = e.jugador_id
+     WHERE e.partido_id = $1 AND e.tipo = ANY($2) ORDER BY e.id DESC LIMIT 1`,
+    [partidoId, DESHACIBLES]
+  );
+  const e = r.rows[0];
+  return e ? { id: e.id, tipo: e.tipo, equipo: e.equipo, puntos: e.puntos, tipoFalta: e.metadata?.tipoFalta || null, jugador: e.jugador_nombre || (e.jugador_dorsal != null ? `#${e.jugador_dorsal}` : null) } : null;
+}
+
+// Revierte la última jugada (borra el evento y descuenta lo que sumó) en
+// UNA sentencia. `eventoId` tiene que ser la última: si mientras tanto se
+// cargó otra, no se deshace nada (se evita borrar la equivocada).
+export async function deshacerJugada(partido, eventoId) {
+  const ev = (await pool.query(
+    'SELECT * FROM eventos_partido WHERE partido_id = $1 AND tipo = ANY($2) ORDER BY id DESC LIMIT 1',
+    [partido.id, DESHACIBLES]
+  )).rows[0];
+  if (!ev || String(ev.id) !== String(eventoId)) throw new Error('Esa ya no es la última jugada: se cargó otra mientras tanto');
+  const m = ev.metadata || {};
+  const local = ev.equipo === 'local';
+  const sets = [];
+  if ((ev.tipo === 'PUNTO' || ev.tipo === 'TIRO_LIBRE') && m.sumado !== false && ev.puntos) {
+    const c = local ? 'pts_local' : 'pts_visita';
+    sets.push(`${c} = GREATEST(0, ${c} - ${Number(ev.puntos)})`);
+  }
+  if (ev.tipo === 'FALTA') {
+    const c = local ? 'faltas_local' : 'faltas_visita';
+    sets.push(`${c} = GREATEST(0, ${c} - 1)`);
+    const cp = local ? 'faltas_periodo_local' : 'faltas_periodo_visita';
+    if (m.sumadoPeriodo !== false && Number(ev.periodo) === Number(partido.periodo)) sets.push(`${cp} = GREATEST(0, ${cp} - 1)`);
+  }
+  if (ev.tipo === 'TIMEOUT') {
+    const c = local ? 'timeouts_local' : 'timeouts_visita';
+    sets.push(`${c} = ${c} + 1`);
+  }
+  const resultado = await pool.query(
+    `WITH borrado AS (DELETE FROM eventos_partido WHERE id = $2)
+     UPDATE partidos SET ${[...sets, 'actualizado_en = now()'].join(', ')} WHERE id = $1 RETURNING *`,
+    [partido.id, ev.id]
   );
   return resultado.rows[0];
 }

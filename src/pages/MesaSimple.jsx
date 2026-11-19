@@ -40,6 +40,7 @@ export default function MesaSimple({ partidoId: partidoIdProp, embebido = false,
     return () => clearTimeout(t);
   }, [error]);
 
+  const [conectado, setConectado] = useState(true);
   useEffect(() => {
     let activo = true;
     api.obtenerPartido(id).then((d) => {
@@ -47,7 +48,8 @@ export default function MesaSimple({ partidoId: partidoIdProp, embebido = false,
       setPartido(d.partido);
       const socket = crearSocket();
       socketRef.current = socket;
-      socket.on('connect', () => socket.emit('unirse_mesa', { publicToken: d.partido.publicToken }));
+      socket.on('connect', () => { setConectado(true); socket.emit('unirse_mesa', { publicToken: d.partido.publicToken }); });
+      socket.on('disconnect', () => setConectado(false));
       socket.on('estado', (estado) => setPartido(estado));
       socket.on('intertanto', (d) => setIntertantoActivo(Boolean(d?.activo)));
       socket.on('error_marcador', (payload) => setError(payload.error));
@@ -125,6 +127,10 @@ export default function MesaSimple({ partidoId: partidoIdProp, embebido = false,
       {error && <p className="mensaje-error" role="alert">{error}</p>}
       <div className="ms-topbar">
         {!embebido && <Link className="ms-pill" to={`/mesa/${id}`}>📋 Mesa amplia</Link>}
+        {!conectado && <span className="ms-pill ms-peligro" title="Las jugadas se envían solas al volver la conexión">🔴 Sin conexión</span>}
+        <button className="ms-pill" disabled={!partido.ultimaJugada} onClick={() => emitirAccion('DESHACER', { eventoId: partido.ultimaJugada.id })} title="Deshacer la última jugada">
+          ↶ Deshacer{partido.ultimaJugada ? ` ${partido.ultimaJugada.tipo === 'PUNTO' ? `+${partido.ultimaJugada.puntos}` : partido.ultimaJugada.tipo === 'FALTA' ? 'falta' : ''}` : ''}
+        </button>
         <button className="ms-pill" onClick={alternarPantallaCompleta}>
           {enPantallaCompleta ? '✕ Salir de Pantalla Completa' : '⛶ Pantalla Completa'}
         </button>

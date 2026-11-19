@@ -4,7 +4,7 @@ import crypto from 'crypto';
 import rateLimit from 'express-rate-limit';
 import { OAuth2Client } from 'google-auth-library';
 import pool from '../db.js';
-import { authenticate, firmarToken } from '../middleware/auth.js';
+import { authenticate, firmarToken, firmarTokenOperador } from '../middleware/auth.js';
 import { enviarEmail } from '../utils/email.js';
 
 const router = Router();
@@ -231,7 +231,7 @@ router.get('/me', authenticate, async (req, res) => {
     );
     if (resultado.rows.length === 0) return res.status(404).json({ error: 'Usuario no encontrado' });
     tocarUltimoUso(req.userId); // sin await a propósito: no vale la pena demorar la respuesta por esto
-    res.json({ usuario: resultado.rows[0] });
+    res.json({ usuario: { ...resultado.rows[0], operador: Boolean(req.esOperador) } });
   } catch (error) {
     console.error('[GET /auth/me]', error);
     res.status(500).json({ error: 'No se pudo obtener el usuario' });
@@ -295,6 +295,28 @@ router.put('/password', authenticate, async (req, res) => {
   } catch (error) {
     console.error('[PUT /auth/password]', error);
     res.status(500).json({ error: 'No se pudo actualizar la contraseña' });
+  }
+});
+
+// Enlaces de operador de Mesa (solo el dueño de la cuenta, no otro operador).
+router.post('/operador', authenticate, async (req, res) => {
+  if (req.esOperador) return res.status(403).json({ error: 'Un operador no puede crear enlaces' });
+  try {
+    const u = (await pool.query('SELECT sesion_version, operador_version FROM usuarios WHERE id = $1', [req.userId])).rows[0];
+    res.json({ token: firmarTokenOperador(req.userId, u.sesion_version, u.operador_version), expiraEnDias: 30 });
+  } catch (error) {
+    console.error('[POST /auth/operador]', error);
+    res.status(500).json({ error: 'No se pudo crear el enlace' });
+  }
+});
+router.delete('/operador', authenticate, async (req, res) => {
+  if (req.esOperador) return res.status(403).json({ error: 'Un operador no puede anular enlaces' });
+  try {
+    await pool.query('UPDATE usuarios SET operador_version = operador_version + 1 WHERE id = $1', [req.userId]);
+    res.json({ ok: true });
+  } catch (error) {
+    console.error('[DELETE /auth/operador]', error);
+    res.status(500).json({ error: 'No se pudieron anular los enlaces' });
   }
 });
 

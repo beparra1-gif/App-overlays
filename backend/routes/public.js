@@ -2,6 +2,8 @@ import { Router } from 'express';
 import { cargarPartidoPorToken, cargarPartidoPorId, construirEstado } from '../socket/estadoPartido.js';
 import { cargarEscenaConDiseno } from '../socket/escenas.js';
 import { verificarTokenLector } from '../middleware/auth.js';
+import pool from '../db.js';
+import { calcularTabla } from './temporadas.js';
 
 const router = Router();
 
@@ -38,6 +40,19 @@ router.get('/lector/:token', async (req, res, next) => {
     const partido = await cargarPartidoPorId(datos.partidoId);
     if (!partido || partido.user_id !== datos.userId) return res.status(404).json({ error: 'Partido no encontrado' });
     res.json({ partido: await construirEstado(partido) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Tabla de posiciones de la categoría/rama del equipo local de ESE partido,
+// para la pantalla "Tabla" de la transmisión (escena pública, sin login).
+router.get('/tabla/:token', async (req, res, next) => {
+  try {
+    const partido = await cargarPartidoPorToken(req.params.token);
+    if (!partido) return res.status(404).json({ error: 'Partido no encontrado' });
+    const eq = (await pool.query('SELECT categoria, rama FROM equipos WHERE id = $1', [partido.equipo_local_id])).rows[0] || {};
+    res.json({ categoria: eq.categoria || null, rama: eq.rama || null, tabla: await calcularTabla(partido.user_id, eq.categoria ?? '', eq.rama ?? '') });
   } catch (error) {
     next(error);
   }

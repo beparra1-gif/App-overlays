@@ -424,6 +424,8 @@ const EquipoFicha = forwardRef(function EquipoFicha({ titulo, valorDefecto, equi
   };
 
   useImperativeHandle(ref, () => ({
+    // Carga un equipo guardado por id (cruces guardados de "Juego en vivo").
+    async elegir(id) { await elegirEquipoGuardado(String(id)); },
     // Arrancar "Juego en vivo" es justo el momento en que la Mesa de
     // control necesita jugadores con id real — acá (y solo acá, si el
     // usuario no guardó la nómina a mano antes) es cuando lo pendiente pasa
@@ -482,7 +484,7 @@ const EquipoFicha = forwardRef(function EquipoFicha({ titulo, valorDefecto, equi
           placeholder={valorDefecto}
           style={{ flex: 1, minWidth: 160 }}
         />
-        <SelectorLogo logos={logos} value={logoUrl} onChange={(v) => { setLogoUrl(v); setLogoTocado(true); }} onLogoSubido={onLogoSubido} />
+        <SelectorLogo categoria="normal" logos={logos} value={logoUrl} onChange={(v) => { setLogoUrl(v); setLogoTocado(true); }} onLogoSubido={onLogoSubido} />
       </div>
 
       <SelectorColorEquipo color={color} onChange={setColor} />

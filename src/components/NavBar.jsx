@@ -6,10 +6,22 @@ export default function NavBar() {
   const { usuario, logout } = useAuth();
   const { tema, alternarTema } = useTheme();
   if (!usuario) return null;
+  if (usuario.operador) {
+    return (
+      <nav className="navbar">
+        <span className="navbar-marca">App-overlays</span>
+        <NavLink to="/en-vivo" className="navbar-link navbar-link-vivo">🔴 En vivo</NavLink>
+        <span className="navbar-spacer" />
+        <span className="texto-tenue" style={{ fontSize: 13 }}>🎛️ Operador de Mesa</span>
+        <button className="btn-secundario" onClick={logout}>Salir</button>
+      </nav>
+    );
+  }
 
   return (
     <nav className="navbar">
       <span className="navbar-marca">App-overlays</span>
+      <NavLink to="/en-vivo" className="navbar-link navbar-link-vivo" title="Abrir la Mesa de control del partido en curso">🔴 En vivo</NavLink>
       <NavLink to="/disenos" className="navbar-link">Diseños</NavLink>
       <NavLink to="/partidos" className="navbar-link">Partidos</NavLink>
       <NavLink to="/temporadas" className="navbar-link">Temporadas</NavLink>

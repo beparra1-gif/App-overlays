@@ -141,6 +141,9 @@ export const api = {
 
   obtenerEscenaPublica: (token) => solicitud(`/public/escenas/${token}`, { autenticado: false }),
   obtenerLector: (token) => solicitud(`/public/lector/${token}`, { autenticado: false }),
+  crearEnlaceOperador: () => solicitud('/auth/operador', { method: 'POST' }),
+  anularOperadores: () => solicitud('/auth/operador', { method: 'DELETE' }),
+  obtenerTablaPublica: (publicToken) => solicitud(`/public/tabla/${publicToken}`, { autenticado: false }),
   crearEnlaceLector: (partidoId) => solicitud(`/partidos/${partidoId}/enlace-lector`, { method: 'POST' }),
 
   listarPosiciones: () => solicitud('/posiciones'),

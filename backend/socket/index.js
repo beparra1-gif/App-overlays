@@ -16,6 +16,7 @@ import {
   registrarPerdida,
   registrarSustitucion,
   usarTimeout,
+  deshacerJugada,
   alternarPosesion,
   iniciarReloj,
   pausarReloj,
@@ -132,6 +133,7 @@ async function autorizacion(token, partido) {
   const payload = await verificarSesion(token);
   if (!payload || payload.userId !== partido.user_id) return null;
   if (payload.scope === 'lector') return payload.partidoId === partido.id ? 'lector' : null;
+  if (payload.scope === 'operador') return 'dueno'; // maneja el partido igual que el dueño
   if (payload.scope) return null;
   return 'dueno';
 }
@@ -359,8 +361,10 @@ export function registrarSocketPartidos(io) {
         // MARCADOR_ALERTA: control en vivo, no se guarda en la base. Se
         // apaga solo al volver a arrancar el reloj (ver RELOJ_INICIAR).
         if (tipo === 'INTERTANTO') {
+          // modo: 'intertanto' | 'previa' | 'final' | 'mvp' (mismo panel, otro contenido).
+          const modo = ['previa', 'final', 'mvp', 'tabla'].includes(payload.modo) ? payload.modo : 'intertanto';
           emitirIntertanto(publicToken, payload.activo
-            ? { activo: true, ocultarMarcador: payload.ocultarMarcador !== false, ts: Date.now() }
+            ? { activo: true, modo, ocultarMarcador: payload.ocultarMarcador !== false, ts: Date.now() }
             : { activo: false });
           return;
         }
@@ -483,6 +487,10 @@ export function registrarSocketPartidos(io) {
             jugadorEntraId = Number(payload.jugadorEntraId);
             if (!jugadorSaleId || !jugadorEntraId) throw new Error('Sustitución inválida');
             actualizado = await registrarSustitucion(partido, { equipo: payload.equipo, jugadorSaleId, jugadorEntraId });
+            break;
+          }
+          case 'DESHACER': {
+            actualizado = await deshacerJugada(partido, payload.eventoId);
             break;
           }
           case 'TIMEOUT': {

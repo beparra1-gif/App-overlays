@@ -21,6 +21,8 @@ const Disenos = lazy(() => import('./pages/Disenos'));
 const Partidos = lazy(() => import('./pages/Partidos'));
 const Temporadas = lazy(() => import('./pages/Temporadas'));
 const Mesa = lazy(() => import('./pages/Mesa'));
+const EnVivo = lazy(() => import('./pages/EnVivo'));
+const Operador = lazy(() => import('./pages/Operador'));
 const MesaSimple = lazy(() => import('./pages/MesaSimple'));
 const Publicidad = lazy(() => import('./pages/Publicidad'));
 const Logos = lazy(() => import('./pages/Logos'));
@@ -68,6 +70,8 @@ export default function App() {
                   <Route path="/disenos" element={<ProtectedRoute><Disenos /></ProtectedRoute>} />
                   <Route path="/partidos" element={<ProtectedRoute><Partidos /></ProtectedRoute>} />
                   <Route path="/temporadas" element={<ProtectedRoute><Temporadas /></ProtectedRoute>} />
+                  <Route path="/en-vivo" element={<ProtectedRoute><EnVivo /></ProtectedRoute>} />
+                  <Route path="/operador" element={<Operador />} />
                   <Route path="/mesa/:id" element={<ProtectedRoute><Mesa /></ProtectedRoute>} />
                   <Route path="/mesa/:id/simple" element={<ProtectedRoute><MesaSimple /></ProtectedRoute>} />
                   {/* Enlace fijo por usuario (sin id de partido) — se resuelve solo al

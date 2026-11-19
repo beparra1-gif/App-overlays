@@ -1,4 +1,4 @@
-import { estiloTema, estiloTemaCapa, estiloUbicacion, familiaEfectiva, fuenteEfectiva, formatearReloj } from '../utils';
+import { estiloTema, estiloTemaCapa, estiloUbicacion, familiaEfectiva, fuenteEfectiva, formatearReloj, varsPaletaTablero } from '../utils';
 import LogoEquipo from '../LogoEquipo';
 import '../estadisticas.css';
 
@@ -103,7 +103,7 @@ function CajaEquipo({ equipo, equipoKey, tema, mostrarLogo, detalle, puntosPorPe
   );
 }
 
-export default function VistaEstadisticas({ partido, config = {}, tema, plantillaId }) {
+export default function VistaEstadisticas({ partido, config = {}, tema, plantillaId, caja = null }) {
   const modo = config.modo === 'jugador' ? 'jugador' : config.modo === 'ambos' ? 'ambos' : 'equipo';
   const familia = familiaEfectiva(tema, 'estadisticas', plantillaId);
   // El detalle por jugador se puede fijar fijo en el diseño, o pedirlo
@@ -120,7 +120,7 @@ export default function VistaEstadisticas({ partido, config = {}, tema, plantill
   // Nómina (ver nominaOffsetY en VistaNomina.jsx).
   const offsetY = Number(tema?.estadisticasOffsetY) || 0;
   const estilo = {
-    ...estiloTema(tema), ...estiloTemaCapa(tema, 'estadisticas'), ...estiloUbicacion(ubicacion),
+    ...varsPaletaTablero(caja), ...estiloTema(tema), ...estiloTemaCapa(tema, 'estadisticas'), ...estiloUbicacion(ubicacion),
     '--pm-fuente': fuenteEfectiva(tema, plantillaId),
     ...(offsetY ? { transform: `translateY(${offsetY}px)` } : {}),
   };

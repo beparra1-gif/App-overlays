@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { estiloTema, estiloTemaCapa, estiloAnclaAlerta, familiaDePlantilla, fuenteEfectiva, FAMILIAS_VISUALES } from '../utils';
+import { estiloTema, estiloTemaCapa, estiloAnclaAlerta, familiaDePlantilla, fuenteEfectiva, FAMILIAS_VISUALES, varsPaletaTablero } from '../utils';
 import '../anuncios.css';
 
 // Marca arrastrable (solo en el editor, `editable`) para el modo de
@@ -131,6 +131,7 @@ export default function VistaAnuncios({
   // en 'libre': ahí la posición ya es 100% manual (anunciosX/Y).
   const offsetY = modoAlerta !== 'libre' ? Number(tema?.anunciosOffsetY) || 0 : 0;
   const estiloAncla = {
+    ...varsPaletaTablero(caja),
     ...estiloTema(tema),
     ...estiloTemaCapa(tema, 'anuncios'),
     '--pm-fuente': fuenteEfectiva(tema, plantillaId),

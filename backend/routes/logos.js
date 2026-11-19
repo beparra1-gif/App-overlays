@@ -6,6 +6,10 @@ import { authenticate } from '../middleware/auth.js';
 
 const router = Router();
 
+// 'normal' = escudos de clubes, 'competicion' = logos de torneos/ligas
+// (los que se ponen en los tableros), 'fondo' = versión alternativa para la nómina.
+const CATEGORIAS_LOGO = ['normal', 'competicion', 'fondo'];
+
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 3 * 1024 * 1024 },
@@ -43,7 +47,7 @@ router.post('/', authenticate, (req, res) => {
     if (!req.file) return res.status(400).json({ error: 'Falta el archivo' });
 
     const nombre = String(req.body?.nombre || req.file.originalname || 'logo').trim();
-    const categoria = req.body?.categoria === 'fondo' ? 'fondo' : 'normal';
+    const categoria = CATEGORIAS_LOGO.includes(req.body?.categoria) ? req.body.categoria : 'normal';
     const extension = (req.file.originalname.split('.').pop() || 'png').toLowerCase();
     const filename = `${crypto.randomBytes(10).toString('hex')}.${extension}`;
 
@@ -60,14 +64,20 @@ router.post('/', authenticate, (req, res) => {
   });
 });
 
+// Renombrar y/o mover de categoría (Clubes / Competiciones / Fondos).
 router.put('/:id', authenticate, async (req, res) => {
-  const nombre = String(req.body?.nombre || '').trim();
-  if (!nombre) return res.status(400).json({ error: 'El título no puede quedar vacío' });
+  const nombre = req.body?.nombre === undefined ? null : String(req.body.nombre).trim();
+  const categoria = req.body?.categoria === undefined ? null : req.body.categoria;
+  if (nombre === '') return res.status(400).json({ error: 'El título no puede quedar vacío' });
+  if (categoria !== null && !CATEGORIAS_LOGO.includes(categoria)) return res.status(400).json({ error: 'Categoría inválida' });
+  if (nombre === null && categoria === null) return res.status(400).json({ error: 'Nada para cambiar' });
+  if (!/^\d+$/.test(String(req.params.id))) return res.status(404).json({ error: 'Logo no encontrado' });
 
   try {
     const resultado = await pool.query(
-      'UPDATE logos SET nombre = $1 WHERE id = $2 AND user_id = $3 RETURNING id, nombre, filename, mime_type, creado_en',
-      [nombre, req.params.id, req.userId]
+      `UPDATE logos SET nombre = COALESCE($1, nombre), categoria = COALESCE($2, categoria)
+       WHERE id = $3 AND user_id = $4 RETURNING id, nombre, filename, mime_type, categoria, creado_en`,
+      [nombre, categoria, req.params.id, req.userId]
     );
     if (resultado.rows.length === 0) return res.status(404).json({ error: 'Logo no encontrado' });
     res.json({ logo: resultado.rows[0] });

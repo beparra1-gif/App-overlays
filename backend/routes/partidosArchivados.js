@@ -9,7 +9,8 @@ router.get('/', async (req, res) => {
   try {
     const resultado = await pool.query(
       `SELECT id, equipo_local_nombre, equipo_visita_nombre, equipo_local_color, equipo_visita_color,
-              equipo_local_logo_url, equipo_visita_logo_url, pts_local, pts_visita, jugado_en
+              equipo_local_logo_url, equipo_visita_logo_url, pts_local, pts_visita, jugado_en,
+              equipo_local_categoria, equipo_local_rama
        FROM partidos_archivados WHERE user_id = $1 ORDER BY jugado_en DESC`,
       [req.userId]
     );
