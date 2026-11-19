@@ -264,6 +264,10 @@ const FAMILIA_POR_PLANTILLA = {
   'escudo-torneo': 'sx-torneo',
   'alas-trapecio': 'sx-trapecio',
   'cartel-rasgado': 'sx-grunge',
+  'barra-pro': 'sx-barrapro',
+  'capsula-medallon': 'sx-capsula',
+  'barra-cadena': 'sx-cadena',
+  'franja-clasificatoria': 'sx-franja',
   'creador-libre': 'clasico',
 };
 
@@ -339,6 +343,10 @@ const FUENTE_POR_PLANTILLA = {
   'escudo-torneo': "'Outfit', sans-serif",
   'alas-trapecio': "'Michroma', sans-serif",
   'cartel-rasgado': "'Rubik Dirt', sans-serif",
+  'barra-pro': "'Barlow Condensed', sans-serif",
+  'capsula-medallon': "'Barlow Condensed', sans-serif",
+  'barra-cadena': "'Saira Condensed', sans-serif",
+  'franja-clasificatoria': "'Barlow Condensed', sans-serif",
   'creador-libre': "'Oswald', sans-serif",
 };
 
@@ -832,7 +840,8 @@ export function piezasDeCaja(caja) {
 // números. La usan el reloj de 24" y el Intertanto para verse del mismo diseño.
 export function paletaDeCaja(caja) {
   const hojas = [...caja.querySelectorAll('*')].filter((el) => el.children.length === 0 && el.textContent.trim() && !el.closest('.lma-capa'));
-  const reloj = hojas.find((el) => /\d{1,2}[:.]\d{2}/.test(el.textContent)) || hojas[0] || caja;
+  // Un diseño puede marcar su pieza representativa (p. ej. si el reloj va en una cápsula clara).
+  const reloj = caja.querySelector('[data-pm-paleta]') || hojas.find((el) => /\d{1,2}[:.]\d{2}/.test(el.textContent)) || hojas[0] || caja;
   // Sube hasta una pieza con fondo propio y firme (un velo translúcido sobre el tablero no cuenta).
   const alfa = (color) => { const m = color.match(/rgba\([^)]*,\s*([\d.]+)\)/); return m ? Number(m[1]) : 1; };
   let pieza = reloj;
@@ -1036,3 +1045,14 @@ export function useEscalaLienzo(marcoRef) {
   return escala;
 }
 
+
+// Texto legible (negro o blanco) sobre un color de fondo #rrggbb.
+export function contrasteTexto(hex) {
+  const limpio = String(hex || '').replace('#', '');
+  if (!/^[0-9A-Fa-f]{6}$/.test(limpio)) return '#fff';
+  const r = parseInt(limpio.slice(0, 2), 16);
+  const g = parseInt(limpio.slice(2, 4), 16);
+  const b = parseInt(limpio.slice(4, 6), 16);
+  const luminancia = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+  return luminancia > 0.6 ? '#111' : '#fff';
+}

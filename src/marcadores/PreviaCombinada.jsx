@@ -228,7 +228,7 @@ export default function PreviaCombinada({
             <NombreFlotante equipoLocal={partidoMarcador.equipoLocal} equipoVisita={partidoMarcador.equipoVisita} config={config} plantillaId={plantillaId} caja={caja} prefijo="clasico" />
           )}
           <TituloMarcador config={config} plantillaId={plantillaId} caja={caja} suprimir={suprimirTitulo} />
-          <RelojPosesion partido={partido} config={config} caja={caja} demo={!partidoReal} relojJuego={partido.relojSegundos} />
+          <RelojPosesion partido={partido} config={config} caja={caja} demo={!partidoReal} relojJuego={partido.relojSegundos} plantillaId={plantillaId} />
           {mostrarDemoPuntos && (
             <PopSumaPuntos
               partido={partido}

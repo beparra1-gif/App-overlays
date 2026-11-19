@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api, getToken } from '../api/client';
 import { crearSocket } from '../socket';
-import { useRelojVivo, useRelojPosesion, formatearPosesion, formatearReloj as formatearRelojVivo } from '../marcadores/utils';
+import { useRelojVivo, useRelojPosesion, formatearPosesion, contrasteTexto, formatearReloj as formatearRelojVivo } from '../marcadores/utils';
 import EquipoRoster from '../components/EquipoRoster';
 import TablaEstadisticas from '../components/TablaEstadisticas';
 import PanelMarcadorCamara from '../components/PanelMarcadorCamara';
@@ -374,15 +374,6 @@ function ModalElegirEquipo({ equipos, equipoActualId, onUsar, onCerrar }) {
   );
 }
 
-function contrasteTexto(hex) {
-  const limpio = String(hex || '').replace('#', '');
-  if (!/^[0-9A-Fa-f]{6}$/.test(limpio)) return '#fff';
-  const r = parseInt(limpio.slice(0, 2), 16);
-  const g = parseInt(limpio.slice(2, 4), 16);
-  const b = parseInt(limpio.slice(4, 6), 16);
-  const luminancia = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
-  return luminancia > 0.6 ? '#111' : '#fff';
-}
 
 function claseFaltas(faltas) {
   if (faltas >= 5) return 'critica';

@@ -1,4 +1,5 @@
 import { formatearPosesion, useRelojPosesion } from './utils';
+import { soporteDePlantilla } from './soporte';
 import './relojPosesion.css';
 
 // Mismo aspecto que la pieza del reloj de juego del tablero (ver paletaDeCaja).
@@ -10,9 +11,9 @@ const varsDePaleta = (p) => (p ? {
 // Reloj de posesión (24") en la transmisión, pegado a la caja real del
 // marcador (al costado o debajo, según el diseño). Como en FIBA, se apaga
 // cuando al reloj de juego le queda menos tiempo que a la posesión.
-export default function RelojPosesion({ partido, config, caja, relojJuego, oculto = false, demo = false }) {
+export default function RelojPosesion({ partido, config, caja, relojJuego, oculto = false, demo = false, plantillaId }) {
   const valorVivo = useRelojPosesion(partido);
-  if (!config?.mostrarRelojPosesion || !caja || !partido) return null;
+  if (!config?.mostrarRelojPosesion || !caja || !partido || soporteDePlantilla(plantillaId).reloj24Propio) return null;
   const valor = demo ? 14 : valorVivo;
   const juego = Number(relojJuego ?? partido.relojSegundos);
   if (!demo && Number.isFinite(juego) && juego < valor && juego > 0) return null;

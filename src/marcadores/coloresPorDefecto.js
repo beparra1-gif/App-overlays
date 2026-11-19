@@ -1,6 +1,10 @@
 // GENERADO desde los CSS de cada plantilla (valor por defecto de --pm-*):
 // lo que el tablero muestra si no elegís un color a mano.
 export const COLORES_POR_DEFECTO = {
+  "barra-pro": { "tablero": "#1e2024", "banner": "#ffb000", "marcador": "#ffffff", "texto": "#ffffff" },
+  "capsula-medallon": { "tablero": "#15171a", "banner": "#d9a441", "marcador": "#ffffff", "texto": "#ffffff" },
+  "franja-clasificatoria": { "tablero": "#1f2023", "banner": "#e2231a", "marcador": "#ffffff", "texto": "#ffffff" },
+  "barra-cadena": { "tablero": "#1b1c1f", "banner": "#c8102e", "marcador": "#ffffff", "texto": "#ffffff" },
   "afiche-riso": {
     "tablero": "#f2eee3",
     "banner": "#ff48b0",

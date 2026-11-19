@@ -15,11 +15,15 @@ const CON_POSESION = new Set([
   // Todos los "sistemas" dibujan la posesión con su propio recurso.
   'crossover', 'foco-arena', 'pizarra-tactica', 'ticket-recibo', 'cromo-coleccionable', 'metro', 'tablero-paletas',
   'afiche-riso', 'noventero', 'pulso-partido', 'foto-protagonista', 'gran-titular', 'apilado-reacciones', 'modular',
-  'escudo-torneo', 'alas-trapecio', 'cartel-rasgado',
+  'escudo-torneo', 'alas-trapecio', 'cartel-rasgado', 'barra-pro', 'capsula-medallon', 'barra-cadena', 'franja-clasificatoria',
 ]);
 // Sin escudo de equipo (usan sigla, foto o el logo de la competencia).
-const SIN_LOGO = new Set(['retro-led', 'metro', 'foto-protagonista', 'pulso-partido', 'tablero-paletas', 'escudo-torneo', 'creador-libre']);
+const SIN_LOGO = new Set(['retro-led', 'metro', 'foto-protagonista', 'pulso-partido', 'tablero-paletas', 'escudo-torneo', 'barra-cadena', 'franja-clasificatoria', 'creador-libre']);
 // Barras de ancho completo: siempre ocupan el borde de la pantalla.
+// Barras de TV que dibujan adentro el 24", el título (en su franja de abajo)
+// y, Barra de Cadena, el tiempo muerto en el bloque del equipo.
+const RELOJ_24_PROPIO = new Set(['barra-pro', 'capsula-medallon', 'barra-cadena', 'franja-clasificatoria']);
+const TITULO_ADENTRO = new Set(['barra-pro', 'barra-cadena', 'franja-clasificatoria']);
 const BARRA_COMPLETA = new Set(['ticker', 'espn-ticker', 'broadcast-bonus']);
 
 export function soporteDePlantilla(plantillaId) {
@@ -33,5 +37,8 @@ export function soporteDePlantilla(plantillaId) {
     posicionLibre: !BARRA_COMPLETA.has(id),
     nombreFlotante: id === 'clasico',
     formaPropia: id === 'personalizado',
+    reloj24Propio: RELOJ_24_PROPIO.has(id),
+    tituloAdentro: TITULO_ADENTRO.has(id),
+    timeoutAdentro: id === 'barra-cadena',
   };
 }

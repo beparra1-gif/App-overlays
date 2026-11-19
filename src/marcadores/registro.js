@@ -19,6 +19,10 @@ import Modular from './plantillas/sistemas/Modular';
 import EscudoTorneo from './plantillas/sistemas/EscudoTorneo';
 import AlasTrapecio from './plantillas/sistemas/AlasTrapecio';
 import CartelRasgado from './plantillas/sistemas/CartelRasgado';
+import BarraPro from './plantillas/sistemas/BarraPro';
+import CapsulaMedallon from './plantillas/sistemas/CapsulaMedallon';
+import BarraCadena from './plantillas/sistemas/BarraCadena';
+import FranjaClasificatoria from './plantillas/sistemas/FranjaClasificatoria';
 
 import Brutalista from './plantillas/Brutalista';
 import Suizo from './plantillas/Suizo';
@@ -123,6 +127,10 @@ export const PLANTILLAS_MARCADOR = [
   { id: 'escudo-torneo', nombre: 'Escudo del Torneo', Componente: EscudoTorneo, nuevo: true, sistema: true },
   { id: 'alas-trapecio', nombre: 'Alas en Trapecio', Componente: AlasTrapecio, nuevo: true, sistema: true },
   { id: 'cartel-rasgado', nombre: 'Cartel Rasgado', Componente: CartelRasgado, nuevo: true, sistema: true },
+  { id: 'barra-pro', nombre: 'Barra Pro', Componente: BarraPro, nuevo: true, sistema: true },
+  { id: 'capsula-medallon', nombre: 'Cápsula con Medallón', Componente: CapsulaMedallon, nuevo: true, sistema: true },
+  { id: 'barra-cadena', nombre: 'Barra de Cadena TV', Componente: BarraCadena, nuevo: true, sistema: true },
+  { id: 'franja-clasificatoria', nombre: 'Franja Clasificatoria', Componente: FranjaClasificatoria, nuevo: true, sistema: true },
   { id: 'creador-libre', nombre: '🎨 Creador Libre (armá el tuyo desde cero)', Componente: CreadorLibre },
 ];
 

@@ -9,6 +9,7 @@ import VistaAnuncios from '../marcadores/vistas/VistaAnuncios';
 import VistaIntertanto from '../marcadores/vistas/VistaIntertanto';
 import AlertaMarcador from '../marcadores/vistas/AlertaMarcador';
 import RelojPosesion from '../marcadores/RelojPosesion';
+import { soporteDePlantilla } from '../marcadores/soporte';
 import VistaPublicidad from '../marcadores/vistas/VistaPublicidad';
 import ErrorBoundary from '../components/ErrorBoundary';
 import { aplicarColoresEquipo, equipoParaColores, useCajaMarcador, useRelojVivo } from '../marcadores/utils';
@@ -232,7 +233,10 @@ export default function EscenaPublica() {
       // Oculto" en la Mesa) — cualquiera de los tres motivos alcanza para
       // tapar el marcador.
       const intertantoVisible = cfg.mostrarIntertanto !== false && intertanto;
-      const ocultarMarcadorAhora = Boolean((nomina && nomina.ocultarMarcador) || (stats && stats.ocultarMarcador) || marcadorOculto || alertaMarcador || (intertantoVisible && intertanto.ocultarMarcador && !intertanto.saliendo));
+      // Diseños que muestran el tiempo muerto en el bloque del equipo: el cartel no tapa el marcador.
+      const timeoutEn = alertaMarcador?.texto === 'MINUTO SOLICITADO' && soporteDePlantilla(plantillaId).timeoutAdentro ? alertaMarcador.equipo : null;
+      const alertaVisible = alertaMarcador && !timeoutEn;
+      const ocultarMarcadorAhora = Boolean((nomina && nomina.ocultarMarcador) || (stats && stats.ocultarMarcador) || marcadorOculto || alertaVisible || (intertantoVisible && intertanto.ocultarMarcador && !intertanto.saliendo));
       // Modo "reemplazar el título por el anuncio" (Personalizar diseño →
       // Anuncios → Cómo convive con el título): mientras hay un aviso en
       // pantalla, el título se apaga del todo y el aviso ocupa exactamente
@@ -246,12 +250,12 @@ export default function EscenaPublica() {
               `oculto`; sacarlo de golpe con un `&&` condicional no dejaba
               lugar para ninguna transición. */}
           <ErrorBoundary>
-            <VistaMarcador partido={{ ...datos.partido, relojSegundos: relojVivo }} diseno={disenoVivo} oculto={ocultarMarcadorAhora} suprimirTitulo={suprimirTitulo} />
+            <VistaMarcador partido={{ ...datos.partido, relojSegundos: relojVivo, timeoutEn }} diseno={disenoVivo} oculto={ocultarMarcadorAhora} suprimirTitulo={suprimirTitulo} />
           </ErrorBoundary>
           <ErrorBoundary>
-            <RelojPosesion partido={datos.partido} config={cfg} caja={caja} relojJuego={relojVivo} oculto={ocultarMarcadorAhora} />
+            <RelojPosesion partido={datos.partido} config={cfg} caja={caja} relojJuego={relojVivo} oculto={ocultarMarcadorAhora} plantillaId={plantillaId} />
           </ErrorBoundary>
-          {alertaMarcador && (
+          {alertaVisible && (
             <ErrorBoundary>
               <AlertaMarcador
                 texto={alertaMarcador.texto}

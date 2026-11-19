@@ -1,4 +1,4 @@
-import { usePulso, usePulsoConDelta, mostrar, indicadorFaltas, logoAdentro } from '../../utils';
+import { usePulso, usePulsoConDelta, mostrar, indicadorFaltas, logoAdentro, useRelojPosesion, formatearPosesion } from '../../utils';
 import LogoEquipo from '../../LogoEquipo';
 
 // Piezas compartidas por los "sistemas" de marcador (cada uno con su propia
@@ -67,4 +67,26 @@ export const lider = (equipo, clave = 'pts') => {
   if (!roster.length) return null;
   const mejor = [...roster].sort((a, b) => (b[clave] || 0) - (a[clave] || 0))[0];
   return mejor && mejor[clave] > 0 ? mejor : null;
+};
+
+// Período con ordinal en español para las barras de TV: ['3', 'ER'], ['OT', '1'].
+export const ordinalPeriodo = (p = 1) => (p <= 4 ? [String(p), ['ER', 'DO', 'ER', 'TO'][p - 1]] : ['OT', String(p - 4)]);
+
+// Escudo de la competencia / canal: el primer "logo libre" del diseño.
+export const logoCompetencia = (config) => (Array.isArray(config?.logosLibres) ? config.logosLibres[0]?.logoUrl : null) || null;
+
+// Reloj de posesión dibujado DENTRO del tablero (diseños con relojPosesionPropio
+// en soporte.js). Como en FIBA, se apaga cuando al reloj de juego le queda menos.
+export function Posesion24({ partido, config, className = '' }) {
+  const valor = useRelojPosesion(partido);
+  if (!config?.mostrarRelojPosesion) return null;
+  const juego = Number(partido.relojSegundos);
+  const apagado = Number.isFinite(juego) && juego > 0 && juego < valor;
+  return <span className={`${className} ${valor < 5 ? 'pm-24-alerta' : ''}`}>{apagado ? '' : formatearPosesion(valor)}</span>;
+}
+
+// Texto del pie de las barras de TV: el título del diseño (si va adentro) o "EN VIVO".
+export const tituloAdentro = (config) => {
+  const texto = (config?.tituloTexto || '').trim();
+  return config?.mostrarTitulo && texto && (config.tituloPosicion || 'arriba') !== 'libre' ? texto : null;
 };

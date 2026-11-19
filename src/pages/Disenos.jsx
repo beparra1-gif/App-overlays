@@ -567,6 +567,10 @@ const OPCIONES_ANIMACION_FAMILIA = [
   { id: 'sx-torneo', etiqueta: 'Escudo del torneo' },
   { id: 'sx-trapecio', etiqueta: 'Alas en trapecio' },
   { id: 'sx-grunge', etiqueta: 'Cartel rasgado' },
+  { id: 'sx-barrapro', etiqueta: 'Barra Pro' },
+  { id: 'sx-capsula', etiqueta: 'Cápsula con medallón' },
+  { id: 'sx-cadena', etiqueta: 'Barra de cadena TV' },
+  { id: 'sx-franja', etiqueta: 'Franja clasificatoria' },
   { id: 'sx-brutalista', etiqueta: 'Brutalista' },
   { id: 'sx-suizo', etiqueta: 'Suizo tipográfico' },
   { id: 'sx-torre', etiqueta: 'Torre lateral' },
@@ -2639,14 +2643,15 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
             </div>
             <p className="texto-tenue bloque-nota">FIBA: 10 y 5 minutos. Es la duración real del reloj, no solo cómo se ve.</p>
             <Toggle etiqueta='Reloj de posesión (24")' checked={Boolean(config.mostrarRelojPosesion)} onChange={(v) => cambiarConfig('mostrarRelojPosesion', v)} />
-            {config.mostrarRelojPosesion && (
+            {config.mostrarRelojPosesion && soporte.reloj24Propio && <p className="texto-tenue bloque-nota">Este diseño lo lleva dentro del tablero.</p>}
+            {config.mostrarRelojPosesion && !soporte.reloj24Propio && (
               <div className="segmentado segmentado-ancho" role="group" aria-label="Ubicación del reloj de posesión">
                 {[{ id: 'izquierda', etiqueta: '◀ Izquierda' }, { id: 'abajo', etiqueta: 'Debajo' }, { id: 'derecha', etiqueta: 'Derecha ▶' }].map((o) => (
                   <button key={o.id} type="button" className={(config.posesionUbicacion || 'derecha') === o.id ? 'activo' : ''} onClick={() => cambiarConfig('posesionUbicacion', o.id)}>{o.etiqueta}</button>
                 ))}
               </div>
             )}
-            {config.mostrarRelojPosesion && (
+            {config.mostrarRelojPosesion && !soporte.reloj24Propio && (
               <CampoRango etiqueta='Tamaño del reloj de 24"' valor={Number.isFinite(config.posesionTamano) ? config.posesionTamano : 100} min={40} max={200} step={5} onChange={(v) => cambiarConfig('posesionTamano', v)} />
             )}
             {soporte.faltas ? (

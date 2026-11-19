@@ -1,4 +1,5 @@
 import { estiloTema, fuenteEfectiva, hexConAlpha, familiaDePlantilla } from './utils';
+import { soporteDePlantilla } from './soporte';
 import './titulo.css';
 
 // Encabezado opcional del marcador — capa compuesta (mismo truco de apilado
@@ -20,6 +21,8 @@ import './titulo.css';
 export default function TituloMarcador({ config, plantillaId, caja, suprimir = false }) {
   const texto = (config?.tituloTexto || '').trim();
   if (!config?.mostrarTitulo || !texto || !caja || suprimir) return null;
+  // Las barras de TV lo llevan en su propia franja (salvo en posición libre).
+  if (soporteDePlantilla(plantillaId).tituloAdentro && (config.tituloPosicion || 'arriba') !== 'libre') return null;
   const estilo = {
     position: 'fixed',
     inset: 0,
