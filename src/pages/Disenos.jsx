@@ -1288,6 +1288,8 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
   const nombreFuente = (FUENTES_DISPONIBLES.find((f) => f.id && f.id === (config.fuenteMarcador || fuenteDePlantilla(plantillaBase)))?.etiqueta || fuenteDePlantilla(plantillaBase).split(',')[0].replace(/'/g, '')).split(' — ')[0];
   // Un bloque abierto por pestaña (acordeón): el panel queda corto y
   // ordenado, y cada pestaña recuerda cuál estabas tocando.
+  // Repite la animación de la Presentación en la vista previa.
+  const [clavePresentacion, setClavePresentacion] = useState(0);
   const [bloquesAbiertos, setBloquesAbiertos] = useState({ marcador: 'tamano', nomina: 'ubicacion', estadisticas: 'ubicacion', intertanto: 'cuando', anuncios: 'ubicacion' });
   const bloque = (pestana) => ({
     abierto: bloquesAbiertos[pestana],
@@ -2258,6 +2260,8 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
               fondo={fondoPrevia}
               enfocarMarcador={zoomMarcador && !previaGeneral && PREVIA_MODO_POR_SECCION[seccionAbierta] === 'marcador'}
               modo={previaGeneral ? 'general' : PREVIA_MODO_POR_SECCION[seccionAbierta]}
+              nominaPresentacion={!previaGeneral && PREVIA_MODO_POR_SECCION[seccionAbierta] === 'nomina' && bloquesAbiertos.nomina === 'presentacion'}
+              clavePresentacion={clavePresentacion}
               pantallaCompleta={previaPantallaCompleta}
               onCerrarPantallaCompleta={() => setPreviaPantallaCompleta(false)}
               logosLibresEditable={seccionAbierta === 'logos'}
@@ -2812,7 +2816,30 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
                     </button>
                   ))}
                 </div>
-                <p className="texto-tenue bloque-nota">Se dispara desde la Mesa con 🎬 Presentar.</p>
+                <div className="fila-form" style={{ alignItems: 'center' }}>
+                  <p className="texto-tenue bloque-nota" style={{ margin: 0, flex: 1 }}>Se ve en la vista previa. En vivo se dispara desde la Mesa con 🎬 Presentar.</p>
+                  <button type="button" className="btn-secundario" onClick={() => setClavePresentacion((n) => n + 1)}>↻ Repetir animación</button>
+                </div>
+                <p className="seccion-titulo">Tiempos</p>
+                <CampoRango etiqueta="Segundos por jugadora" valor={Number.isFinite(config.presentacionSegundosJugador) ? config.presentacionSegundosJugador : 4} unidad="s" min={2} max={12} step={0.5} onChange={(v) => cambiarConfig('presentacionSegundosJugador', v)} ayuda="Cuánto tiempo queda cada una en grande antes de pasar a la siguiente." />
+                <CampoRango etiqueta="Queda en pantalla al terminar" valor={Number.isFinite(config.presentacionSegundosFinal) ? config.presentacionSegundosFinal : 6} unidad="s" min={2} max={30} step={1} onChange={(v) => cambiarConfig('presentacionSegundosFinal', v)} ayuda="Después de la última, antes de desaparecer." />
+                <p className="seccion-titulo">Tamaño y posición</p>
+                <CampoRango etiqueta="Tamaño de la presentación" valor={Number.isFinite(config.presentacionEscala) ? config.presentacionEscala : 100} unidad="%" min={50} max={160} step={5} onChange={(v) => cambiarConfig('presentacionEscala', v)} />
+                <CampoRango etiqueta="Tamaño del texto" valor={Number.isFinite(config.presentacionEscalaTexto) ? config.presentacionEscalaTexto : 100} unidad="%" min={50} max={180} step={5} onChange={(v) => cambiarConfig('presentacionEscalaTexto', v)} />
+                <CampoRango etiqueta="Corrimiento vertical" valor={Number.isFinite(config.presentacionOffsetY) ? config.presentacionOffsetY : 0} unidad="px" min={-400} max={400} step={5} onChange={(v) => cambiarConfig('presentacionOffsetY', v)} />
+                <p className="seccion-titulo">Colores</p>
+                <div className="fila-form" style={{ alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                  <ColorOpcional etiqueta="Acento" valor={config.presentacionColorAcento} vacio="el del equipo" onChange={(v) => cambiarConfig('presentacionColorAcento', v)} />
+                  <ColorOpcional etiqueta="Fondo" valor={config.presentacionColorFondo} vacio="el del diseño" onChange={(v) => cambiarConfig('presentacionColorFondo', v)} />
+                  <ColorOpcional etiqueta="Texto" valor={config.presentacionColorTexto} vacio="el del diseño" onChange={(v) => cambiarConfig('presentacionColorTexto', v)} />
+                </div>
+                <p className="seccion-titulo">Forma</p>
+                <CampoRango etiqueta="Esquinas" valor={Number.isFinite(config.presentacionRadio) ? config.presentacionRadio : 16} unidad="px" min={0} max={48} onChange={(v) => cambiarConfig('presentacionRadio', v)} />
+                <div className="opciones-tarjetas" role="group" aria-label="Forma de la foto">
+                  {[['original', 'Foto: original'], ['circulo', 'Círculo'], ['redondeada', 'Redondeada'], ['cuadrada', 'Cuadrada']].map(([id, etiqueta]) => (
+                    <button key={id} type="button" className={`opcion-tarjeta ${(config.presentacionFormaFoto || 'original') === id ? 'activa' : ''}`} aria-pressed={(config.presentacionFormaFoto || 'original') === id} onClick={() => cambiarConfig('presentacionFormaFoto', id)}>{etiqueta}</button>
+                  ))}
+                </div>
                 {config.nominaMostrarFoto && (
                   <>
                     <p className="seccion-titulo">Foto grande</p>

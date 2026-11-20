@@ -31,7 +31,7 @@ export default function PresentacionQuinteto({ formato, equipo, presentados, con
   const color = equipo.color || '#ffd60a';
   const logo = <LogoEquipo equipo={equipo} config={config} className="pq-logo" contexto="nomina" />;
   const raiz = (contenido, extra = '') => (
-    <div className={`${claseRaiz} pq-raiz pq-formato-${formato} ${extra}`} style={{ ...estilo, '--color-equipo': color, ...(formato === 'cine' ? { justifyContent: 'space-between', alignItems: 'stretch' } : {}) }}>{contenido}</div>
+    <div className={`${claseRaiz} pq-raiz pq-formato-${formato} ${extra}`} style={{ ...estilo, '--color-equipo': color, ...(formato === 'cine' ? { flexDirection: 'column', gap: 40 } : {}) }}>{contenido}</div>
   );
 
   if (formato === 'retratos') {
@@ -138,10 +138,9 @@ export default function PresentacionQuinteto({ formato, equipo, presentados, con
     );
   }
 
-  // 'cine'
+  // 'cine' (sin franjas negras: solo la escena y, debajo, quienes ya pasaron)
   return raiz(
     <>
-      <span className="pq-cine-barra pq-cine-arriba" aria-hidden="true" />
       <div className="pq-cine-escena" key={actual.id}>
         <Foto jugador={actual} mostrarFoto={mostrarFoto} className="pq-cine-foto" />
         <div className="pq-cine-texto">
@@ -150,9 +149,11 @@ export default function PresentacionQuinteto({ formato, equipo, presentados, con
           <span className="pq-cine-dorsal">Número {actual.dorsal ?? '–'}</span>
         </div>
       </div>
-      <span className="pq-cine-barra pq-cine-abajo" aria-hidden="true">
-        {anteriores.map((j) => <span key={j.id}>#{j.dorsal ?? '–'} {apellido(j.nombre)}</span>)}
-      </span>
+      {anteriores.length > 0 && (
+        <div className="pq-cine-anteriores">
+          {anteriores.map((j) => <span key={j.id}><b>#{j.dorsal ?? '–'}</b> {apellido(j.nombre)}</span>)}
+        </div>
+      )}
     </>,
     'pq-cine-raiz'
   );

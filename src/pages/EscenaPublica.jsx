@@ -133,19 +133,25 @@ export default function EscenaPublica() {
   // respaldo razonable si todavía no se configuró.
   const duracionNominaMs = (Number(datos?.diseno?.config?.nominaDuracionSeg) || 6) * 1000;
   const duracionStatsMs = (Number(datos?.diseno?.config?.estadisticasDuracionSeg) || 7) * 1000;
+  // Presentación (Personalizar → Nómina → Presentación → Tiempos): queda lo
+  // que se eligió al final, y nunca menos que el paso entre jugadores (si no,
+  // se apagaría entre una y otra).
+  const segundosPorJugador = Number(datos?.diseno?.config?.presentacionSegundosJugador) || 4;
+  const duracionPresentacionMs = Math.max(Number(datos?.diseno?.config?.presentacionSegundosFinal) || 6, segundosPorJugador + 1) * 1000;
+  const duracionNominaActualMs = nomina?.modo === 'presentacion' ? duracionPresentacionMs : duracionNominaMs;
   // Antes se sacaba del DOM de un tirón (setNomina(null) directo) apenas se
   // cumplía el tiempo — Anuncios ya se desvanece suave (ver `saliendo` en
   // VistaAnuncios), Nómina desaparecía de golpe, sin ninguna transición.
   // Dos pasos: primero se marca `saliendo` (VistaNomina agrega la clase
   // CSS que dispara el fade), recién MÁS TARDE (cuando ya terminó de
   // desvanecerse) se saca de verdad del DOM.
-  const DURACION_SALIDA_NOMINA_MS = 450;
+  const DURACION_SALIDA_NOMINA_MS = 580;
   useEffect(() => {
     if (!nomina) return undefined;
-    const salir = setTimeout(() => setNomina((n) => (n ? { ...n, saliendo: true } : n)), duracionNominaMs);
-    const sacar = setTimeout(() => setNomina(null), duracionNominaMs + DURACION_SALIDA_NOMINA_MS);
+    const salir = setTimeout(() => setNomina((n) => (n ? { ...n, saliendo: true } : n)), duracionNominaActualMs);
+    const sacar = setTimeout(() => setNomina(null), duracionNominaActualMs + DURACION_SALIDA_NOMINA_MS);
     return () => { clearTimeout(salir); clearTimeout(sacar); };
-  }, [nomina?.ts, duracionNominaMs]);
+  }, [nomina?.ts, duracionNominaActualMs]);
   useEffect(() => {
     if (!intertanto?.saliendo) return undefined;
     const t = setTimeout(() => setIntertanto(null), 620);

@@ -189,6 +189,20 @@ export default function VistaNomina({ partido, modo = 'ambos', claveAnimacion = 
   // animación chica y después queda en la lista" que se pidió, gratis por
   // el propio cambio de posición en el árbol).
   if (modo === 'presentacion') {
+    // Ajustes propios de la presentación (Personalizar → Nómina → Presentación):
+    // tamaño, corrimiento, colores y forma. Solo se mandan los que se tocaron.
+    const num = (k, d) => (Number.isFinite(config?.[k]) ? config[k] : d);
+    const colorAcento = /^#/.test(config?.presentacionColorAcento) ? config.presentacionColorAcento : null;
+    const estiloPresentacion = {
+      '--pq-escala': num('presentacionEscala', 100) / 100,
+      '--nomina-escala-texto': num('presentacionEscalaTexto', 100) / 100,
+      '--pq-offset-y': `${num('presentacionOffsetY', 0)}px`,
+      ...(Number.isFinite(config?.presentacionRadio) ? { '--pq-radio': `${config.presentacionRadio}px` } : {}),
+      ...(/^#/.test(config?.presentacionColorFondo) ? { '--nomina-fondo': config.presentacionColorFondo } : {}),
+      ...(/^#/.test(config?.presentacionColorTexto) ? { '--nomina-texto': config.presentacionColorTexto, color: config.presentacionColorTexto } : {}),
+    };
+    const formaFoto = config?.presentacionFormaFoto || 'original';
+    const claseAjustes = `pq-foto-${formaFoto} ${Number.isFinite(config?.presentacionRadio) ? 'pq-con-radio' : ''}`;
     const equipoDatos = equipoPresentacion === 'visita' ? partido.equipoVisita : partido.equipoLocal;
     const ids = Array.isArray(jugadorIds) ? jugadorIds : [];
     const presentados = ids.map((id) => equipoDatos.roster.find((j) => j.id === id)).filter(Boolean);
@@ -196,22 +210,23 @@ export default function VistaNomina({ partido, modo = 'ambos', claveAnimacion = 
     const anteriores = presentados.slice(0, -1);
     if (!actual) return null;
     const formato = config?.presentacionEstilo || 'tarjeta';
+    const equipoConAcento = colorAcento ? { ...equipoDatos, color: colorAcento } : equipoDatos;
     if (formato !== 'tarjeta') {
       return (
         <PresentacionQuinteto
           formato={formato}
-          equipo={equipoDatos}
+          equipo={equipoConAcento}
           presentados={presentados}
           config={config}
           mostrarFoto={mostrarFoto || config?.presentacionFoto !== false}
-          claseRaiz={`nomina-overlay fam-${familia} nomina-presentacion ${saliendo ? 'nomina-saliendo' : ''}`}
-          estilo={{ ...estilo, justifyContent: 'center', alignItems: 'center' }}
+          claseRaiz={`nomina-overlay fam-${familia} nomina-presentacion ${claseAjustes} ${saliendo ? 'nomina-saliendo' : ''}`}
+          estilo={{ ...estilo, ...estiloPresentacion, justifyContent: 'center', alignItems: 'center' }}
         />
       );
     }
     return (
-      <div className={`nomina-overlay fam-${familia} nomina-presentacion ${saliendo ? 'nomina-saliendo' : ''}`} style={{ ...estilo, justifyContent: 'center', alignItems: 'center' }}>
-        <div className="np-tarjeta" key={actual.id} style={{ '--color-equipo': equipoDatos.color }}>
+      <div className={`nomina-overlay fam-${familia} nomina-presentacion ${claseAjustes} ${saliendo ? 'nomina-saliendo' : ''}`} style={{ ...estilo, ...estiloPresentacion, justifyContent: 'center', alignItems: 'center' }}>
+        <div className="np-tarjeta" key={actual.id} style={{ '--color-equipo': equipoConAcento.color }}>
           {mostrarLogoCostado && <LogoEquipo equipo={equipoDatos} config={config} className="np-logo-equipo" contexto="nomina" />}
           <span className="np-titulo-equipo">{equipoDatos.nombre}</span>
           {mostrarFoto && actual.fotoUrl
@@ -221,7 +236,7 @@ export default function VistaNomina({ partido, modo = 'ambos', claveAnimacion = 
           <span className="np-nombre">{actual.nombre}</span>
         </div>
         {anteriores.length > 0 && (
-          <div className="np-lista" style={{ '--color-equipo': equipoDatos.color }}>
+          <div className="np-lista" style={{ '--color-equipo': equipoConAcento.color }}>
             {anteriores.map((j) => (
               <div className="np-chip" key={j.id}>
                 {mostrarFoto && (

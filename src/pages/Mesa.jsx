@@ -854,7 +854,8 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
   // uno, del dorsal más bajo al más alto (`paso` de `total`).
   const [mostrarPresentacion, setMostrarPresentacion] = useState(false);
   const [equipoPresentar, setEquipoPresentar] = useState('local');
-  const [segundosPresentacion, setSegundosPresentacion] = useState(4);
+  // null = usar el tiempo elegido en el diseño (Personalizar → Nómina → Presentación).
+  const [segundosPresentacion, setSegundosPresentacion] = useState(null);
   const [presentacionAuto, setPresentacionAuto] = useState(null);
   const presentacionTimerRef = useRef(null);
   useEffect(() => () => clearTimeout(presentacionTimerRef.current), []);
@@ -1458,11 +1459,13 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
     clearTimeout(presentacionTimerRef.current);
     setPresentacionAuto(null);
   };
+  const segundosDiseno = Number(disenos.find((d) => d.id === escenaMarcadorActual?.diseno_id)?.config?.presentacionSegundosJugador) || 4;
+  const segundosPorJugador = segundosPresentacion ?? segundosDiseno;
   const iniciarPresentacion = () => {
     clearTimeout(presentacionTimerRef.current);
     const cola = colaPresentacion(equipoPresentar);
     if (!cola.length) return;
-    const espera = segundosPresentacion * 1000;
+    const espera = segundosPorJugador * 1000;
     const paso = (k) => {
       const actual = cola[k];
       const ids = cola.slice(0, k + 1).filter((c) => c.equipo === actual.equipo).map((c) => c.jugador.id);
@@ -1789,8 +1792,8 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
               <div className="mv-presentacion-control">
                 <label className="mv-check-detalle">
                   Segundos por jugador
-                  <select className="mv-select mv-select-chico" value={segundosPresentacion} disabled={Boolean(presentacionAuto)} onChange={(e) => setSegundosPresentacion(Number(e.target.value))}>
-                    {[3, 4, 5, 6].map((n) => <option key={n} value={n}>{n} s</option>)}
+                  <select className="mv-select mv-select-chico" value={segundosPorJugador} disabled={Boolean(presentacionAuto)} onChange={(e) => setSegundosPresentacion(Number(e.target.value))}>
+                    {[...new Set([2, 3, 4, 5, 6, 8, 10, segundosPorJugador])].sort((a, b) => a - b).map((n) => <option key={n} value={n}>{n} s{n === segundosDiseno ? ' (diseño)' : ''}</option>)}
                   </select>
                 </label>
                 {presentacionAuto ? (

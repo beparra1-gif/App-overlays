@@ -79,6 +79,7 @@ const OPACIDAD_CONTEXTO = 0.14;
 // - 'anuncios': el anuncio a opacidad plena, marcador de fondo tenue.
 export default function PreviaCombinada({
   plantillaId, config, equipoLocalPreview, equipoVisitaPreview, partidoReal, modo = 'general', fondo = 'damero',
+  nominaPresentacion = false, clavePresentacion = 0,
   logosLibresEditable = false, onArrastrarLogoLibre,
   elementosLibresEditable = false, onArrastrarElementoLibre, onCambiarElementoLibre, elementosSeleccionadosIds, onSeleccionarElemento,
   zoomCreador = 1, panCreador, modoPanCreador = false, onPanearCreador,
@@ -250,7 +251,21 @@ export default function PreviaCombinada({
         </div>
         {conNomina && (
           <div style={{ opacity: opacidadDe('nomina'), transition: 'opacity .25s ease', pointerEvents: opacidadDe('nomina') === 1 ? 'auto' : 'none' }}>
-            <VistaNomina partido={partido} modo="ambos" config={config} plantillaId={plantillaId} caja={caja} />
+            {nominaPresentacion ? (
+              // Vista previa de la Presentación: las 4 primeras por dorsal (la última en grande).
+              <VistaNomina
+                key={`pres-${clavePresentacion}-${config?.presentacionEstilo || 'tarjeta'}`}
+                partido={partido}
+                modo="presentacion"
+                equipoPresentacion="local"
+                jugadorIds={[...(partido.equipoLocal.roster || [])].sort((a, b) => (Number(a.dorsal) || 999) - (Number(b.dorsal) || 999)).slice(0, 4).map((j) => j.id)}
+                config={config}
+                plantillaId={plantillaId}
+                caja={caja}
+              />
+            ) : (
+              <VistaNomina partido={partido} modo="ambos" config={config} plantillaId={plantillaId} caja={caja} />
+            )}
           </div>
         )}
         {conEstadisticas && (

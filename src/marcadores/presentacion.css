@@ -134,3 +134,20 @@
 @media (prefers-reduced-motion: reduce) {
   .pq-camiseta, .pq-spot-actual .pq-spot-foto, .pq-cine-escena::after { animation: none !important; }
 }
+
+/* ═════════ Ajustes de la presentación (todos los formatos) ═════════ */
+.nomina-presentacion { translate: 0 var(--pq-offset-y, 0px); }
+.nomina-presentacion > * { zoom: var(--pq-escala, 1); }
+/* Esquinas: solo cuando se eligió un valor (si no, cada formato conserva las suyas). */
+.pq-con-radio :is(.np-tarjeta, .np-chip, .pq-retrato, .pq-titular-lista, .pq-cancha, .pq-cine-foto, .pq-encabezado, .pq-camiseta-chica, .pq-spot-etiqueta, .pq-cine-anteriores span) { border-radius: var(--pq-radio); }
+/* Forma de la foto */
+.pq-foto-circulo :is(.np-foto, .pq-retrato-foto, .pq-cine-foto, .pq-spot-foto, .pq-franja-foto) { border-radius: 50% !important; aspect-ratio: 1; height: auto; -webkit-mask-image: none; mask-image: none; }
+.pq-foto-redondeada :is(.np-foto, .pq-retrato-foto, .pq-cine-foto, .pq-spot-foto, .pq-franja-foto) { border-radius: 22% !important; -webkit-mask-image: none; mask-image: none; }
+.pq-foto-cuadrada :is(.np-foto, .pq-retrato-foto, .pq-cine-foto, .pq-spot-foto, .pq-franja-foto) { border-radius: 0 !important; -webkit-mask-image: none; mask-image: none; }
+.pq-foto-circulo .pq-retrato-foto { width: 170px; margin-top: 10px; }
+
+/* Cine sin franjas negras: escena centrada y, debajo, las ya presentadas. */
+.pq-raiz.pq-cine-raiz { justify-content: center; align-items: center; padding: 0; }
+.pq-cine-anteriores { position: relative; z-index: 1; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; max-width: 1500px; animation: pq-aparece .8s ease both; }
+.pq-cine-anteriores span { padding: 6px 14px; border-radius: 999px; background: color-mix(in srgb, var(--nomina-fondo, var(--pm-tablero, #0b0d14)) 80%, transparent); box-shadow: 0 8px 18px rgba(0,0,0,.35), inset 0 0 0 1px color-mix(in srgb, var(--color-equipo) 55%, transparent); font-size: calc(18px * var(--nomina-escala-texto, 1)); letter-spacing: 2px; }
+.pq-cine-anteriores b { color: var(--color-equipo); }
