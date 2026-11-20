@@ -638,7 +638,7 @@ function FaltasEquipoCorregibles({ valor, enBonus, editando, valorEdit, onEmpeza
 // para recién ahí ver los tipos, así que cargar una falta pedía dos toques
 // para decir lo mismo una sola vez. Ahora los 4 tipos están a la vista
 // desde que se abre el panel, un solo toque alcanza.
-function PanelAcciones({ equipoNombre, equipoLogoUrl, jugadorSeleccionado, equipoActivoTieneRoster, onAccion, onCerrar, faltasProps }) {
+function PanelAcciones({ equipoNombre, equipoLogoUrl, jugadorSeleccionado, equipoActivoTieneRoster, onAccion, onCerrar, faltasProps, enLinea = false }) {
   const deshabilitado = equipoActivoTieneRoster && !jugadorSeleccionado;
 
   const disparar = (tipo, extra) => {
@@ -647,7 +647,7 @@ function PanelAcciones({ equipoNombre, equipoLogoUrl, jugadorSeleccionado, equip
   };
 
   return (
-    <div className="mv-panel-fondo" onClick={onCerrar}>
+    <div className={enLinea ? 'mv-panel-en-linea' : 'mv-panel-fondo'} onClick={enLinea ? undefined : onCerrar}>
       <div className="mv-panel-acciones" onClick={(e) => e.stopPropagation()}>
         <div className="mv-panel-acciones-header">
           <button type="button" className="mv-panel-cerrar" onClick={onCerrar} title="Cerrar">✕</button>
@@ -762,6 +762,9 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
   // Tipo de mesa elegido por quien opera (se recuerda en este equipo).
   const [tipoMesa, setTipoMesa] = useState(() => { try { return localStorage.getItem('mesa_tipo') || 'clasica'; } catch { return 'clasica'; } });
   const elegirTipoMesa = (t) => { setTipoMesa(t); try { localStorage.setItem('mesa_tipo', t); } catch { /* opcional */ } };
+  // Reloj, período, acciones y últimas jugadas en una columna a la derecha (una sola mano).
+  const [ladoDerecho, setLadoDerecho] = useState(() => { try { return localStorage.getItem('mesa_lado') === 'derecho'; } catch { return false; } });
+  const alternarLadoDerecho = () => setLadoDerecho((v) => { try { localStorage.setItem('mesa_lado', v ? 'centro' : 'derecho'); } catch { /* opcional */ } return !v; });
   const [temaMesa, setTemaMesa] = useState(() => { try { return localStorage.getItem('mesa_tema') || 'original'; } catch { return 'original'; } });
   const elegirTemaMesa = (t) => { setTemaMesa(t); try { localStorage.setItem('mesa_tema', t); } catch { /* opcional */ } };
   const clasica = tipoMesa === 'clasica';
@@ -1436,6 +1439,39 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
 
   const equipoActivoNombre = equipoActivo === 'local' ? partido.equipoLocal.nombre : partido.equipoVisita.nombre;
 
+  // Van debajo de todo (normal) o dentro de la columna derecha (ladoDerecho).
+  const bloqueJugadas = (
+    <div className="mv-jugadas">
+      <h6>Últimas acciones</h6>
+      <ul className="mv-jugadas-lista">
+        {jugadas.slice(0, 3).map((j, idx) => <li key={idx}>{j.texto}</li>)}
+        {jugadas.length === 0 && <li className="mv-jugadas-vacio">Todavía no hay acciones registradas.</li>}
+      </ul>
+    </div>
+  );
+  const bloqueAcciones = mostrarPanelAcciones ? (
+    <PanelAcciones
+      enLinea={ladoDerecho}
+      equipoNombre={equipoActivoNombre}
+      equipoLogoUrl={equipoActivo === 'local' ? partido.equipoLocal.logo_url : partido.equipoVisita.logo_url}
+      jugadorSeleccionado={jugadorSeleccionado}
+      equipoActivoTieneRoster={equipoActivoTieneRoster}
+      onAccion={manejarAccion}
+      onCerrar={cerrarPanelAcciones}
+      faltasProps={{
+        valor: jugadorSeleccionado?.faltasPersonales,
+        editando: editandoFaltas,
+        valorEdit: valorFaltasEdit,
+        onEmpezar: () => empezarCorreccionFaltas(jugadorSeleccionado),
+        onCambiarValor: setValorFaltasEdit,
+        onConfirmar: () => confirmarCorreccionFaltas(equipoActivo, jugadorSeleccionado?.id),
+        onCancelar: cancelarCorreccionFaltas,
+      }}
+    />
+  ) : (tipoMesa === 'jugadora' || ladoDerecho) ? (
+    <div className="mv-acciones-espera">Toca una jugadora en cancha para anotar sus acciones (o “Acciones Local/Visita” si el equipo juega sin nómina).</div>
+  ) : null;
+
   const copiarLinkFooter = (token) => {
     navigator.clipboard?.writeText(`${window.location.origin}/escena/${token}`);
     setCopiadoFooter(token);
@@ -1562,7 +1598,7 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
           "en_curso" directo a la mesa en vivo. */}
 
       {partido.estado === 'en_curso' && (
-        <div className={`mv-wrap mv-tipo-${tipoMesa} ${temaMesa !== 'original' ? `mt-tema mt-tema-${temaMesa}` : ''} ${modoApp ? 'mv-app' : ''} ${modoApp || enPantallaCompleta ? 'mv-pantalla-completa' : ''}`} ref={mesaEnVivoRef} style={{ '--mt-local': partido.equipoLocal.color || '#ff3b30', '--mt-visita': partido.equipoVisita.color || '#0a84ff' }}>
+        <div className={`mv-wrap mv-tipo-${tipoMesa} ${temaMesa !== 'original' ? `mt-tema mt-tema-${temaMesa}` : ''} ${modoApp ? 'mv-app' : ''} ${ladoDerecho ? 'mv-diestro' : ''} ${modoApp || enPantallaCompleta ? 'mv-pantalla-completa' : ''}`} ref={mesaEnVivoRef} style={{ '--mt-local': partido.equipoLocal.color || '#ff3b30', '--mt-visita': partido.equipoVisita.color || '#0a84ff' }}>
           {finCuarto && (
             <div className="mv-fin-cuarto" role="dialog" aria-label="Fin del cuarto">
               <div className="mv-fin-cuarto-cabeza">
@@ -1641,6 +1677,9 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
             </button>
             <button className={`mv-pill ${bocinaActiva ? 'activa' : ''}`} onClick={alternarBocina} title="Bocina al terminar cada cuarto">
               {bocinaActiva ? '🔔 Bocina' : '🔕 Bocina'}
+            </button>
+            <button className={`mv-pill ${ladoDerecho ? 'activa' : ''}`} onClick={alternarLadoDerecho} title="Reloj, período y acciones en la columna derecha, para usar con una mano">
+              ✋ {ladoDerecho ? 'Control a la derecha' : 'Control al centro'}
             </button>
             <button className={`mv-pill ${verAtajos ? 'activa' : ''}`} onClick={() => setVerAtajos((v) => !v)} title="Atajos de teclado">⌨️ Atajos</button>
             {verAtajos && (
@@ -1733,6 +1772,7 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
                 <div className="mv-config-botones">
                   <button className="mv-pill" onClick={() => { setVerConfig(false); setMostrarResumen(true); }}>📊 Resumen / intertanto</button>
                   <button className={`mv-pill ${bocinaActiva ? 'activa' : ''}`} onClick={alternarBocina}>{bocinaActiva ? '🔔 Bocina: sí' : '🔕 Bocina: no'}</button>
+                  <button className={`mv-pill ${ladoDerecho ? 'activa' : ''}`} onClick={alternarLadoDerecho}>{ladoDerecho ? '✋ Control: a la derecha' : '✋ Control: al centro'}</button>
                   <button className={`mv-pill ${partido.sincronizacionCamara?.activo ? (lectorEstado?.conectado ? 'activa' : 'mv-pill-alerta') : ''}`} onClick={() => { setVerConfig(false); setMostrarCamara(true); }} title="Leer el marcador del estadio con la cámara de un celular, o dejarlo manual">
                     {!partido.sincronizacionCamara?.activo ? '📷 Marcador: manual' : lectorEstado?.conectado ? '📷 Marcador por cámara ●' : '📷 Cámara sin señal'}
                   </button>
@@ -2007,6 +2047,8 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
                   </button>
                 </div>
               )}
+              {ladoDerecho && bloqueAcciones}
+              {ladoDerecho && bloqueJugadas}
             </div>
 
             <div className="mv-zona mv-zona-visita">
@@ -2049,36 +2091,8 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
           </div>
 
 
-          <div className="mv-jugadas">
-            <h6>Últimas acciones</h6>
-            <ul className="mv-jugadas-lista">
-              {jugadas.slice(0, 3).map((j, idx) => <li key={idx}>{j.texto}</li>)}
-              {jugadas.length === 0 && <li className="mv-jugadas-vacio">Todavía no hay acciones registradas.</li>}
-            </ul>
-          </div>
-
-          {tipoMesa === 'jugadora' && !mostrarPanelAcciones && (
-            <div className="mv-acciones-espera">Toca una jugadora en cancha para anotar sus acciones (o “Acciones Local/Visita” si el equipo juega sin nómina).</div>
-          )}
-          {mostrarPanelAcciones && (
-            <PanelAcciones
-              equipoNombre={equipoActivoNombre}
-              equipoLogoUrl={equipoActivo === 'local' ? partido.equipoLocal.logo_url : partido.equipoVisita.logo_url}
-              jugadorSeleccionado={jugadorSeleccionado}
-              equipoActivoTieneRoster={equipoActivoTieneRoster}
-              onAccion={manejarAccion}
-              onCerrar={cerrarPanelAcciones}
-              faltasProps={{
-                valor: jugadorSeleccionado?.faltasPersonales,
-                editando: editandoFaltas,
-                valorEdit: valorFaltasEdit,
-                onEmpezar: () => empezarCorreccionFaltas(jugadorSeleccionado),
-                onCambiarValor: setValorFaltasEdit,
-                onConfirmar: () => confirmarCorreccionFaltas(equipoActivo, jugadorSeleccionado?.id),
-                onCancelar: cancelarCorreccionFaltas,
-              }}
-            />
-          )}
+          {!ladoDerecho && bloqueJugadas}
+          {!ladoDerecho && bloqueAcciones}
 
         </div>
       )}
