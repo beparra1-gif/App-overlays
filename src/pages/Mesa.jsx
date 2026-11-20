@@ -813,6 +813,9 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
   const [aireAbierto, setAireAbierto] = useState(false);
   const [mostrarResumen, setMostrarResumen] = useState(false);
   const [enPantallaCompleta, setEnPantallaCompleta] = useState(false);
+  // Mesa propia (no embebida): ocupa siempre la pantalla visible exacta, sin
+  // scroll de página; "Pantalla completa" solo suma esconder la barra del navegador.
+  const modoApp = !embebido;
   // Interruptor manual, independiente de Nómina/Estadísticas — decide si el
   // marcador se ve o no en la transmisión AHORA MISMO, a criterio de quien
   // maneja la Mesa (por ejemplo, apagarlo en un corte publicitario). No se
@@ -1566,7 +1569,7 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
     <div className={`${embebido ? '' : 'pagina'} ${enPantallaCompleta ? 'mv-raiz-completa' : ''}`} ref={mesaRaizRef}>
       {error && <p className="mensaje-error">{error}</p>}
 
-      {partido.estado === 'en_curso' && (
+      {partido.estado === 'en_curso' && !modoApp && (
         <div className="mt-tipo-wrap">
           <span>Tipo de mesa</span>
           <div className="mt-tipo" role="group" aria-label="Tipo de mesa">
@@ -1574,15 +1577,15 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
           </div>
         </div>
       )}
-      <div className="fila-form">
+      {!(modoApp && partido.estado === 'en_curso') && <div className="fila-form">
         <button className="btn-secundario" onClick={() => setMostrarResumen(true)}>📊 Resumen / intertanto</button>
         {clasica && botonesPantallas}
         <button className="btn-secundario" onClick={() => setMostrarGestionEscenas((v) => !v)}>
           {mostrarGestionEscenas ? 'Ocultar gestión de escenas' : 'Gestión avanzada de escenas'}
         </button>
-      </div>
+      </div>}
 
-      {mostrarGestionEscenas && (
+      {mostrarGestionEscenas && !(modoApp && partido.estado === 'en_curso') && (
         <PanelEscenas escenas={escenas} disenos={disenos} onCambio={cargarEscenas} />
       )}
 
@@ -1591,19 +1594,27 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
           "en_curso" directo a la mesa en vivo. */}
 
       {partido.estado === 'en_curso' && (
-        <div className={`mv-wrap mv-tipo-${tipoMesa} ${enPantallaCompleta ? 'mv-pantalla-completa' : ''}`} ref={mesaEnVivoRef} style={{ '--mt-local': partido.equipoLocal.color || '#ff3b30', '--mt-visita': partido.equipoVisita.color || '#0a84ff' }}>
-          {enPantallaCompleta && (
-            <div className="mv-fila-completa">
-              <div className="mt-tipo" role="group" aria-label="Tipo de mesa">
-                {TIPOS_MESA.map((t) => <button key={t.id} type="button" className={tipoMesa === t.id ? 'activo' : ''} onClick={() => elegirTipoMesa(t.id)}>{t.etiqueta}</button>)}
+        <div className={`mv-wrap mv-tipo-${tipoMesa} ${modoApp ? 'mv-app' : ''} ${modoApp || enPantallaCompleta ? 'mv-pantalla-completa' : ''}`} ref={mesaEnVivoRef} style={{ '--mt-local': partido.equipoLocal.color || '#ff3b30', '--mt-visita': partido.equipoVisita.color || '#0a84ff' }}>
+          {modoApp && mostrarGestionEscenas && (
+            <div className="mv-panel-fondo mv-escenas-fondo" onClick={() => setMostrarGestionEscenas(false)}>
+              <div className="mv-escenas-caja" onClick={(e) => e.stopPropagation()}>
+                <button type="button" className="mv-panel-cerrar" onClick={() => setMostrarGestionEscenas(false)} title="Cerrar">✕</button>
+                <PanelEscenas escenas={escenas} disenos={disenos} onCambio={cargarEscenas} />
               </div>
-              <button className="mv-pill" onClick={() => setMostrarResumen(true)}>📊 Resumen</button>
-              {clasica && botonesPantallas}
             </div>
           )}
           <div className="mv-topbar">
-            {!embebido && <Link className="mv-pill" to={`/mesa/${id}/simple`}>📋 Mesa simple</Link>}
-            {!embebido && escenaMarcadorActual?.diseno_id && <Link className="mv-pill" to={`/disenos?editar=${escenaMarcadorActual.diseno_id}`}>🎨 Personalizar</Link>}
+            {(modoApp || enPantallaCompleta) && (
+              <div className="mv-fila-completa">
+                {modoApp && <Link className="mv-pill" to="/partidos" title="Volver a Partidos">← Partidos</Link>}
+                <div className="mt-tipo" role="group" aria-label="Tipo de mesa">
+                  {TIPOS_MESA.map((t) => <button key={t.id} type="button" className={tipoMesa === t.id ? 'activo' : ''} onClick={() => elegirTipoMesa(t.id)}>{t.etiqueta}</button>)}
+                </div>
+                <button className="mv-pill" onClick={() => setMostrarResumen(true)}>📊 Resumen</button>
+                {clasica && botonesPantallas}
+                {modoApp && <button className={`mv-pill ${mostrarGestionEscenas ? 'activa' : ''}`} onClick={() => setMostrarGestionEscenas((v) => !v)}>⚙ Escenas</button>}
+              </div>
+            )}
             <span className={`mv-pill ${conectado ? '' : 'mv-pill-alerta'}`} title={conectado ? 'Conectado al servidor' : 'Sin conexión: las jugadas se guardan y se envían solas al volver'}>
               {conectado ? '🟢 Conectado' : '🔴 Sin conexión · se envía al volver'}
             </span>
@@ -1651,8 +1662,15 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
               </span>
             )}
             <span className="mv-topbar-separador" />
-            <button className="mv-pill" title="Vuelve el marcador a 0-0 para empezar otro partido — el enlace de OBS no cambia" onClick={reiniciarPartido}>↺ Reiniciar Partido</button>
-            <button className="mv-pill mv-pill-peligro" title="El enlace de OBS sigue funcionando después de finalizar" onClick={finalizarPartido}>⏹ Finalizar Partido</button>
+            <details className="mv-mas">
+              <summary className="mv-pill">☰ Más</summary>
+              <div className="mv-mas-menu">
+                {!embebido && <Link className="mv-pill" to={`/mesa/${id}/simple`}>📋 Mesa simple</Link>}
+                {!embebido && escenaMarcadorActual?.diseno_id && <Link className="mv-pill" to={`/disenos?editar=${escenaMarcadorActual.diseno_id}`}>🎨 Personalizar</Link>}
+                <button className="mv-pill" title="Vuelve el marcador a 0-0 para empezar otro partido — el enlace de OBS no cambia" onClick={reiniciarPartido}>↺ Reiniciar Partido</button>
+                <button className="mv-pill mv-pill-peligro" title="El enlace de OBS sigue funcionando después de finalizar" onClick={finalizarPartido}>⏹ Finalizar Partido</button>
+              </div>
+            </details>
           </div>
 
 

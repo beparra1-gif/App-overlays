@@ -160,12 +160,12 @@
 /* Tablets (iPad apaisado de 1024 y en vertical) y pantallas angostas, en todas
    las mesas menos Por jugadora: controles arriba a lo ancho, planteles lado a lado. */
 @media (max-width: 1100px) {
-  .mv-wrap:not(.mv-tipo-jugadora) .mv-layout-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
-  .mv-wrap:not(.mv-tipo-jugadora) .mv-zona-centro { grid-column: 1 / -1; order: -1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: stretch; }
-  .mv-wrap:not(.mv-tipo-jugadora) .mv-zona-centro > * { margin: 0 !important; }
-  .mv-wrap:not(.mv-tipo-jugadora) .mv-zona-centro > .mv-posesion24 { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; }
-  .mv-wrap:not(.mv-tipo-jugadora) .mv-zona-local { order: 0; }
-  .mv-wrap:not(.mv-tipo-jugadora) .mv-zona-visita { order: 1; }
+  .mv-wrap:not(.mv-tipo-jugadora):not(.mv-app) .mv-layout-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .mv-wrap:not(.mv-tipo-jugadora):not(.mv-app) .mv-zona-centro { grid-column: 1 / -1; order: -1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: stretch; }
+  .mv-wrap:not(.mv-tipo-jugadora):not(.mv-app) .mv-zona-centro > * { margin: 0 !important; }
+  .mv-wrap:not(.mv-tipo-jugadora):not(.mv-app) .mv-zona-centro > .mv-posesion24 { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; }
+  .mv-wrap:not(.mv-tipo-jugadora):not(.mv-app) .mv-zona-local { order: 0; }
+  .mv-wrap:not(.mv-tipo-jugadora):not(.mv-app) .mv-zona-visita { order: 1; }
   .mv-wrap .mv-zona-titulo-fila { flex-wrap: wrap; }
   .mv-wrap .mv-zona-titulo { flex: 1 0 100%; }
   .mv-tipo-jugadora .mv-cancha-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -188,7 +188,7 @@
 .mv-tipo-tablet .mv-zona-centro > .mv-posesion24 { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; }
 .mv-tipo-tablet .mv-zona-centro > .mv-posesion24 .mv-pill { flex: 1; justify-content: center; text-align: center; }
 @media (max-width: 560px) {
-  .mv-wrap:not(.mv-tipo-jugadora) .mv-layout-grid { grid-template-columns: minmax(0, 1fr); }
+  .mv-wrap:not(.mv-tipo-jugadora):not(.mv-app) .mv-layout-grid { grid-template-columns: minmax(0, 1fr); }
 }
 /* Botones de acción grandes: la palabra más larga ("Descalificante") entra sin salirse. */
 .mv-tipo-tablet .fiba-botones-grid { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
@@ -196,10 +196,10 @@
 /* En la franja de controles: 24" y "Acciones Local/Visita" cada uno a lo ancho. */
 .mv-tipo-tablet .mv-zona-centro > .mv-acciones-segmentado { grid-column: 1 / -1; }
 @media (max-width: 1100px) {
-  .mv-wrap:not(.mv-tipo-jugadora) .mv-zona-centro > .mv-acciones-segmentado { grid-column: 1 / -1; }
+  .mv-wrap:not(.mv-tipo-jugadora):not(.mv-app) .mv-zona-centro > .mv-acciones-segmentado { grid-column: 1 / -1; }
 }
 @media (max-width: 560px) {
-  .mv-wrap:not(.mv-tipo-jugadora) .mv-zona-centro { grid-template-columns: minmax(0, 1fr); }
+  .mv-wrap:not(.mv-tipo-jugadora):not(.mv-app) .mv-zona-centro { grid-template-columns: minmax(0, 1fr); }
 }
 
 /* ───────── Pantalla completa (todas las mesas): nada queda escondido. */
@@ -296,3 +296,228 @@
 /* Consola: los tipos de falta largos ("Antideportiva", "Descalificante") sin salirse. */
 .mv-tipo-consola .btn-fiba { letter-spacing: 0; font-size: 12px; padding-inline: 6px; }
 .mv-tipo-consola .mv-posesion24 { flex-wrap: wrap; }
+
+/* ═════════ MESA A PANTALLA (toda Mesa propia; "Juego en vivo" embebido queda aparte)
+   Ocupa exactamente el alto visible: 100dvh descuenta la barra de Safari en
+   iPad (100vh no, y por eso la pantalla completa quedaba corrida). La página
+   nunca se desplaza: si algo no entra, se desplaza DENTRO de su columna. */
+.mv-wrap.mv-app { position: fixed; inset: 0; z-index: 2000; width: auto; height: 100vh; height: 100dvh; max-width: none; margin: 0; border-radius: 0; box-sizing: border-box; padding: 8px max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left)); }
+/* La fila de tipo/Resumen/Escenas va dentro de la barra: una sola barra que se acomoda sola. */
+.mv-topbar > .mv-fila-completa { display: contents; }
+.mv-mas { position: relative; }
+.mv-mas > summary { list-style: none; cursor: pointer; user-select: none; }
+.mv-mas > summary::-webkit-details-marker { display: none; }
+.mv-mas[open] > summary { background: #2c2e36; }
+.mv-mas-menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 40; display: grid; gap: 6px; min-width: 220px; padding: 8px; background: #1c1d22; border: 1px solid rgba(255,255,255,.16); border-radius: 12px; box-shadow: 0 18px 44px rgba(0,0,0,.55); }
+.mv-mas-menu > * { justify-content: flex-start; text-align: left; }
+.mv-escenas-fondo { display: grid; place-items: center; }
+.mv-escenas-caja { position: relative; width: min(920px, 94vw); max-height: 88dvh; overflow: auto; padding: 18px; background: #16171b; border: 1px solid rgba(255,255,255,.14); border-radius: 18px; color: #fff; }
+.mv-escenas-caja > .mv-panel-cerrar { position: sticky; top: 0; float: right; z-index: 1; }
+
+@media (min-width: 700px) and (min-height: 540px) {
+  .mv-wrap.mv-app {
+    overflow: hidden; display: grid; gap: 6px 8px; align-content: stretch; align-items: stretch;
+    grid-template-columns: minmax(0, 1fr) minmax(0, .95fr) minmax(0, 1fr);
+    grid-template-rows: auto auto auto auto auto auto minmax(0, 1fr);
+    grid-template-areas: "fila fila fila" "top top top" "aire aire aire" "extra extra extra" "score score score" "local centro visita" "local jugadas visita";
+  }
+  .mv-wrap.mv-app > * { margin: 0 !important; min-width: 0; min-height: 0; grid-column: auto; grid-row: auto; }
+  .mv-wrap.mv-app > .mv-fila-completa { grid-area: fila; }
+  .mv-wrap.mv-app > .mv-topbar { grid-area: top; flex-wrap: wrap; justify-content: flex-start; gap: 6px; }
+  .mv-wrap.mv-app > .mv-aire, .mv-wrap.mv-app > .mv-disparadores { grid-area: aire; }
+  .mv-wrap.mv-app > .mv-presentacion-panel, .mv-wrap.mv-app > .mensaje-error { grid-area: extra; max-height: 30dvh; overflow: auto; }
+  .mv-wrap.mv-app > .mv-scorebar { grid-area: score; }
+  .mv-wrap.mv-app .mv-layout-grid { display: contents; }
+  .mv-wrap.mv-app .mv-zona { margin: 0; min-width: 0; min-height: 0; overflow: hidden auto; overscroll-behavior: contain; }
+  .mv-wrap.mv-app .mv-zona-local { grid-area: local; order: 0; }
+  .mv-wrap.mv-app .mv-zona-centro { grid-area: centro; order: 0; }
+  .mv-wrap.mv-app .mv-zona-visita { grid-area: visita; order: 0; }
+  .mv-wrap.mv-app > .mv-jugadas { grid-area: jugadas; overflow: auto; padding: 8px 10px; }
+  .mv-wrap.mv-app .mv-jugadas h6 { margin-bottom: 6px; }
+  .mv-wrap.mv-app .mv-jugadas-lista li { font-size: 13px; padding: 6px 10px; }
+  .mv-wrap.mv-app .mv-zona-titulo-fila { flex-wrap: wrap; }
+  .mv-wrap.mv-app .mv-zona-titulo { flex: 1 0 100%; }
+  /* Textos largos de la barra (lo último para deshacer) no la estiran. */
+  .mv-wrap.mv-app > .mv-topbar { row-gap: 5px; }
+  .mv-wrap.mv-app > .mv-topbar .mv-pill { min-height: 30px; padding: 4px 10px; font-size: 11px; }
+  .mv-wrap.mv-app > .mv-topbar > .mv-pill { max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mv-wrap.mv-app > .mv-topbar .mt-tipo button { padding: 4px 11px; font-size: 12px; }
+
+  /* "En pantalla": una franja de una línea; al abrirla se despliega ENCIMA, sin empujar nada. */
+  .mv-wrap.mv-app > .mv-aire { position: relative; z-index: 30; overflow: visible; }
+  .mv-wrap.mv-app > .mv-aire .mv-aire-titulo { padding: 7px 12px; min-height: 0; }
+  .mv-wrap.mv-app > .mv-aire .mv-aire-cuerpo { position: absolute; left: -1px; right: -1px; top: calc(100% + 4px); max-height: 70dvh; overflow: auto; padding: 4px 14px 14px; background: #15171c; border: 1px solid rgba(255,255,255,.16); border-radius: 14px; box-shadow: 0 22px 50px rgba(0,0,0,.6); }
+  .mv-wrap.mv-app > .mv-aire:not(.abierto) .mv-aire-cuerpo { display: none; }
+
+  /* Control del partido compacto: período + Iniciar en una fila, flechas del reloj lado a lado. */
+  .mv-wrap.mv-app .mv-zona-centro { display: flex; flex-direction: column; gap: 8px; }
+  .mv-wrap.mv-app .mv-zona-centro > * { margin: 0 !important; }
+  .mv-wrap.mv-app .mv-control-card { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: 8px; align-items: center; padding: 10px; }
+  .mv-wrap.mv-app .mv-control-card h6 { grid-column: 1 / -1; margin: 0; }
+  .mv-wrap.mv-app .mv-control-card .mv-btn-electrico-grande { margin: 0; }
+  .mv-wrap.mv-app .mv-rueda-reloj { margin: 0; padding: 8px; gap: 6px; }
+  .mv-wrap.mv-app .mv-rueda-botones { flex-direction: row; gap: 8px; }
+  .mv-wrap.mv-app > .mv-topbar .btn-secundario, .mv-wrap.mv-app > .mv-topbar .btn-peligro-suave { min-height: 30px; padding: 4px 10px; font-size: 11px; border-radius: 999px; }
+  /* Dorsales al tamaño del alto disponible: grandes en iPad Pro, compactos en iPad mini. */
+  .mv-wrap.mv-app .mv-oncourt-btn { min-height: clamp(48px, 7.4dvh, 92px); }
+  .mv-wrap.mv-app .mv-banco-btn { min-height: clamp(28px, 4.2dvh, 50px); }
+  /* Tablero del medio: cabe sin bajar. */
+  .mv-wrap.mv-app .mv-scorebar { padding: 6px 8px; }
+  .mv-wrap.mv-app .mv-chip-competicion { display: none; }
+
+  /* CONSOLA: "En pantalla" como columna fija a la derecha (pantallas anchas). */
+  .mv-wrap.mv-app.mv-tipo-consola .mv-aire-titulo { pointer-events: auto; cursor: pointer; }
+  .mv-wrap.mv-app.mv-tipo-consola .mv-aire-flecha { display: inline; }
+
+  /* TABLET: controles en franja a lo ancho y los dos planteles debajo; últimas acciones en una línea. */
+  .mv-wrap.mv-app.mv-tipo-tablet { padding: 10px; border-radius: 0; }
+  .mv-wrap.mv-app.mv-tipo-tablet .mv-zona-centro { display: flex; flex-direction: column; gap: 8px; }
+  .mv-wrap.mv-app.mv-tipo-tablet .mv-zona-centro > * { margin: 0 !important; }
+  .mv-wrap.mv-app.mv-tipo-tablet > .mv-jugadas { display: flex; align-items: center; gap: 12px; overflow: hidden; }
+  .mv-wrap.mv-app.mv-tipo-tablet > .mv-jugadas h6 { margin: 0; white-space: nowrap; }
+  .mv-wrap.mv-app.mv-tipo-tablet .mv-jugadas-lista { flex-direction: row; min-width: 0; overflow: hidden; }
+  .mv-wrap.mv-app.mv-tipo-tablet .mv-jugadas-lista li { white-space: nowrap; }
+  .mv-wrap.mv-app.mv-tipo-tablet .mv-zona-centro { padding: 10px; }
+  .mv-wrap.mv-app.mv-tipo-tablet .mv-pill { min-height: 38px; padding: 6px 12px; font-size: 13px; }
+  .mv-wrap.mv-app.mv-tipo-tablet .mv-aire-titulo { min-height: 0; }
+  .mv-wrap.mv-app.mv-tipo-tablet .mv-scorebar { padding: 8px 12px; }
+  .mv-wrap.mv-app.mv-tipo-tablet .mv-equipo-pts { font-size: 52px; }
+  .mv-wrap.mv-app.mv-tipo-tablet .mv-reloj-lectura { font-size: 44px; }
+  .mv-wrap.mv-app.mv-tipo-tablet .mv-oncourt-btn { min-height: clamp(52px, 8.6dvh, 100px); }
+  .mv-wrap.mv-app.mv-tipo-tablet .mv-banco-btn { min-height: clamp(32px, 5dvh, 56px); }
+  .mv-wrap.mv-app.mv-tipo-tablet .mv-btn-electrico-grande { padding: 16px 10px; font-size: 22px; }
+  .mv-wrap.mv-app.mv-tipo-tablet .mv-zona { padding: 12px; }
+  .mv-wrap.mv-app.mv-tipo-tablet > .mv-topbar .mv-pill { min-height: 34px; padding: 5px 11px; font-size: 12px; }
+  .mv-wrap.mv-app.mv-tipo-tablet .mv-to-btn { min-width: 48px; min-height: 48px; }
+  .mv-wrap.mv-app.mv-tipo-tablet .mv-btn-posesion { min-width: 44px; min-height: 40px; font-size: 18px; }
+  .mv-wrap.mv-app.mv-tipo-tablet .mv-equipo-logo { height: 44px; }
+  .mv-wrap.mv-app.mv-tipo-tablet .mv-control-card .mv-btn-electrico-grande { padding: 14px 8px; font-size: 20px; }
+  .mv-wrap.mv-app.mv-tipo-tablet .mv-rueda-valor { font-size: 32px; padding: 4px 12px; }
+  .mv-wrap.mv-app.mv-tipo-tablet .mv-rueda-btn { width: 48px; height: 44px; }
+  .mv-wrap.mv-app.mv-tipo-tablet .mv-zona-centro > .mv-posesion24 { display: flex; align-items: center; gap: 6px; padding: 6px 8px; }
+  .mv-wrap.mv-app.mv-tipo-tablet .mv-zona-centro > .mv-posesion24 .mv-posesion24-valor { font-size: 34px; min-width: 52px; }
+  .mv-wrap.mv-app.mv-tipo-tablet .mv-posesion24 .mv-pill { flex: 1; min-width: 0; min-height: 44px; padding: 4px; font-size: 17px; }
+
+  /* POR JUGADORA: planteles a los costados; al medio el reloj y debajo el teclado de acciones. */
+  .mv-wrap.mv-app.mv-tipo-jugadora {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr) minmax(0, 1fr);
+    grid-template-rows: auto auto auto auto auto auto minmax(0, 1fr) auto;
+    grid-template-areas: "fila fila fila" "top top top" "aire aire aire" "extra extra extra" "score score score" "local centro visita" "local acciones visita" "local jugadas visita";
+  }
+  .mv-wrap.mv-app.mv-tipo-jugadora > .mv-panel-fondo, .mv-wrap.mv-app.mv-tipo-jugadora > .mv-acciones-espera { grid-area: acciones; overflow: auto; }
+  .mv-wrap.mv-app.mv-tipo-jugadora > .mv-acciones-espera { min-height: 0; }
+  .mv-wrap.mv-app.mv-tipo-jugadora > .mv-jugadas { max-height: 92px; }
+  .mv-wrap.mv-app.mv-tipo-jugadora .mv-jugadas-lista li:nth-child(n+2) { display: none; }
+  .mv-wrap.mv-app.mv-tipo-jugadora .mv-zona-centro { overflow: visible; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; align-items: stretch; padding: 8px; }
+  .mv-wrap.mv-app.mv-tipo-jugadora .mv-zona-centro > * { margin: 0 !important; }
+  .mv-wrap.mv-app.mv-tipo-jugadora .mv-zona-centro > .mv-posesion24, .mv-wrap.mv-app.mv-tipo-jugadora .mv-zona-centro > .mv-acciones-segmentado { grid-column: 1 / -1; }
+  .mv-wrap.mv-app.mv-tipo-jugadora .mv-panel-acciones { padding: 10px; }
+  .mv-wrap.mv-app.mv-tipo-jugadora .btn-fiba { min-height: 46px; }
+  .mv-wrap.mv-app.mv-tipo-jugadora .mv-cancha-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  .mv-wrap.mv-app.mv-tipo-jugadora .mv-banco-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .mv-wrap.mv-app.mv-tipo-jugadora .mv-oncourt-btn { min-height: clamp(44px, 6.6dvh, 80px); }
+  .mv-wrap.mv-app.mv-tipo-jugadora .mv-oncourt-dorsal { font-size: 1.3rem; }
+  .mv-wrap.mv-app.mv-tipo-jugadora .mv-seccion-titulo { margin: 6px 0 3px; }
+}
+
+/* Consola en pantallas anchas: "En pantalla" siempre abierto como columna derecha. */
+@media (min-width: 1280px) and (min-height: 540px) {
+  .mv-wrap.mv-app.mv-tipo-consola {
+    grid-template-columns: minmax(0, 1fr) minmax(0, .9fr) minmax(0, 1fr) 300px;
+    grid-template-areas: "fila fila fila fila" "top top top top" "extra extra extra aire" "score score score aire" "local centro visita aire" "local centro visita aire" "local jugadas visita aire";
+  }
+  .mv-wrap.mv-app.mv-tipo-consola > .mv-aire { overflow: auto; }
+  .mv-wrap.mv-app.mv-tipo-consola > .mv-aire .mv-aire-titulo { pointer-events: none; cursor: default; }
+  .mv-wrap.mv-app.mv-tipo-consola > .mv-aire .mv-aire-flecha { display: none; }
+  .mv-wrap.mv-app.mv-tipo-consola > .mv-aire .mv-aire-cuerpo, .mv-wrap.mv-app.mv-tipo-consola > .mv-aire:not(.abierto) .mv-aire-cuerpo { display: block; position: static; max-height: none; border: 0; box-shadow: none; border-radius: 0; background: none; }
+}
+
+/* iPad en vertical (y pantallas más altas que anchas): controles en franja, planteles lado a lado. */
+@media (min-width: 700px) and (min-height: 540px) and (max-width: 1099px) and (max-aspect-ratio: 1/1) {
+  .mv-wrap.mv-app, .mv-wrap.mv-app.mv-tipo-tablet {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: auto auto auto auto auto auto minmax(0, 1fr) auto;
+    grid-template-areas: "fila fila" "top top" "aire aire" "extra extra" "score score" "centro centro" "local visita" "jugadas jugadas";
+  }
+  .mv-wrap.mv-app.mv-tipo-jugadora {
+    grid-template-rows: auto auto auto auto auto auto auto minmax(0, 1fr) auto;
+    grid-template-areas: "fila fila" "top top" "aire aire" "extra extra" "score score" "centro centro" "acciones acciones" "local visita" "jugadas jugadas";
+  }
+  .mv-wrap.mv-app:not(.mv-tipo-jugadora) .mv-zona-centro, .mv-wrap.mv-app.mv-tipo-tablet .mv-zona-centro { overflow: visible; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; align-items: stretch; }
+  .mv-wrap.mv-app .mv-zona-centro > * { margin: 0 !important; }
+  .mv-wrap.mv-app:not(.mv-tipo-jugadora) .mv-zona-centro > .mv-acciones-segmentado { grid-column: 1 / -1; }
+  .mv-wrap.mv-app.mv-tipo-jugadora .mv-zona-centro { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .mv-wrap.mv-app.mv-tipo-jugadora .mv-zona-centro > .mv-posesion24 { grid-column: auto; }
+  .mv-wrap.mv-app > .mv-jugadas { max-height: 84px; }
+  .mv-wrap.mv-app .mv-jugadas-lista li:nth-child(n+2) { display: none; }
+}
+
+/* iPad en horizontal con la barra de Safari (iPad mini ≈ 680 px de alto visible): todo un poco más bajo. */
+@media (min-width: 700px) and (min-height: 540px) and (max-height: 760px) {
+  .mv-wrap.mv-app { row-gap: 5px; padding-top: 6px; padding-bottom: max(6px, env(safe-area-inset-bottom)); }
+  .mv-wrap.mv-app .mv-scorebar { padding: 4px 8px; }
+  .mv-wrap.mv-app .mv-equipo-pts { font-size: 34px; }
+  .mv-wrap.mv-app .mv-reloj-lectura { font-size: 30px; }
+  .mv-wrap.mv-app .mv-equipo-logo { height: 34px; }
+  .mv-wrap.mv-app .mv-to-btn { min-width: 40px; min-height: 40px; }
+  .mv-wrap.mv-app .mv-btn-posesion { min-height: 30px; margin-top: 2px; }
+  .mv-wrap.mv-app .mv-zona { padding: 8px; }
+  .mv-wrap.mv-app .mv-zona-titulo-fila { margin-bottom: 6px; padding-bottom: 4px; }
+  .mv-wrap.mv-app .mv-col { padding: 8px; }
+  .mv-wrap.mv-app .mv-btn-quinteto { padding-block: 5px; margin-top: 6px; }
+  .mv-wrap.mv-app.mv-tipo-tablet .mv-equipo-pts { font-size: 40px; }
+  .mv-wrap.mv-app.mv-tipo-tablet .mv-reloj-lectura { font-size: 34px; }
+  .mv-wrap.mv-app.mv-tipo-tablet .mv-scorebar { padding: 6px 10px; }
+  .mv-wrap.mv-app.mv-tipo-tablet .mv-btn-electrico-grande { padding: 10px 8px; font-size: 18px; }
+  .mv-wrap.mv-app.mv-tipo-tablet .mv-posesion24 .mv-pill { min-height: 38px; }
+  .mv-wrap.mv-app.mv-tipo-tablet .mv-zona { padding: 10px; }
+}
+
+/* POR JUGADORA en horizontal: el teclado de acciones entero a la vista (sin desplazarse). */
+@media (min-width: 700px) and (min-height: 540px) {
+  .mv-wrap.mv-app.mv-tipo-jugadora:has(> .mv-panel-fondo) > .mv-jugadas { display: none; }
+  .mv-wrap.mv-app.mv-tipo-jugadora .mv-control-card h6 { display: none; }
+  .mv-wrap.mv-app.mv-tipo-jugadora .mv-control-card, .mv-wrap.mv-app.mv-tipo-jugadora .mv-rueda-reloj { padding: 6px; }
+  .mv-wrap.mv-app.mv-tipo-jugadora .mv-control-card .mv-btn-electrico-grande { padding: 9px 8px; }
+  .mv-wrap.mv-app.mv-tipo-jugadora .mv-rueda-reloj { flex-direction: row; flex-wrap: wrap; justify-content: center; }
+  .mv-wrap.mv-app.mv-tipo-jugadora .mv-rueda-reloj > .mv-pill { flex: 1 1 100%; min-height: 28px; padding: 2px 8px; }
+  .mv-wrap.mv-app.mv-tipo-jugadora .mv-rueda-valor { font-size: 22px; padding: 2px 10px; min-width: 0; }
+  .mv-wrap.mv-app.mv-tipo-jugadora .mv-rueda-fila { width: auto; gap: 6px; }
+  .mv-wrap.mv-app.mv-tipo-jugadora .mv-rueda-btn { width: 38px; height: 34px; }
+  .mv-wrap.mv-app.mv-tipo-jugadora .mv-posesion24 { padding: 4px 8px; }
+  .mv-wrap.mv-app.mv-tipo-jugadora .mv-posesion24-valor { font-size: 24px; }
+  .mv-wrap.mv-app.mv-tipo-jugadora .mv-panel-acciones { padding: 8px 10px; }
+  .mv-wrap.mv-app.mv-tipo-jugadora .mv-panel-acciones-header { padding: 0 34px 0 0; margin: 0; }
+  .mv-wrap.mv-app.mv-tipo-jugadora .mv-panel-titulo-wrap { flex-direction: row; justify-content: flex-start; gap: 8px; text-align: left; }
+  .mv-wrap.mv-app.mv-tipo-jugadora .mv-panel-logo { width: 28px; height: 28px; padding: 2px; margin: 0; border-radius: 8px; }
+  .mv-wrap.mv-app.mv-tipo-jugadora .mv-panel-titulo { font-size: 14px; }
+  .mv-wrap.mv-app.mv-tipo-jugadora .mv-panel-acciones > .mv-faltas-edit { display: flex; justify-content: flex-start; margin: 2px 0 0; }
+  .mv-wrap.mv-app.mv-tipo-jugadora .mv-seccion-titulo { margin: 4px 0 2px; font-size: 10px; }
+  .mv-wrap.mv-app.mv-tipo-jugadora .fiba-botones-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; margin-top: 2px; }
+  .mv-wrap.mv-app.mv-tipo-jugadora .btn-fiba { min-height: clamp(34px, 5.6dvh, 54px); padding: 4px; font-size: 12px; }
+  .mv-wrap.mv-app.mv-tipo-jugadora .mv-btn-cambio { min-height: clamp(34px, 5.2dvh, 50px); margin-top: 6px; }
+}
+@media (min-width: 700px) and (min-height: 540px) {
+  /* Control, reloj y 24" en una sola fila sobre el teclado. */
+  .mv-wrap.mv-app.mv-tipo-jugadora .mv-zona-centro { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.1fr) minmax(0, .8fr); }
+  .mv-wrap.mv-app.mv-tipo-jugadora .mv-zona-centro > .mv-posesion24 { grid-column: auto; display: grid; grid-template-columns: 1fr 1fr; gap: 4px; align-content: center; }
+  .mv-wrap.mv-app.mv-tipo-jugadora .mv-zona-centro > .mv-posesion24 .mv-posesion24-valor { grid-column: 1 / -1; min-width: 0; }
+  .mv-wrap.mv-app.mv-tipo-jugadora .mv-zona-centro > .mv-posesion24 .mv-pill { min-height: 26px; padding: 2px; justify-content: center; }
+  .mv-wrap.mv-app.mv-tipo-jugadora .mv-control-card { grid-template-columns: 1fr; gap: 6px; }
+  .mv-wrap.mv-app.mv-tipo-jugadora .btn-fiba { font-size: clamp(10px, .95vw, 12px); padding: 3px 2px; letter-spacing: 0; }
+}
+/* Ventana de acciones (Clásica, Consola, Tablet): entra entera en el alto visible. */
+.mv-wrap.mv-app:not(.mv-tipo-jugadora) .mv-panel-acciones { max-height: calc(100dvh - 24px); }
+@media (min-width: 700px) and (max-height: 900px) {
+  .mv-wrap.mv-app:not(.mv-tipo-jugadora) .mv-panel-acciones .btn-fiba { min-height: clamp(40px, 6.4dvh, 64px); padding-block: 6px; }
+  .mv-wrap.mv-app:not(.mv-tipo-jugadora) .mv-panel-acciones .mv-btn-cambio { min-height: clamp(40px, 6dvh, 56px); }
+  .mv-wrap.mv-app:not(.mv-tipo-jugadora) .mv-panel-logo { width: 36px; height: 36px; }
+  .mv-wrap.mv-app:not(.mv-tipo-jugadora) .mv-panel-acciones .fiba-botones-grid { gap: 6px; }
+}
+@media (min-width: 700px) and (min-height: 540px) and (max-height: 720px) {
+  .mv-wrap.mv-app.mv-tipo-jugadora .mv-panel-acciones { padding: 6px 8px; }
+  .mv-wrap.mv-app.mv-tipo-jugadora .btn-fiba { min-height: 30px; }
+  .mv-wrap.mv-app.mv-tipo-jugadora .mv-btn-cambio { min-height: 32px; margin-top: 4px; }
+  .mv-wrap.mv-app.mv-tipo-jugadora .mv-seccion-titulo { margin: 2px 0 1px; }
+  .mv-wrap.mv-app.mv-tipo-jugadora .fiba-botones-grid { gap: 4px; }
+}
