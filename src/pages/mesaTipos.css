@@ -81,7 +81,7 @@
 .mv-tipo-tablet .mv-btn-posesion { min-width: 56px; min-height: 56px; font-size: 22px; border-radius: 16px; }
 .mv-tipo-tablet .mv-layout-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
 /* Controles del juego en una franja horizontal arriba; los dos planteles a lo ancho debajo. */
-.mv-tipo-tablet .mv-zona-centro { grid-column: 1 / -1; order: -1; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px; align-items: stretch; }
+.mv-tipo-tablet .mv-zona-centro { grid-column: 1 / -1; order: -1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: stretch; }
 .mv-tipo-tablet .mv-zona-centro > * { margin: 0 !important; }
 .mv-tipo-tablet .mv-zona-local { order: 0; }
 .mv-tipo-tablet .mv-zona-visita { order: 1; }
@@ -161,7 +161,7 @@
    las mesas menos Por jugadora: controles arriba a lo ancho, planteles lado a lado. */
 @media (max-width: 1100px) {
   .mv-wrap:not(.mv-tipo-jugadora) .mv-layout-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
-  .mv-wrap:not(.mv-tipo-jugadora) .mv-zona-centro { grid-column: 1 / -1; order: -1; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px; align-items: stretch; }
+  .mv-wrap:not(.mv-tipo-jugadora) .mv-zona-centro { grid-column: 1 / -1; order: -1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: stretch; }
   .mv-wrap:not(.mv-tipo-jugadora) .mv-zona-centro > * { margin: 0 !important; }
   .mv-wrap:not(.mv-tipo-jugadora) .mv-zona-centro > .mv-posesion24 { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; }
   .mv-wrap:not(.mv-tipo-jugadora) .mv-zona-local { order: 0; }
@@ -194,3 +194,11 @@
 /* Botones de acción grandes: la palabra más larga ("Descalificante") entra sin salirse. */
 .mv-tipo-tablet .fiba-botones-grid { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
 .mv-tipo-tablet .btn-fiba, .mv-tipo-jugadora .btn-fiba { min-width: 0; padding-inline: 6px; overflow-wrap: anywhere; }
+/* En la franja de controles: 24" y "Acciones Local/Visita" cada uno a lo ancho. */
+.mv-tipo-tablet .mv-zona-centro > .mv-acciones-segmentado { grid-column: 1 / -1; }
+@media (max-width: 1100px) {
+  .mv-wrap:not(.mv-tipo-jugadora) .mv-zona-centro > .mv-acciones-segmentado { grid-column: 1 / -1; }
+}
+@media (max-width: 560px) {
+  .mv-wrap:not(.mv-tipo-jugadora) .mv-zona-centro { grid-template-columns: minmax(0, 1fr); }
+}
