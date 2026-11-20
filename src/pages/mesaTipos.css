@@ -349,14 +349,8 @@
   .mv-wrap.mv-app > .mv-aire .mv-aire-cuerpo { position: absolute; left: -1px; right: -1px; top: calc(100% + 4px); max-height: 70dvh; overflow: auto; padding: 4px 14px 14px; background: #15171c; border: 1px solid rgba(255,255,255,.16); border-radius: 14px; box-shadow: 0 22px 50px rgba(0,0,0,.6); }
   .mv-wrap.mv-app > .mv-aire:not(.abierto) .mv-aire-cuerpo { display: none; }
 
-  /* Control del partido compacto: período + Iniciar en una fila, flechas del reloj lado a lado. */
   .mv-wrap.mv-app .mv-zona-centro { display: flex; flex-direction: column; gap: 8px; }
   .mv-wrap.mv-app .mv-zona-centro > * { margin: 0 !important; }
-  .mv-wrap.mv-app .mv-control-card { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: 8px; align-items: center; padding: 10px; }
-  .mv-wrap.mv-app .mv-control-card h6 { grid-column: 1 / -1; margin: 0; }
-  .mv-wrap.mv-app .mv-control-card .mv-btn-electrico-grande { margin: 0; }
-  .mv-wrap.mv-app .mv-rueda-reloj { margin: 0; padding: 8px; gap: 6px; }
-  .mv-wrap.mv-app .mv-rueda-botones { flex-direction: row; gap: 8px; }
   .mv-wrap.mv-app > .mv-topbar .btn-secundario, .mv-wrap.mv-app > .mv-topbar .btn-peligro-suave { min-height: 30px; padding: 4px 10px; font-size: 11px; border-radius: 999px; }
   /* Dorsales al tamaño del alto disponible: grandes en iPad Pro, compactos en iPad mini. */
   .mv-wrap.mv-app .mv-oncourt-btn { min-height: clamp(48px, 7.4dvh, 92px); }
@@ -371,8 +365,6 @@
 
   /* TABLET: controles en franja a lo ancho y los dos planteles debajo; últimas acciones en una línea. */
   .mv-wrap.mv-app.mv-tipo-tablet { padding: 10px; border-radius: 0; }
-  .mv-wrap.mv-app.mv-tipo-tablet .mv-zona-centro { display: flex; flex-direction: column; gap: 8px; }
-  .mv-wrap.mv-app.mv-tipo-tablet .mv-zona-centro > * { margin: 0 !important; }
   .mv-wrap.mv-app.mv-tipo-tablet > .mv-jugadas { display: flex; align-items: center; gap: 12px; overflow: hidden; }
   .mv-wrap.mv-app.mv-tipo-tablet > .mv-jugadas h6 { margin: 0; white-space: nowrap; }
   .mv-wrap.mv-app.mv-tipo-tablet .mv-jugadas-lista { flex-direction: row; min-width: 0; overflow: hidden; }
@@ -385,18 +377,11 @@
   .mv-wrap.mv-app.mv-tipo-tablet .mv-reloj-lectura { font-size: 44px; }
   .mv-wrap.mv-app.mv-tipo-tablet .mv-oncourt-btn { min-height: clamp(52px, 8.6dvh, 100px); }
   .mv-wrap.mv-app.mv-tipo-tablet .mv-banco-btn { min-height: clamp(32px, 5dvh, 56px); }
-  .mv-wrap.mv-app.mv-tipo-tablet .mv-btn-electrico-grande { padding: 16px 10px; font-size: 22px; }
   .mv-wrap.mv-app.mv-tipo-tablet .mv-zona { padding: 12px; }
   .mv-wrap.mv-app.mv-tipo-tablet > .mv-topbar .mv-pill { min-height: 34px; padding: 5px 11px; font-size: 12px; }
   .mv-wrap.mv-app.mv-tipo-tablet .mv-to-btn { min-width: 48px; min-height: 48px; }
   .mv-wrap.mv-app.mv-tipo-tablet .mv-btn-posesion { min-width: 44px; min-height: 40px; font-size: 18px; }
   .mv-wrap.mv-app.mv-tipo-tablet .mv-equipo-logo { height: 44px; }
-  .mv-wrap.mv-app.mv-tipo-tablet .mv-control-card .mv-btn-electrico-grande { padding: 14px 8px; font-size: 20px; }
-  .mv-wrap.mv-app.mv-tipo-tablet .mv-rueda-valor { font-size: 32px; padding: 4px 12px; }
-  .mv-wrap.mv-app.mv-tipo-tablet .mv-rueda-btn { width: 48px; height: 44px; }
-  .mv-wrap.mv-app.mv-tipo-tablet .mv-zona-centro > .mv-posesion24 { display: flex; align-items: center; gap: 6px; padding: 6px 8px; }
-  .mv-wrap.mv-app.mv-tipo-tablet .mv-zona-centro > .mv-posesion24 .mv-posesion24-valor { font-size: 34px; min-width: 52px; }
-  .mv-wrap.mv-app.mv-tipo-tablet .mv-posesion24 .mv-pill { flex: 1; min-width: 0; min-height: 44px; padding: 4px; font-size: 17px; }
 
   /* POR JUGADORA: planteles a los costados; al medio el reloj y debajo el teclado de acciones. */
   .mv-wrap.mv-app.mv-tipo-jugadora {
@@ -408,9 +393,6 @@
   .mv-wrap.mv-app.mv-tipo-jugadora > .mv-acciones-espera { min-height: 0; }
   .mv-wrap.mv-app.mv-tipo-jugadora > .mv-jugadas { max-height: 92px; }
   .mv-wrap.mv-app.mv-tipo-jugadora .mv-jugadas-lista li:nth-child(n+2) { display: none; }
-  .mv-wrap.mv-app.mv-tipo-jugadora .mv-zona-centro { overflow: visible; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; align-items: stretch; padding: 8px; }
-  .mv-wrap.mv-app.mv-tipo-jugadora .mv-zona-centro > * { margin: 0 !important; }
-  .mv-wrap.mv-app.mv-tipo-jugadora .mv-zona-centro > .mv-posesion24, .mv-wrap.mv-app.mv-tipo-jugadora .mv-zona-centro > .mv-acciones-segmentado { grid-column: 1 / -1; }
   .mv-wrap.mv-app.mv-tipo-jugadora .mv-panel-acciones { padding: 10px; }
   .mv-wrap.mv-app.mv-tipo-jugadora .btn-fiba { min-height: 46px; }
   .mv-wrap.mv-app.mv-tipo-jugadora .mv-cancha-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
@@ -443,11 +425,7 @@
     grid-template-rows: auto auto auto auto auto auto auto minmax(0, 1fr) auto;
     grid-template-areas: "fila fila" "top top" "aire aire" "extra extra" "score score" "centro centro" "acciones acciones" "local visita" "jugadas jugadas";
   }
-  .mv-wrap.mv-app:not(.mv-tipo-jugadora) .mv-zona-centro, .mv-wrap.mv-app.mv-tipo-tablet .mv-zona-centro { overflow: visible; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; align-items: stretch; }
   .mv-wrap.mv-app .mv-zona-centro > * { margin: 0 !important; }
-  .mv-wrap.mv-app:not(.mv-tipo-jugadora) .mv-zona-centro > .mv-acciones-segmentado { grid-column: 1 / -1; }
-  .mv-wrap.mv-app.mv-tipo-jugadora .mv-zona-centro { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .mv-wrap.mv-app.mv-tipo-jugadora .mv-zona-centro > .mv-posesion24 { grid-column: auto; }
   .mv-wrap.mv-app > .mv-jugadas { max-height: 84px; }
   .mv-wrap.mv-app .mv-jugadas-lista li:nth-child(n+2) { display: none; }
 }
@@ -468,24 +446,12 @@
   .mv-wrap.mv-app.mv-tipo-tablet .mv-equipo-pts { font-size: 40px; }
   .mv-wrap.mv-app.mv-tipo-tablet .mv-reloj-lectura { font-size: 34px; }
   .mv-wrap.mv-app.mv-tipo-tablet .mv-scorebar { padding: 6px 10px; }
-  .mv-wrap.mv-app.mv-tipo-tablet .mv-btn-electrico-grande { padding: 10px 8px; font-size: 18px; }
-  .mv-wrap.mv-app.mv-tipo-tablet .mv-posesion24 .mv-pill { min-height: 38px; }
   .mv-wrap.mv-app.mv-tipo-tablet .mv-zona { padding: 10px; }
 }
 
 /* POR JUGADORA en horizontal: el teclado de acciones entero a la vista (sin desplazarse). */
 @media (min-width: 700px) and (min-height: 540px) {
   .mv-wrap.mv-app.mv-tipo-jugadora:has(> .mv-panel-fondo) > .mv-jugadas { display: none; }
-  .mv-wrap.mv-app.mv-tipo-jugadora .mv-control-card h6 { display: none; }
-  .mv-wrap.mv-app.mv-tipo-jugadora .mv-control-card, .mv-wrap.mv-app.mv-tipo-jugadora .mv-rueda-reloj { padding: 6px; }
-  .mv-wrap.mv-app.mv-tipo-jugadora .mv-control-card .mv-btn-electrico-grande { padding: 9px 8px; }
-  .mv-wrap.mv-app.mv-tipo-jugadora .mv-rueda-reloj { flex-direction: row; flex-wrap: wrap; justify-content: center; }
-  .mv-wrap.mv-app.mv-tipo-jugadora .mv-rueda-reloj > .mv-pill { flex: 1 1 100%; min-height: 28px; padding: 2px 8px; }
-  .mv-wrap.mv-app.mv-tipo-jugadora .mv-rueda-valor { font-size: 22px; padding: 2px 10px; min-width: 0; }
-  .mv-wrap.mv-app.mv-tipo-jugadora .mv-rueda-fila { width: auto; gap: 6px; }
-  .mv-wrap.mv-app.mv-tipo-jugadora .mv-rueda-btn { width: 38px; height: 34px; }
-  .mv-wrap.mv-app.mv-tipo-jugadora .mv-posesion24 { padding: 4px 8px; }
-  .mv-wrap.mv-app.mv-tipo-jugadora .mv-posesion24-valor { font-size: 24px; }
   .mv-wrap.mv-app.mv-tipo-jugadora .mv-panel-acciones { padding: 8px 10px; }
   .mv-wrap.mv-app.mv-tipo-jugadora .mv-panel-acciones-header { padding: 0 34px 0 0; margin: 0; }
   .mv-wrap.mv-app.mv-tipo-jugadora .mv-panel-titulo-wrap { flex-direction: row; justify-content: flex-start; gap: 8px; text-align: left; }
@@ -498,12 +464,6 @@
   .mv-wrap.mv-app.mv-tipo-jugadora .mv-btn-cambio { min-height: clamp(34px, 5.2dvh, 50px); margin-top: 6px; }
 }
 @media (min-width: 700px) and (min-height: 540px) {
-  /* Control, reloj y 24" en una sola fila sobre el teclado. */
-  .mv-wrap.mv-app.mv-tipo-jugadora .mv-zona-centro { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.1fr) minmax(0, .8fr); }
-  .mv-wrap.mv-app.mv-tipo-jugadora .mv-zona-centro > .mv-posesion24 { grid-column: auto; display: grid; grid-template-columns: 1fr 1fr; gap: 4px; align-content: center; }
-  .mv-wrap.mv-app.mv-tipo-jugadora .mv-zona-centro > .mv-posesion24 .mv-posesion24-valor { grid-column: 1 / -1; min-width: 0; }
-  .mv-wrap.mv-app.mv-tipo-jugadora .mv-zona-centro > .mv-posesion24 .mv-pill { min-height: 26px; padding: 2px; justify-content: center; }
-  .mv-wrap.mv-app.mv-tipo-jugadora .mv-control-card { grid-template-columns: 1fr; gap: 6px; }
   .mv-wrap.mv-app.mv-tipo-jugadora .btn-fiba { font-size: clamp(10px, .95vw, 12px); padding: 3px 2px; letter-spacing: 0; }
 }
 /* Ventana de acciones (Clásica, Consola, Tablet): entra entera en el alto visible. */
@@ -521,3 +481,92 @@
   .mv-wrap.mv-app.mv-tipo-jugadora .mv-seccion-titulo { margin: 2px 0 1px; }
   .mv-wrap.mv-app.mv-tipo-jugadora .fiba-botones-grid { gap: 4px; }
 }
+
+/* ═════════ RELOJ: período, reloj de juego y 24" en UN solo apartado (todas las mesas) ═════════ */
+.mv-zona-centro > .mv-control-card { grid-column: 1 / -1; }
+.mv-control-card {
+  display: grid; gap: 8px; padding: 10px; margin: 0 0 8px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+  grid-template-areas: "tit tit" "per ini" "rel rel" "pos pos";
+  align-items: stretch;
+}
+.mv-control-card > h6 { grid-area: tit; margin: 0; }
+.mv-control-card > select { grid-area: per; margin: 0; min-height: 44px; }
+.mv-control-card > .mv-btn-electrico { grid-area: ini; margin: 0; min-height: 44px; padding: 8px 10px; }
+.mv-control-card > .mv-rueda-reloj, .mv-control-card > .mv-posesion24 { margin: 0; padding: 8px 10px; border-radius: 12px; background: rgba(0,0,0,.28); border: 1px solid rgba(255,255,255,.08); }
+.mv-control-card > .mv-rueda-reloj { grid-area: rel; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-areas: "val val bot" "men mas rei"; align-items: center; gap: 6px; }
+.mv-control-card .mv-rueda-reloj > :first-child { grid-area: val; justify-self: stretch; }
+.mv-control-card .mv-rueda-fila { display: contents; }
+.mv-control-card .mv-rueda-fila > .mv-pill-reloj:first-child { grid-area: men; }
+.mv-control-card .mv-rueda-fila > .mv-pill-reloj:last-child { grid-area: mas; }
+.mv-control-card .mv-rueda-botones { grid-area: bot; flex-direction: row; gap: 6px; justify-content: center; }
+.mv-control-card .mv-rueda-reloj > .mv-pill:last-child { grid-area: rei; width: auto !important; }
+.mv-control-card .mv-rueda-reloj .mv-pill { min-height: 34px; padding: 4px 6px; white-space: nowrap; justify-content: center; text-align: center; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.mv-control-card .mv-rueda-valor { min-width: 0 !important; width: 100%; font-size: 28px; padding: 2px 10px; }
+.mv-control-card .mv-rueda-btn { flex: 1; width: auto; height: 38px; }
+.mv-control-card > .mv-posesion24 { grid-area: pos; display: flex; align-items: center; gap: 6px; }
+.mv-posesion24-etq { font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--mv-texto-tenue); }
+.mv-control-card .mv-posesion24-valor { font-size: 28px; min-width: 46px; }
+.mv-control-card > .mv-posesion24 .mv-pill { flex: 1; min-width: 0; min-height: 34px; padding: 4px; justify-content: center; text-align: center; font-size: 15px; }
+.mv-tipo-tablet .mv-control-card .mv-rueda-valor, .mv-tipo-tablet .mv-control-card .mv-posesion24-valor { font-size: 32px; }
+.mv-tipo-tablet .mv-control-card .mv-btn-electrico-grande { font-size: 20px; }
+.mv-tipo-tablet .mv-control-card .mv-rueda-btn, .mv-tipo-tablet .mv-control-card > .mv-posesion24 .mv-pill { min-height: 42px; height: 42px; }
+/* Pantalla ancha y baja (iPad horizontal): el reloj y el 24" comparten la fila más compacta posible. */
+@media (min-width: 700px) and (max-height: 760px) {
+  .mv-wrap.mv-app .mv-control-card { gap: 6px; padding: 8px; }
+  .mv-wrap.mv-app .mv-control-card > h6 { display: none; }
+  .mv-wrap.mv-app .mv-control-card .mv-rueda-valor, .mv-wrap.mv-app .mv-control-card .mv-posesion24-valor { font-size: 24px; }
+  .mv-wrap.mv-app .mv-control-card > .mv-rueda-reloj, .mv-wrap.mv-app .mv-control-card > .mv-posesion24 { padding: 5px 8px; }
+}
+/* Vertical: reloj y 24" lado a lado. */
+@media (min-width: 700px) and (max-width: 1099px) and (max-aspect-ratio: 1/1) {
+  .mv-wrap.mv-app .mv-control-card { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "tit tit" "per ini" "rel pos"; }
+}
+/* Por jugadora: el reloj queda en una franja angosta sobre el teclado. */
+@media (min-width: 700px) and (min-height: 540px) and (min-aspect-ratio: 1/1) {
+  .mv-wrap.mv-app.mv-tipo-jugadora .mv-control-card { grid-template-areas: "per ini" "rel rel" "pos pos"; gap: 5px; padding: 6px; }
+  .mv-wrap.mv-app.mv-tipo-jugadora .mv-control-card > select, .mv-wrap.mv-app.mv-tipo-jugadora .mv-control-card > .mv-btn-electrico { min-height: 36px; padding-block: 4px; }
+  .mv-wrap.mv-app.mv-tipo-jugadora .mv-control-card > .mv-rueda-reloj { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) repeat(3, minmax(0, .8fr)); grid-template-areas: "val bot men mas rei"; padding: 4px 6px; }
+  .mv-wrap.mv-app.mv-tipo-jugadora .mv-control-card > .mv-posesion24 { padding: 4px 6px; }
+  .mv-wrap.mv-app.mv-tipo-jugadora .mv-control-card .mv-rueda-btn, .mv-wrap.mv-app.mv-tipo-jugadora .mv-control-card .mv-pill { min-height: 30px; height: 30px; }
+  .mv-wrap.mv-app.mv-tipo-jugadora .mv-control-card > h6 { display: none; }
+  .mv-wrap.mv-app.mv-tipo-jugadora .mv-control-card > .mv-posesion24 .mv-posesion24-etq { display: none; }
+}
+
+/* ═════════ PLANTELES: cuadros parejos y legibles ═════════ */
+.mv-banco-grid > p { grid-column: 1 / -1; }
+.mv-wrap.mv-app .mv-zona-local, .mv-wrap.mv-app .mv-zona-visita { display: flex; flex-direction: column; }
+.mv-wrap.mv-app .mv-split { flex: 1 1 auto; align-items: stretch; }
+.mv-wrap.mv-app .mv-col { min-width: 0; }
+/* Botones de la cabecera del plantel: siempre legibles sobre el color del equipo. */
+.mv-tipo-jugadora .mv-zona-titulo-fila .mv-btn-nomina { background: rgba(0,0,0,.32); color: #fff; border-color: rgba(255,255,255,.55); }
+@media (min-width: 700px) and (min-height: 540px) and (max-height: 720px) and (min-aspect-ratio: 1/1) {
+  .mv-wrap.mv-app.mv-tipo-jugadora .mv-control-card { grid-template-columns: minmax(0, .7fr) minmax(0, .9fr) minmax(0, 1.6fr); grid-template-areas: "per ini pos" "rel rel rel"; }
+  .mv-wrap.mv-app.mv-tipo-jugadora .mv-control-card .mv-posesion24-etq { display: none; }
+}
+.mv-wrap.mv-app.mv-tipo-jugadora .btn-fiba.falta { font-size: clamp(9px, .86vw, 11px); letter-spacing: -.01em; }
+
+/* Tiro libre: tres botones grandes (+1, +2, +3). */
+.modal-opcion-btn.modal-opcion-tl { min-height: 76px; font-size: 30px; font-weight: 900; }
+
+/* ═════════ PALETAS DE COLOR (sobre cualquier tipo de mesa) ═════════ */
+.mt-tema-medianoche { --t-fondo: radial-gradient(120% 90% at 50% 0%, #13224a 0%, #070b18 60%); --t-panel: #0f1a33; --t-sub: #0a1226; --t-borde: #24365f; --t-acento: #4f8cff; --t-acento-txt: #fff; --t-reloj: #8fbaff; --t-brillo: rgba(79,140,255,.35); }
+.mt-tema-duela { --t-fondo: linear-gradient(180deg, #23170c 0%, #120b05 100%); --t-panel: #2b1d10; --t-sub: #1d130a; --t-borde: #5c3f22; --t-acento: #f28c28; --t-acento-txt: #1d0f02; --t-reloj: #ffbe6b; --t-brillo: rgba(242,140,40,.35); }
+.mt-tema-neon { --t-fondo: radial-gradient(100% 80% at 50% 0%, #2a0b4a 0%, #07020f 65%); --t-panel: #140a24; --t-sub: #0d0619; --t-borde: #4a2290; --t-acento: #ff2fd6; --t-acento-txt: #fff; --t-reloj: #3cf2ff; --t-brillo: rgba(255,47,214,.45); }
+.mt-tema-esmeralda { --t-fondo: linear-gradient(180deg, #06231a 0%, #03100b 100%); --t-panel: #0b2219; --t-sub: #071810; --t-borde: #1f5440; --t-acento: #20c997; --t-acento-txt: #02140d; --t-reloj: #7dffcf; --t-brillo: rgba(32,201,151,.35); }
+.mt-tema-carbon { --t-fondo: linear-gradient(180deg, #161617 0%, #0a0a0b 100%); --t-panel: #19191c; --t-sub: #111113; --t-borde: #36363d; --t-acento: #e10600; --t-acento-txt: #fff; --t-reloj: #ff5a52; --t-brillo: rgba(225,6,0,.4); }
+
+.mv-wrap.mt-tema { background: var(--t-fondo) !important; }
+.mv-wrap.mt-tema :is(.mv-zona, .mv-scorebar, .mv-jugadas, .mv-aire, .mv-control-card, .mv-panel-acciones, .mv-acciones-espera) { background: var(--t-panel) !important; border-color: var(--t-borde) !important; -webkit-backdrop-filter: none; backdrop-filter: none; }
+.mv-wrap.mt-tema .mv-aire-cuerpo { background: var(--t-panel) !important; border-color: var(--t-borde) !important; }
+.mv-wrap.mt-tema :is(.mv-col, .mv-rueda-reloj, .mv-posesion24) { background: var(--t-sub) !important; border-color: var(--t-borde) !important; }
+.mv-wrap.mt-tema .mv-btn-electrico { background: var(--t-acento) !important; color: var(--t-acento-txt) !important; box-shadow: 0 8px 22px var(--t-brillo) !important; }
+.mv-wrap.mt-tema :is(.mv-reloj-lectura, .mv-rueda-valor) { color: var(--t-reloj) !important; border-color: var(--t-reloj) !important; text-shadow: 0 0 14px var(--t-brillo); background: var(--t-sub) !important; }
+.mv-wrap.mt-tema .mt-tipo button.activo { background: var(--t-acento); color: var(--t-acento-txt); }
+.mv-wrap.mt-tema .mv-control-card > h6, .mv-wrap.mt-tema .mv-posesion24-etq { color: var(--t-reloj); }
+.mv-wrap.mt-tema .mv-zona-centro { box-shadow: inset 0 3px 0 var(--t-acento); }
+/* Las franjas de color de cada equipo se mantienen. */
+.mv-wrap.mt-tema.mv-tipo-consola .mv-zona-local { border-top-color: var(--mt-local) !important; }
+.mv-wrap.mt-tema.mv-tipo-consola .mv-zona-visita { border-top-color: var(--mt-visita) !important; }
+.mt-tema-select { appearance: none; -webkit-appearance: none; cursor: pointer; padding-right: 12px; }
+.mt-tema-select option { color: #000; }

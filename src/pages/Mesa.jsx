@@ -20,6 +20,15 @@ import './mesaTipos.css';
 // siempre jugadorId null sin importar qué jugador esté seleccionado en ese
 // momento (ver disparar() en PanelAcciones).
 // Tipos de mesa: mismas piezas y funciones, distinto orden y aspecto.
+// Paletas de color de la mesa (solo se ven en la Mesa, no salen al aire).
+const TEMAS_MESA = [
+  { id: 'original', etiqueta: 'Color: original' },
+  { id: 'medianoche', etiqueta: 'Medianoche' },
+  { id: 'duela', etiqueta: 'Duela (madera)' },
+  { id: 'neon', etiqueta: 'Neón' },
+  { id: 'esmeralda', etiqueta: 'Esmeralda' },
+  { id: 'carbon', etiqueta: 'Carbón y rojo' },
+];
 const TIPOS_MESA = [
   { id: 'clasica', etiqueta: 'Clásica' },
   { id: 'consola', etiqueta: 'Consola' },
@@ -34,11 +43,8 @@ const TIPOS_FALTA = [
   { id: 'antideportiva', etiqueta: 'Antideportiva' },
   { id: 'descalificante', etiqueta: 'Descalificante' },
 ];
-const COMBOS_TIRO_LIBRE = [
-  { convertidos: 0, intentos: 1 }, { convertidos: 1, intentos: 1 },
-  { convertidos: 0, intentos: 2 }, { convertidos: 1, intentos: 2 }, { convertidos: 2, intentos: 2 },
-  { convertidos: 0, intentos: 3 }, { convertidos: 1, intentos: 3 }, { convertidos: 2, intentos: 3 }, { convertidos: 3, intentos: 3 },
-];
+// Solo los convertidos (+1/+2/+3): menos opciones, menos errores en vivo.
+const COMBOS_TIRO_LIBRE = [1, 2, 3].map((n) => ({ convertidos: n, intentos: n }));
 
 // Categoría/rama en la etiqueta ("Sub-15 · Femenino — Halcones") para poder
 // distinguir equipos del mismo club sin adivinar — mismo criterio que
@@ -85,11 +91,11 @@ function ModalTiroLibre({ onElegir, onCerrar }) {
   return (
     <div className="modal-fondo" onClick={onCerrar}>
       <div className="modal-caja" onClick={(e) => e.stopPropagation()}>
-        <h3>Tiros libres (convertidos/intentos)</h3>
+        <h3>Tiros libres convertidos</h3>
         <div className="modal-opciones-grid">
           {COMBOS_TIRO_LIBRE.map((c) => (
-            <button key={`${c.convertidos}-${c.intentos}`} className="modal-opcion-btn" onClick={() => onElegir(c)}>
-              {c.convertidos}/{c.intentos}
+            <button key={c.convertidos} className="modal-opcion-btn modal-opcion-tl" onClick={() => onElegir(c)}>
+              +{c.convertidos}
             </button>
           ))}
         </div>
@@ -553,7 +559,7 @@ function RuedaReloj({ segundos, corriendo, editando, minutosEdit, segundosEdit, 
         <button type="button" className="mv-pill mv-pill-reloj" onClick={() => onAjustar(60)}>+1:00</button>
       </div>
 
-      <button type="button" className="mv-pill" style={{ width: '100%' }} onClick={onReiniciar}>↺ Reiniciar reloj</button>
+      <button type="button" className="mv-pill" style={{ width: '100%' }} onClick={onReiniciar}>↺ Reiniciar</button>
     </div>
   );
 }
@@ -808,6 +814,8 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
   // Tipo de mesa elegido por quien opera (se recuerda en este equipo).
   const [tipoMesa, setTipoMesa] = useState(() => { try { return localStorage.getItem('mesa_tipo') || 'clasica'; } catch { return 'clasica'; } });
   const elegirTipoMesa = (t) => { setTipoMesa(t); try { localStorage.setItem('mesa_tipo', t); } catch { /* opcional */ } };
+  const [temaMesa, setTemaMesa] = useState(() => { try { return localStorage.getItem('mesa_tema') || 'original'; } catch { return 'original'; } });
+  const elegirTemaMesa = (t) => { setTemaMesa(t); try { localStorage.setItem('mesa_tema', t); } catch { /* opcional */ } };
   const clasica = tipoMesa === 'clasica';
   // Cajón de gráficos (Tablet y Por jugadora lo pliegan; Consola lo deja fijo al costado).
   const [aireAbierto, setAireAbierto] = useState(false);
@@ -1594,7 +1602,7 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
           "en_curso" directo a la mesa en vivo. */}
 
       {partido.estado === 'en_curso' && (
-        <div className={`mv-wrap mv-tipo-${tipoMesa} ${modoApp ? 'mv-app' : ''} ${modoApp || enPantallaCompleta ? 'mv-pantalla-completa' : ''}`} ref={mesaEnVivoRef} style={{ '--mt-local': partido.equipoLocal.color || '#ff3b30', '--mt-visita': partido.equipoVisita.color || '#0a84ff' }}>
+        <div className={`mv-wrap mv-tipo-${tipoMesa} ${temaMesa !== 'original' ? `mt-tema mt-tema-${temaMesa}` : ''} ${modoApp ? 'mv-app' : ''} ${modoApp || enPantallaCompleta ? 'mv-pantalla-completa' : ''}`} ref={mesaEnVivoRef} style={{ '--mt-local': partido.equipoLocal.color || '#ff3b30', '--mt-visita': partido.equipoVisita.color || '#0a84ff' }}>
           {modoApp && mostrarGestionEscenas && (
             <div className="mv-panel-fondo mv-escenas-fondo" onClick={() => setMostrarGestionEscenas(false)}>
               <div className="mv-escenas-caja" onClick={(e) => e.stopPropagation()}>
@@ -1610,6 +1618,9 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
                 <div className="mt-tipo" role="group" aria-label="Tipo de mesa">
                   {TIPOS_MESA.map((t) => <button key={t.id} type="button" className={tipoMesa === t.id ? 'activo' : ''} onClick={() => elegirTipoMesa(t.id)}>{t.etiqueta}</button>)}
                 </div>
+                <select className="mv-pill mt-tema-select" value={temaMesa} onChange={(e) => elegirTemaMesa(e.target.value)} aria-label="Color de la mesa" title="Color de la mesa">
+                  {TEMAS_MESA.map((t) => <option key={t.id} value={t.id}>🎨 {t.etiqueta}</option>)}
+                </select>
                 <button className="mv-pill" onClick={() => setMostrarResumen(true)}>📊 Resumen</button>
                 {clasica && botonesPantallas}
                 {modoApp && <button className={`mv-pill ${mostrarGestionEscenas ? 'activa' : ''}`} onClick={() => setMostrarGestionEscenas((v) => !v)}>⚙ Escenas</button>}
@@ -1865,7 +1876,7 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
 
             <div className="mv-zona mv-zona-centro">
               <div className="mv-control-card">
-                <h6>Control de Partido</h6>
+                <h6>Reloj y período</h6>
                 <select
                   className="mv-select mv-select-periodo-grande"
                   value={partido.periodo}
@@ -1879,7 +1890,6 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
                 ) : (
                   <button className="mv-btn-electrico mv-btn-electrico-grande" onClick={() => emitirAccion('RELOJ_INICIAR')}>▶ Iniciar</button>
                 )}
-              </div>
 
               <RuedaReloj
                 segundos={Math.floor(relojVivo || 0)}
@@ -1899,11 +1909,13 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
               {/* Reloj de posesión (FIBA): 24 al cambiar la posesión, 14 tras
                   falta/patada en campo de ataque. Corre con el reloj de juego. */}
               <div className="mv-posesion24" aria-label="Reloj de posesión">
+                <span className="mv-posesion24-etq">Posesión</span>
                 <span className={`mv-posesion24-valor ${posesionViva < 5 ? 'alerta' : ''} ${partido.posesionCorriendo ? 'corriendo' : ''}`}>{formatearPosesion(posesionViva)}</span>
                 <button type="button" className="mv-pill" onClick={() => emitirAccion('POSESION_FIJAR', { segundos: 24 })}>24</button>
                 <button type="button" className="mv-pill" onClick={() => emitirAccion('POSESION_FIJAR', { segundos: 14 })}>14</button>
                 <button type="button" className="mv-pill mv-pill-chico" title="Restar un segundo" onClick={() => emitirAccion('POSESION_FIJAR', { segundos: Math.max(0, Math.floor(posesionViva) - 1) })}>−1</button>
                 <button type="button" className="mv-pill mv-pill-chico" title="Sumar un segundo" onClick={() => emitirAccion('POSESION_FIJAR', { segundos: Math.min(24, Math.floor(posesionViva) + 1) })}>+1</button>
+              </div>
               </div>
 
               {/* Con plantel, tocar cualquier jugador/a ya elige el equipo activo
