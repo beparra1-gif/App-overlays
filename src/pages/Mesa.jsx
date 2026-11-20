@@ -1019,7 +1019,13 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
       // Estado en vivo de la transmisión: el servidor lo recuerda y lo
       // reenvía al conectarse — así dos Mesas abiertas (o una recargada)
       // muestran siempre el botón en el estado real.
-      socket.on('intertanto', (d) => setIntertantoActivo(Boolean(d?.activo)));
+      // Mismo panel para Intertanto y las pantallas grandes (Previa/Final/Jugadora):
+      // cada botón refleja solo lo suyo.
+      socket.on('intertanto', (d) => {
+        const modoAire = d?.activo ? (d.modo || 'intertanto') : null;
+        setIntertantoActivo(modoAire === 'intertanto');
+        setPantallaEspecial(modoAire && modoAire !== 'intertanto' ? modoAire : null);
+      });
       // Fin de cuarto (reloj en 0:00): la Mesa pregunta si se muestra el Intertanto.
       socket.on('fin_periodo', (d) => setFinCuarto({ periodo: Number(d?.periodo) || null, ts: d?.ts || Date.now() }));
       socket.on('lector_estado', (d) => setLectorEstado(d));
@@ -1522,7 +1528,7 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
         <button
           className={`mv-pill mv-pill-chico ${mostrarPresentacion ? 'activo' : ''}`}
           title="Presentar el plantel titular uno por uno, con foto y nombre"
-          onClick={() => setMostrarPresentacion((v) => !v)}
+          onClick={() => { setAireAbierto(false); setMostrarPresentacion(true); }}
         >
           🎬 Presentar
         </button>
@@ -1637,7 +1643,9 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
             </div>
           </aside>
               <div className="mv-barra-rapida">
-                <button className="mv-pill" disabled={!partido.ultimaJugada} onClick={deshacerUltima} title={partido.ultimaJugada ? `Deshacer: ${describirUltima(partido.ultimaJugada)} (Ctrl+Z)` : 'Nada para deshacer'}>↶ Deshacer</button>
+                <button className="mv-pill mv-deshacer" disabled={!partido.ultimaJugada} onClick={deshacerUltima} title={partido.ultimaJugada ? `Deshacer: ${describirUltima(partido.ultimaJugada)} (Ctrl+Z)` : 'Nada para deshacer'}>
+                  ↶ {partido.ultimaJugada ? <>Deshacer <small>{describirUltima(partido.ultimaJugada)}</small></> : 'Nada para deshacer'}
+                </button>
                 <span className={`mv-pill ${conectado ? 'mv-ok' : 'mv-pill-alerta'}`} title={conectado ? 'Conectado al servidor' : 'Sin conexión: las jugadas se guardan y se envían solas al volver'}>
                   {conectado ? '🟢 Conectado' : '🔴 Sin conexión'}
                 </span>
@@ -1777,35 +1785,59 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
           )}
 
           {mostrarPresentacion && (
-            <div className="mv-presentacion-panel">
-              <p className="mv-texto-tenue" style={{ margin: '0 0 8px' }}>
-                Al dar Play se presenta a cada jugador/a de a uno, del número más bajo al más alto, con foto y nombre en grande.
-              </p>
-              <div className="mv-acciones-segmentado" style={{ marginBottom: 8 }}>
-                {[['local', partido.equipoLocal.nombre], ['visita', partido.equipoVisita.nombre], ['ambos', 'Ambos (local y después visita)']].map(([id, etiqueta]) => (
-                  <button key={id} className={`mv-acciones-segmento ${equipoPresentar === id ? 'activo' : ''}`} disabled={Boolean(presentacionAuto)} onClick={() => setEquipoPresentar(id)}>{etiqueta}</button>
-                ))}
-              </div>
-              <p className="mv-presentacion-orden">
-                Orden: {colaPresentacion(equipoPresentar).map((c) => `#${c.jugador.dorsal ?? '–'}`).join(' · ') || 'sin jugadores cargados'}
-              </p>
-              <div className="mv-presentacion-control">
-                <label className="mv-check-detalle">
-                  Segundos por jugador
-                  <select className="mv-select mv-select-chico" value={segundosPorJugador} disabled={Boolean(presentacionAuto)} onChange={(e) => setSegundosPresentacion(Number(e.target.value))}>
-                    {[...new Set([2, 3, 4, 5, 6, 8, 10, segundosPorJugador])].sort((a, b) => a - b).map((n) => <option key={n} value={n}>{n} s{n === segundosDiseno ? ' (diseño)' : ''}</option>)}
-                  </select>
-                </label>
+            <div className="mv-panel-fondo mv-escenas-fondo" onClick={() => setMostrarPresentacion(false)}>
+              <div className="mv-escenas-caja mv-pres-caja" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Presentación de jugadores">
+                <button type="button" className="mv-panel-cerrar" onClick={() => setMostrarPresentacion(false)} title="Cerrar">✕</button>
+                <h3 className="mv-config-titulo">🎬 Presentación</h3>
+                <p className="mv-pres-ayuda">Se presenta a cada jugador/a de a uno, del número más bajo al más alto, con foto y nombre en grande.</p>
+                <p className="mv-config-seccion">1 · ¿A quién presentamos?</p>
+                <div className="mv-pres-equipos">
+                  {[
+                    ['local', partido.equipoLocal.nombre, partido.equipoLocal.color, partido.equipoLocal.logo_url, partido.equipoLocal.roster.length],
+                    ['visita', partido.equipoVisita.nombre, partido.equipoVisita.color, partido.equipoVisita.logo_url, partido.equipoVisita.roster.length],
+                    ['ambos', 'Ambos', null, null, partido.equipoLocal.roster.length + partido.equipoVisita.roster.length],
+                  ].map(([id, nombre, color, logo, n]) => (
+                    <button key={id} type="button" className={`mv-pres-equipo ${equipoPresentar === id ? 'activo' : ''}`} style={{ '--pres-color': color || '#8e8e93' }} disabled={Boolean(presentacionAuto)} onClick={() => setEquipoPresentar(id)}>
+                      {logo ? <img src={logo} alt="" /> : <span className="mv-pres-equipo-icono" aria-hidden="true">{id === 'ambos' ? '⇄' : nombre.charAt(0)}</span>}
+                      <span className="mv-pres-equipo-nombre">{nombre}</span>
+                      <span className="mv-pres-equipo-n">{id === 'ambos' ? `local y después visita · ${n}` : `${n} jugadores`}</span>
+                    </button>
+                  ))}
+                </div>
+                <p className="mv-config-seccion">2 · Orden de salida</p>
+                <div className="mv-pres-orden">
+                  {colaPresentacion(equipoPresentar).map((c, k) => (
+                    <span key={`${c.equipo}-${c.jugador.id}`} className={`mv-pres-chip ${presentacionAuto && k < presentacionAuto.paso - 1 ? 'hecho' : ''} ${presentacionAuto && k === presentacionAuto.paso - 1 ? 'actual' : ''}`} style={{ '--pres-color': c.equipo === 'local' ? partido.equipoLocal.color : partido.equipoVisita.color }}>
+                      #{c.jugador.dorsal ?? '–'}
+                    </span>
+                  ))}
+                  {colaPresentacion(equipoPresentar).length === 0 && <span className="mv-texto-tenue">Este equipo no tiene jugadores cargados.</span>}
+                </div>
+                <p className="mv-config-seccion">3 · Tiempo y salida</p>
                 {presentacionAuto ? (
-                  <>
-                    <span className="mv-presentacion-estado">▶ {presentacionAuto.paso} de {presentacionAuto.total}: #{presentacionAuto.jugador.dorsal ?? '–'} {presentacionAuto.jugador.nombre}</span>
-                    <button type="button" className="mv-pill mv-pill-alerta" onClick={detenerPresentacion}>■ Detener</button>
-                  </>
+                  <div className="mv-pres-curso">
+                    <div className="mv-pres-barra"><span style={{ width: `${(presentacionAuto.paso / presentacionAuto.total) * 100}%` }} /></div>
+                    <p className="mv-pres-ahora">En pantalla ({presentacionAuto.paso} de {presentacionAuto.total}): <b>#{presentacionAuto.jugador.dorsal ?? '–'} {presentacionAuto.jugador.nombre}</b></p>
+                    <button type="button" className="mv-pill mv-pill-alerta mv-pres-boton" onClick={detenerPresentacion}>■ Detener presentación</button>
+                  </div>
                 ) : (
-                  <button type="button" className="mv-btn-electrico mv-presentacion-play" disabled={!colaPresentacion(equipoPresentar).length} onClick={iniciarPresentacion}>▶ Play</button>
+                  <div className="mv-pres-salida">
+                    <label className="mv-pres-segundos">
+                      Segundos por jugador
+                      <select className="mv-select" value={segundosPorJugador} onChange={(e) => setSegundosPresentacion(Number(e.target.value))}>
+                        {[...new Set([2, 3, 4, 5, 6, 8, 10, segundosPorJugador])].sort((a, b) => a - b).map((n) => <option key={n} value={n}>{n} s{n === segundosDiseno ? ' (diseño)' : ''}</option>)}
+                      </select>
+                    </label>
+                    <button type="button" className="mv-btn-electrico mv-pres-boton" disabled={!colaPresentacion(equipoPresentar).length} onClick={iniciarPresentacion}>▶ Play</button>
+                  </div>
                 )}
               </div>
             </div>
+          )}
+          {presentacionAuto && !mostrarPresentacion && (
+            <button type="button" className="mv-pres-flotante" onClick={() => setMostrarPresentacion(true)} title="Ver la presentación en curso">
+              🎬 Presentando {presentacionAuto.paso}/{presentacionAuto.total} · #{presentacionAuto.jugador.dorsal ?? '–'}
+            </button>
           )}
 
           {jugadoresDescalificadosEnCancha.length > 0 && (
