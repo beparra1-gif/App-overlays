@@ -669,7 +669,7 @@
    la columna derecha para manejar la Mesa con una mano. Vale para todos los tipos. */
 @media (min-width: 700px) {
   .mv-wrap.mv-diestro.mv-tipo-jugadora { display: block; }
-  .mv-wrap.mv-diestro .mv-layout-grid { display: grid !important; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(300px, 1.1fr) !important; grid-template-areas: "local visita centro" !important; gap: 10px; align-items: stretch; }
+  .mv-wrap.mv-diestro .mv-layout-grid { display: grid !important; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(240px, .62fr) !important; grid-template-areas: "local visita centro" !important; gap: 10px; align-items: stretch; }
   .mv-wrap.mv-diestro .mv-zona-local { grid-area: local !important; order: 0 !important; }
   .mv-wrap.mv-diestro .mv-zona-visita { grid-area: visita !important; order: 0 !important; }
   .mv-wrap.mv-diestro .mv-zona-centro { grid-area: centro !important; grid-column: auto !important; order: 0 !important; display: flex !important; flex-direction: column; gap: 8px; }
@@ -677,11 +677,13 @@
   /* Últimas jugadas: abajo de todo y nunca más de un tercio de la columna. */
   .mv-wrap.mv-diestro .mv-zona-centro > .mv-jugadas { margin-top: auto !important; max-height: 33%; flex-shrink: 0; overflow: auto; padding: 8px 10px; }
   .mv-wrap.mv-diestro .mv-zona-centro .mv-jugadas-lista li { font-size: 12px; padding: 5px 8px; }
-  .mv-wrap.mv-diestro .mv-zona-centro > .mv-acciones-espera { min-height: 0; padding: 12px; font-size: 13px; }
+  /* Columna angosta: el reloj en dos filas (valor + ▲▼, luego -1:00 · +1:00 · reiniciar). */
+  .mv-wrap.mv-diestro .mv-control-card { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important; grid-template-areas: "per ini" "rel rel" "pos pos" !important; }
+  .mv-wrap.mv-diestro .mv-control-card > h6 { display: none; }
+  .mv-wrap.mv-diestro .mv-control-card > .mv-rueda-reloj { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; grid-template-areas: "val val bot" "men mas rei" !important; }
+  .mv-wrap.mv-diestro .mv-control-card > .mv-posesion24 .mv-posesion24-etq { display: none; }
 }
 @media (min-width: 700px) and (min-height: 540px) {
   .mv-wrap.mv-app.mv-diestro { display: flex; flex-direction: column; gap: 6px; }
   .mv-wrap.mv-app.mv-diestro .mv-layout-grid { flex: 1; min-height: 0; grid-template-rows: minmax(0, 1fr); }
 }
-.mv-panel-en-linea .mv-panel-acciones { width: auto; max-height: none; animation: none; padding: 10px; border-radius: 16px; }
-.mv-panel-en-linea .mv-panel-fade { display: none; }

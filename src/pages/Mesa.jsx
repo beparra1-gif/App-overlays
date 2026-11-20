@@ -638,7 +638,7 @@ function FaltasEquipoCorregibles({ valor, enBonus, editando, valorEdit, onEmpeza
 // para recién ahí ver los tipos, así que cargar una falta pedía dos toques
 // para decir lo mismo una sola vez. Ahora los 4 tipos están a la vista
 // desde que se abre el panel, un solo toque alcanza.
-function PanelAcciones({ equipoNombre, equipoLogoUrl, jugadorSeleccionado, equipoActivoTieneRoster, onAccion, onCerrar, faltasProps, enLinea = false }) {
+function PanelAcciones({ equipoNombre, equipoLogoUrl, jugadorSeleccionado, equipoActivoTieneRoster, onAccion, onCerrar, faltasProps }) {
   const deshabilitado = equipoActivoTieneRoster && !jugadorSeleccionado;
 
   const disparar = (tipo, extra) => {
@@ -647,7 +647,7 @@ function PanelAcciones({ equipoNombre, equipoLogoUrl, jugadorSeleccionado, equip
   };
 
   return (
-    <div className={enLinea ? 'mv-panel-en-linea' : 'mv-panel-fondo'} onClick={enLinea ? undefined : onCerrar}>
+    <div className="mv-panel-fondo" onClick={onCerrar}>
       <div className="mv-panel-acciones" onClick={(e) => e.stopPropagation()}>
         <div className="mv-panel-acciones-header">
           <button type="button" className="mv-panel-cerrar" onClick={onCerrar} title="Cerrar">✕</button>
@@ -1451,7 +1451,6 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
   );
   const bloqueAcciones = mostrarPanelAcciones ? (
     <PanelAcciones
-      enLinea={ladoDerecho}
       equipoNombre={equipoActivoNombre}
       equipoLogoUrl={equipoActivo === 'local' ? partido.equipoLocal.logo_url : partido.equipoVisita.logo_url}
       jugadorSeleccionado={jugadorSeleccionado}
@@ -1468,7 +1467,7 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
         onCancelar: cancelarCorreccionFaltas,
       }}
     />
-  ) : (tipoMesa === 'jugadora' || ladoDerecho) ? (
+  ) : (tipoMesa === 'jugadora' && !ladoDerecho) ? (
     <div className="mv-acciones-espera">Toca una jugadora en cancha para anotar sus acciones (o “Acciones Local/Visita” si el equipo juega sin nómina).</div>
   ) : null;
 
@@ -2047,7 +2046,6 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
                   </button>
                 </div>
               )}
-              {ladoDerecho && bloqueAcciones}
               {ladoDerecho && bloqueJugadas}
             </div>
 
@@ -2092,7 +2090,9 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
 
 
           {!ladoDerecho && bloqueJugadas}
-          {!ladoDerecho && bloqueAcciones}
+          {/* Con el control a la derecha las acciones son siempre ventana emergente:
+              el envoltorio evita la regla de "Por jugadora" que la fija en la grilla. */}
+          {ladoDerecho ? <div style={{ display: 'contents' }}>{bloqueAcciones}</div> : bloqueAcciones}
 
         </div>
       )}
