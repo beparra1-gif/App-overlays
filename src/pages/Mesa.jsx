@@ -8,6 +8,7 @@ import TablaEstadisticas from '../components/TablaEstadisticas';
 import PanelMarcadorCamara from '../components/PanelMarcadorCamara';
 import { hayNominas, lideresPartido, tablaPorPeriodo, tituloIntertanto } from '../marcadores/intertanto';
 import { ATAJOS_MESA, sonarBocina, useAtajosMesa } from './mesaAyudas';
+import MesaTipos, { TIPOS_MESA } from './MesaTipos';
 import './mesa.css';
 
 // Los 4 tipos de falta del reglamento FIBA vigente (personal/técnica/
@@ -796,6 +797,10 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
   const [conectado, setConectado] = useState(true);
   const [bocinaActiva, setBocinaActiva] = useState(() => { try { return localStorage.getItem('mesa_bocina') !== 'no'; } catch { return true; } });
   const [verAtajos, setVerAtajos] = useState(false);
+  // Tipo de mesa elegido por quien opera (se recuerda en este equipo).
+  const [tipoMesa, setTipoMesa] = useState(() => { try { return localStorage.getItem('mesa_tipo') || 'clasica'; } catch { return 'clasica'; } });
+  const elegirTipoMesa = (t) => { setTipoMesa(t); try { localStorage.setItem('mesa_tipo', t); } catch { /* opcional */ } };
+  const clasica = tipoMesa === 'clasica';
   const [mostrarResumen, setMostrarResumen] = useState(false);
   const [enPantallaCompleta, setEnPantallaCompleta] = useState(false);
   // Interruptor manual, independiente de Nómina/Estadísticas — decide si el
@@ -1036,6 +1041,7 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
         else if (equipoId === equipoVisitaIdRef.current) setRosterVisitaCompleto(jugadores);
       });
       socket.on('jugada', (jugada) => setJugadas((prev) => [jugada, ...prev].slice(0, 30)));
+      socket.on('jugada_deshecha', () => setJugadas((prev) => prev.slice(1)));
       // Estado en vivo de la transmisión: el servidor lo recuerda y lo
       // reenvía al conectarse — así dos Mesas abiertas (o una recargada)
       // muestran siempre el botón en el estado real.
@@ -1467,13 +1473,44 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
     ...partido.equipoVisita.roster.map((j) => ({ ...j, equipoNombre: partido.equipoVisita.nombre })),
   ];
 
+  // Lo que se puede poner al aire, para los tipos de mesa Consola/Tablet/Por jugadora.
+  const graficosMesa = [
+    { separador: 'Marcador' },
+    { id: 'marcador', etiqueta: 'Marcador', activo: !marcadorOculto, onClick: alternarVisibilidadMarcador },
+    { id: 'entretiempo', etiqueta: 'Entretiempo', activo: alertaMarcador?.texto === 'ENTRETIEMPO', onClick: () => dispararAlertaMarcador('ENTRETIEMPO') },
+    { separador: 'Nómina y estadísticas' },
+    { id: 'nom-l', etiqueta: 'Nómina local', onClick: () => reproducirNomina('local') },
+    { id: 'nom-v', etiqueta: 'Nómina visita', onClick: () => reproducirNomina('visita') },
+    { id: 'nom-a', etiqueta: 'Nómina ambos', onClick: () => reproducirNomina('ambos') },
+    { id: 'presentar', etiqueta: 'Presentar titulares', activo: mostrarPresentacion, onClick: () => setMostrarPresentacion((v) => !v) },
+    { id: 'est-l', etiqueta: 'Estadísticas local', onClick: () => dispararEstadisticas({ modo: 'equipo', equipo: 'local', detalle: detalleJugadores }) },
+    { id: 'est-v', etiqueta: 'Estadísticas visita', onClick: () => dispararEstadisticas({ modo: 'equipo', equipo: 'visita', detalle: detalleJugadores }) },
+    { id: 'est-a', etiqueta: 'Estadísticas ambos', onClick: () => dispararEstadisticas({ modo: 'ambos', detalle: detalleJugadores }) },
+    { id: 'detalle', etiqueta: detalleJugadores ? 'Con detalle por jugadora' : 'Sin detalle por jugadora', activo: false, onClick: () => setDetalleJugadores((v) => !v), ayuda: 'Incluir o no el detalle por jugadora en las estadísticas' },
+    { separador: 'Pantallas grandes' },
+    { id: 'intertanto', etiqueta: 'Intertanto', activo: intertantoActivo, onClick: alternarIntertanto },
+    { id: 'previa', etiqueta: 'Previa', activo: pantallaEspecial === 'previa', onClick: () => mostrarPantalla('previa') },
+    { id: 'final', etiqueta: 'Final', activo: pantallaEspecial === 'final', onClick: () => mostrarPantalla('final') },
+    { id: 'mvp', etiqueta: 'Jugadora del partido', activo: pantallaEspecial === 'mvp', onClick: () => mostrarPantalla('mvp') },
+    { id: 'tabla', etiqueta: 'Tabla de posiciones', activo: pantallaEspecial === 'tabla', onClick: () => mostrarPantalla('tabla') },
+    ...(escenaMarcadorActual ? [{ id: 'enlace', etiqueta: copiadoFooter === escenaMarcadorActual.public_token ? '✓ Enlace copiado' : '🔗 Copiar enlace', onClick: () => copiarLinkFooter(escenaMarcadorActual.public_token) }] : []),
+  ];
+
   return (
     <div className={embebido ? '' : 'pagina'}>
       {error && <p className="mensaje-error">{error}</p>}
 
+      {partido.estado === 'en_curso' && (
+        <div className="mt-tipo-wrap">
+          <span>Tipo de mesa</span>
+          <div className="mt-tipo" role="group" aria-label="Tipo de mesa">
+            {TIPOS_MESA.map((t) => <button key={t.id} type="button" className={tipoMesa === t.id ? 'activo' : ''} onClick={() => elegirTipoMesa(t.id)}>{t.etiqueta}</button>)}
+          </div>
+        </div>
+      )}
       <div className="fila-form">
         <button className="btn-secundario" onClick={() => setMostrarResumen(true)}>📊 Resumen / intertanto</button>
-        {[['previa', '🎬 Previa'], ['final', '🏁 Final'], ['mvp', '⭐ Jugadora del partido'], ['tabla', '🏆 Tabla de posiciones']].map(([modo, etiqueta]) => (
+        {clasica && [['previa', '🎬 Previa'], ['final', '🏁 Final'], ['mvp', '⭐ Jugadora del partido'], ['tabla', '🏆 Tabla de posiciones']].map(([modo, etiqueta]) => (
           <button key={modo} className={pantallaEspecial === modo ? 'btn-peligro-suave' : 'btn-secundario'} onClick={() => mostrarPantalla(modo)} title="Se muestra en la transmisión; tocá de nuevo para sacarla">
             {pantallaEspecial === modo ? `✕ Quitar ${etiqueta.replace(/^\S+ /, '')}` : etiqueta}
           </button>
@@ -1529,6 +1566,7 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
             <button className="mv-pill" onClick={alternarPantallaCompleta}>
               {enPantallaCompleta ? '✕ Salir de Pantalla Completa' : '⛶ Pantalla Completa'}
             </button>
+            {clasica && <>
             <button className={`mv-pill ${!marcadorOculto ? 'activa' : 'mv-pill-alerta'}`} onClick={alternarVisibilidadMarcador}>
               {marcadorOculto ? '🚫 Marcador Oculto' : '🟢 Marcador Visible'}
             </button>
@@ -1551,6 +1589,7 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
                 {copiadoFooter === escenaMarcadorActual.public_token ? '✓ Enlace copiado' : '🔗 Copiar enlace del marcador'}
               </button>
             )}
+            </>}
             {escenaMarcadorActual && (
               <span
                 className={`mv-viewers ${viewersMarcador > 0 ? 'conectado' : 'desconectado'}`}
@@ -1568,7 +1607,7 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
             <button className="mv-pill mv-pill-peligro" title="El enlace de OBS sigue funcionando después de finalizar" onClick={finalizarPartido}>⏹ Finalizar Partido</button>
           </div>
 
-          <div className="mv-disparadores mv-disparadores-compacto">
+          {clasica && <div className="mv-disparadores mv-disparadores-compacto">
             <div className="fila-form">
               <span className="mv-disparadores-etiqueta" title="Nómina">👥</span>
               <button className="mv-pill mv-pill-chico" title="Mostrar nómina — Local" onClick={() => reproducirNomina('local')}>Local</button>
@@ -1607,7 +1646,24 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
                 Ocultar marcador
               </label>
             </div>
-          </div>
+          </div>}
+
+          {!clasica && (
+            <div style={{ '--mt-local': partido.equipoLocal.color, '--mt-visita': partido.equipoVisita.color }}>
+              <MesaTipos
+                tipo={tipoMesa}
+                partido={partido}
+                reloj={relojVivo}
+                posesion={posesionViva}
+                emitir={emitirAccion}
+                pedirTiempo={solicitarTimeout}
+                enCancha={enCanchaDelEquipo}
+                banca={bancaDelEquipo}
+                pedirCambio={(equipo, jugadorId) => setAccionPendiente({ tipo: 'CAMBIO', equipo, jugadorId })}
+                graficos={graficosMesa}
+              />
+            </div>
+          )}
 
           {mostrarPresentacion && (
             <div className="mv-presentacion-panel">
@@ -1661,6 +1717,7 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
               del partido completo (faltasLocal/Visita) sigue existiendo
               en el estado por si hace falta en otro lado, pero ya no se
               muestra como el contador de "F" en ningún lugar. */}
+          {clasica && <>
           <div className="mv-scorebar">
             <div className={`mv-equipo-box ${destacarTimeoutLocal ? 'mv-box-destacado' : ''}`} style={{ border: `1px solid ${partido.equipoLocal.color}88`, background: `${partido.equipoLocal.color}14` }}>
               <div className="mv-equipo-fila">
@@ -1879,6 +1936,8 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
             </div>
           </div>
 
+          </>}
+
           <div className="mv-jugadas">
             <h6>Últimas acciones</h6>
             <ul className="mv-jugadas-lista">
@@ -1887,7 +1946,7 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
             </ul>
           </div>
 
-          {mostrarPanelAcciones && (
+          {clasica && mostrarPanelAcciones && (
             <PanelAcciones
               equipoNombre={equipoActivoNombre}
               equipoLogoUrl={equipoActivo === 'local' ? partido.equipoLocal.logo_url : partido.equipoVisita.logo_url}

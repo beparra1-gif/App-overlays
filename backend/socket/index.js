@@ -599,6 +599,8 @@ export function registrarSocketPartidos(io) {
           });
           if (texto) io.to(roomPartido(publicToken)).emit('jugada', { texto, tipo: tipoAnuncio, equipo: payload.equipo || null, ts: Date.now() });
         }
+        // La Mesa saca la jugada deshecha de "Últimas acciones".
+        if (tipo === 'DESHACER') io.to(roomPartido(publicToken)).emit('jugada_deshecha', { ts: Date.now() });
       } catch (error) {
         socket.emit('error_marcador', { error: error.message || 'No se pudo aplicar la acción' });
       }

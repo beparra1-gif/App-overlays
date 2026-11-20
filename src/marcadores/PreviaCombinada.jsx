@@ -13,7 +13,7 @@ import ElementosLibres from './ElementosLibres';
 import PopSumaPuntos from './PopSumaPuntos';
 import RelojPosesion from './RelojPosesion';
 import { PARTIDO_DEMO, JUGADAS_DEMO } from './datosDemo';
-import { aplicarColoresEquipo, idBasePlantilla, useCajaMarcador, useEscalaLienzo, conNombresCortos, nombreEnMarcador } from './utils';
+import { aplicarColoresEquipo, idBasePlantilla, useCajaMarcador, medirColoresCapas, useEscalaLienzo, conNombresCortos, nombreEnMarcador } from './utils';
 import './miniPreview.css';
 
 // Opacidad de una capa que NO es la que se está editando ahora mismo — se
@@ -100,6 +100,7 @@ export default function PreviaCombinada({
   enfocarMarcador = false,
   onCerrarPantallaCompleta,
   onPaleta,
+  onColoresCapas,
 }) {
   const { Componente: Marcador } = obtenerPlantilla(plantillaId);
   // Mismo criterio que VistaMarcador (la escena pública real): el título y
@@ -120,6 +121,12 @@ export default function PreviaCombinada({
   // Avisa al panel los colores reales del tablero, para que los selectores arranquen con ellos.
   const clavePaleta = caja?.paleta ? JSON.stringify(caja.paleta) : '';
   useEffect(() => { if (clavePaleta) onPaleta?.(JSON.parse(clavePaleta)); }, [clavePaleta, onPaleta]);
+  // Y los de cada capa en pantalla (después de su animación de entrada).
+  useEffect(() => {
+    if (!onColoresCapas) return undefined;
+    const t = setTimeout(() => onColoresCapas(medirColoresCapas(lienzoRef.current)), 800);
+    return () => clearTimeout(t);
+  }, [modo, plantillaId, config, clavePaleta, onColoresCapas]);
   // El marco (recuadro visible) puede terminar en cualquier ancho según el
   // layout de la pantalla — la escala real del lienzo (1920×1080 fijo) se
   // recalcula a partir de ESE ancho, no de un porcentaje fijo, para que lo

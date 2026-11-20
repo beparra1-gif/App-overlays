@@ -1056,3 +1056,36 @@ export function contrasteTexto(hex) {
   const luminancia = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
   return luminancia > 0.6 ? '#111' : '#fff';
 }
+
+// Colores que de verdad usa cada capa (nómina, estadísticas, intertanto,
+// anuncios) en la vista previa: con ellos arrancan los selectores de su
+// "Estilo visual", en vez de suponerlos.
+const PIEZAS_CAPA = {
+  nomina: ['.nomina-jugador', '.nomina-titulo'],
+  estadisticas: ['.stats-caja', '.stats-nombre'],
+  intertanto: ['.it-panel', null],
+  anuncios: ['.anuncios-toast', null],
+  titulo: ['.pm-titulo-texto', null],
+};
+const colorFirme = (...valores) => {
+  for (const m of valores.join(' ').match(/rgba?\([^)]*\)|#[0-9a-f]{6}\b/gi) || []) {
+    const a = m.match(/rgba\([^)]*,\s*([\d.]+)\)/);
+    if (!a || Number(a[1]) >= 0.3) return aHex(m);
+  }
+  return null;
+};
+export function medirColoresCapas(raiz) {
+  const out = {};
+  for (const [capa, [selCaja, selTitulo]] of Object.entries(PIEZAS_CAPA)) {
+    const el = raiz?.querySelector(selCaja);
+    if (!el) continue;
+    const c = getComputedStyle(el);
+    const tituloEl = selTitulo && raiz.querySelector(selTitulo);
+    out[capa] = {
+      fondo: colorFirme(c.backgroundColor, c.backgroundImage),
+      texto: colorFirme(c.color),
+      titulo: capa === 'intertanto' ? colorFirme(c.getPropertyValue('--it-acento')) : tituloEl ? colorFirme(getComputedStyle(tituloEl).color) : null,
+    };
+  }
+  return out;
+}

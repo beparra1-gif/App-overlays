@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, urlLogo } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { PLANTILLAS_MARCADOR } from '../marcadores/registro';
@@ -1253,16 +1253,25 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
   const [paletaTablero, setPaletaTablero] = useState(null);
   // Colores reales del tablero en pantalla (si todavía no se midió, la tabla fija).
   const colorReal = {
-    tablero: aHex(paletaTablero?.fondo) || colorBase.tablero,
-    banner: colorBase.banner,
-    marcador: aHex(paletaTablero?.numeros) || colorBase.marcador,
-    texto: aHex(paletaTablero?.texto) || colorBase.texto,
+    // La tabla está medida pieza por pieza (lo que cambia cada perilla); la paleta es el respaldo.
+    tablero: colorBase.tablero || aHex(paletaTablero?.fondo) || '#0a0c12',
+    banner: colorBase.banner || '#ffb703',
+    marcador: colorBase.marcador || aHex(paletaTablero?.numeros) || '#ffffff',
+    texto: colorBase.texto || aHex(paletaTablero?.texto) || '#ffffff',
   };
+  // null en la tabla = ese color no cambia nada en este diseño: no se ofrece.
+  const usaColor = (clave) => colorBase[clave] !== null;
   const coloresCapa = {
-    fondo: config.colorTablero || colorReal.tablero,
-    texto: config.colorTexto || colorReal.texto,
+    // Las capas toman el fondo y el texto de la pieza del reloj (ver varsPaletaTablero).
+    fondo: config.colorTablero || aHex(paletaTablero?.fondo) || colorReal.tablero,
+    texto: config.colorTexto || aHex(paletaTablero?.texto) || colorReal.texto,
     titulo: config.colorBanner || colorReal.banner,
   };
+  // Lo que de verdad dibuja cada capa en la vista previa manda sobre lo supuesto.
+  const [coloresCapasReales, setColoresCapasReales] = useState({});
+  const recibirColoresCapas = useCallback((m) => setColoresCapasReales((prev) => ({ ...prev, ...m })), []);
+  useEffect(() => setColoresCapasReales({}), [plantillaBase]);
+  const coloresDeCapa = (capa) => ({ ...coloresCapa, ...Object.fromEntries(Object.entries(coloresCapasReales[capa] || {}).filter(([, v]) => v)) });
   const posicionLogo = config.logoPosicion || 'costado';
   // Arriba/abajo (dentro del tablero) sirve para todos los diseños; costados/libre
   // es el modo flotante propio del Clásico (clasicoNombrePosicion).
@@ -1605,6 +1614,7 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
               plantillaId={plantillaBase}
               config={config}
               onPaleta={setPaletaTablero}
+              onColoresCapas={recibirColoresCapas}
               equipoLocalPreview={equipoLocalVivo}
               equipoVisitaPreview={equipoVisitaVivo}
               partidoReal={partidoEnVivo}
@@ -2241,6 +2251,7 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
               plantillaId={plantillaBase}
               config={config}
               onPaleta={setPaletaTablero}
+              onColoresCapas={recibirColoresCapas}
               equipoLocalPreview={equipoLocalVivo}
               equipoVisitaPreview={equipoVisitaVivo}
               partidoReal={partidoEnVivo}
@@ -2461,7 +2472,7 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
 
           <Bloque
             id="colores" {...bloque('marcador')} icono="🎨" titulo="Colores"
-            resumen={<><Muestras colores={[config.colorTablero || colorReal.tablero, config.colorBanner || colorReal.banner, config.colorMarcador || colorReal.marcador, config.colorTexto || colorReal.texto]} />{config.coloresEquipo ? ` según ${config.coloresEquipo === 'ganador' ? 'quien gana' : `el ${config.coloresEquipo}`}` : (config.colorTablero || config.colorBanner || config.colorMarcador || config.colorTexto) ? ' personalizados' : ' los del diseño'}</>}
+            resumen={<><Muestras colores={[['tablero', config.colorTablero], ['banner', config.colorBanner], ['marcador', config.colorMarcador], ['texto', config.colorTexto]].filter(([k]) => usaColor(k)).map(([k, v]) => v || colorReal[k])} />{config.coloresEquipo ? ` según ${config.coloresEquipo === 'ganador' ? 'quien gana' : `el ${config.coloresEquipo}`}` : (config.colorTablero || config.colorBanner || config.colorMarcador || config.colorTexto) ? ' personalizados' : ' los del diseño'}</>}
           >
             <div className="fila-form" style={{ margin: 0 }}>
               <label style={{ flex: '1 1 200px' }}>
@@ -2484,10 +2495,10 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
               )}
             </div>
             <div className="fila-form" style={{ alignItems: 'stretch' }}>
-              <SelectorColor etiqueta="Tablero" valor={config.colorTablero} alpha={config.colorTableroAlpha} porDefecto={colorReal.tablero} onCambiarColor={(v) => cambiarConfig('colorTablero', v)} onCambiarAlpha={(v) => cambiarConfig('colorTableroAlpha', v)} />
-              <SelectorColor etiqueta="Acento" valor={config.colorBanner} alpha={config.colorBannerAlpha} porDefecto={colorReal.banner} onCambiarColor={(v) => cambiarConfig('colorBanner', v)} onCambiarAlpha={(v) => cambiarConfig('colorBannerAlpha', v)} />
-              <SelectorColor etiqueta="Números" valor={config.colorMarcador} alpha={config.colorMarcadorAlpha} porDefecto={colorReal.marcador} onCambiarColor={(v) => cambiarConfig('colorMarcador', v)} onCambiarAlpha={(v) => cambiarConfig('colorMarcadorAlpha', v)} />
-              <SelectorColor etiqueta="Textos" valor={config.colorTexto} alpha={config.colorTextoAlpha} porDefecto={colorReal.texto} onCambiarColor={(v) => cambiarConfig('colorTexto', v)} onCambiarAlpha={(v) => cambiarConfig('colorTextoAlpha', v)} />
+              {usaColor('tablero') && <SelectorColor etiqueta="Tablero" valor={config.colorTablero} alpha={config.colorTableroAlpha} porDefecto={colorReal.tablero} onCambiarColor={(v) => cambiarConfig('colorTablero', v)} onCambiarAlpha={(v) => cambiarConfig('colorTableroAlpha', v)} />}
+              {usaColor('banner') && <SelectorColor etiqueta="Acento" valor={config.colorBanner} alpha={config.colorBannerAlpha} porDefecto={colorReal.banner} onCambiarColor={(v) => cambiarConfig('colorBanner', v)} onCambiarAlpha={(v) => cambiarConfig('colorBannerAlpha', v)} />}
+              {usaColor('marcador') && <SelectorColor etiqueta="Números" valor={config.colorMarcador} alpha={config.colorMarcadorAlpha} porDefecto={colorReal.marcador} onCambiarColor={(v) => cambiarConfig('colorMarcador', v)} onCambiarAlpha={(v) => cambiarConfig('colorMarcadorAlpha', v)} />}
+              {usaColor('texto') && <SelectorColor etiqueta="Textos" valor={config.colorTexto} alpha={config.colorTextoAlpha} porDefecto={colorReal.texto} onCambiarColor={(v) => cambiarConfig('colorTexto', v)} onCambiarAlpha={(v) => cambiarConfig('colorTextoAlpha', v)} />}
             </div>
             <p className="texto-tenue bloque-nota">Se aplican a todas las capas (nómina, estadísticas, intertanto y anuncios), salvo que una capa tenga su propio color.</p>
             <button type="button" className="btn-link bloque-restablecer" onClick={restablecerColores}>↺ Volver a los colores del diseño</button>
@@ -2694,8 +2705,8 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
                 )}
                 <CampoRango etiqueta="Tamaño" valor={Number.isFinite(config.tituloTamano) ? config.tituloTamano : 100} min={5} max={200} onChange={(v) => cambiarConfig('tituloTamano', v)} />
                 <div className="fila-form" style={{ alignItems: 'stretch' }}>
-                  <SelectorColor etiqueta="Fondo" valor={config.colorTitulo} alpha={config.colorTituloAlpha} porDefecto={colorReal.banner} onCambiarColor={(v) => cambiarConfig('colorTitulo', v)} onCambiarAlpha={(v) => cambiarConfig('colorTituloAlpha', v)} />
-                  <SelectorColor etiqueta="Letras" valor={config.colorTituloTexto} alpha={config.colorTituloTextoAlpha} porDefecto={colorReal.tablero} onCambiarColor={(v) => cambiarConfig('colorTituloTexto', v)} onCambiarAlpha={(v) => cambiarConfig('colorTituloTextoAlpha', v)} />
+                  <SelectorColor etiqueta="Fondo" valor={config.colorTitulo} alpha={config.colorTituloAlpha} porDefecto={coloresCapasReales.titulo?.fondo || colorReal.banner} onCambiarColor={(v) => cambiarConfig('colorTitulo', v)} onCambiarAlpha={(v) => cambiarConfig('colorTituloAlpha', v)} />
+                  <SelectorColor etiqueta="Letras" valor={config.colorTituloTexto} alpha={config.colorTituloTextoAlpha} porDefecto={coloresCapasReales.titulo?.texto || colorReal.tablero} onCambiarColor={(v) => cambiarConfig('colorTituloTexto', v)} onCambiarAlpha={(v) => cambiarConfig('colorTituloTextoAlpha', v)} />
                 </div>
               </>
             )}
@@ -2865,8 +2876,8 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
                 )}
               </Bloque>
 
-              <Bloque id="estilo" {...bloque('nomina')} icono="🎨" titulo="Estilo visual" resumen={resumenEstiloCapa(config, 'nomina', coloresCapa)}>
-                <SeccionEstiloCapa colores={coloresCapa} prefijo="nomina" config={config} cambiarConfig={cambiarConfig} etiquetaTitulo="Título" />
+              <Bloque id="estilo" {...bloque('nomina')} icono="🎨" titulo="Estilo visual" resumen={resumenEstiloCapa(config, 'nomina', coloresDeCapa('nomina'))}>
+                <SeccionEstiloCapa colores={coloresDeCapa('nomina')} prefijo="nomina" config={config} cambiarConfig={cambiarConfig} etiquetaTitulo="Título" />
               </Bloque>
             </>
           )}
@@ -2896,8 +2907,8 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
                   </div>
                 )}
               </Bloque>
-              <Bloque id="estilo" {...bloque('estadisticas')} icono="🎨" titulo="Estilo visual" resumen={resumenEstiloCapa(config, 'estadisticas', coloresCapa)}>
-                <SeccionEstiloCapa colores={coloresCapa} prefijo="estadisticas" config={config} cambiarConfig={cambiarConfig} etiquetaTitulo="Nombre del equipo" />
+              <Bloque id="estilo" {...bloque('estadisticas')} icono="🎨" titulo="Estilo visual" resumen={resumenEstiloCapa(config, 'estadisticas', coloresDeCapa('estadisticas'))}>
+                <SeccionEstiloCapa colores={coloresDeCapa('estadisticas')} prefijo="estadisticas" config={config} cambiarConfig={cambiarConfig} etiquetaTitulo="Nombre del equipo" />
               </Bloque>
             </>
           )}
@@ -2956,8 +2967,8 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
                 )}
                 <p className="texto-tenue bloque-nota">Rotan los patrocinadores activos de la página Publicidad, con los colores del tablero.</p>
               </Bloque>
-              <Bloque id="estilo" {...bloque('intertanto')} icono="🎨" titulo="Estilo visual" resumen={resumenEstiloCapa(config, 'intertanto', coloresCapa)}>
-                <SeccionEstiloCapa colores={coloresCapa} prefijo="intertanto" config={config} cambiarConfig={cambiarConfig} etiquetaTitulo="Nombres y textos" />
+              <Bloque id="estilo" {...bloque('intertanto')} icono="🎨" titulo="Estilo visual" resumen={resumenEstiloCapa(config, 'intertanto', coloresDeCapa('intertanto'))}>
+                <SeccionEstiloCapa colores={coloresDeCapa('intertanto')} prefijo="intertanto" config={config} cambiarConfig={cambiarConfig} etiquetaTitulo="Nombres y textos" />
               </Bloque>
             </>
           )}
@@ -3013,8 +3024,8 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
                 <Toggle etiqueta="Anunciar también las faltas" checked={Boolean(config.anunciarFaltas)} onChange={(v) => cambiarConfig('anunciarFaltas', v)} />
                 <SelectorDuracion etiqueta="Segundos visible cada aviso" valor={config.anunciosDuracionSeg} porDefecto={4} onChange={(v) => cambiarConfig('anunciosDuracionSeg', v)} />
               </Bloque>
-              <Bloque id="estilo" {...bloque('anuncios')} icono="🎨" titulo="Estilo visual" resumen={resumenEstiloCapa(config, 'anuncios', coloresCapa)}>
-                <SeccionEstiloCapa colores={coloresCapa} prefijo="anuncios" config={config} cambiarConfig={cambiarConfig} tituloSeparado={false} />
+              <Bloque id="estilo" {...bloque('anuncios')} icono="🎨" titulo="Estilo visual" resumen={resumenEstiloCapa(config, 'anuncios', coloresDeCapa('anuncios'))}>
+                <SeccionEstiloCapa colores={coloresDeCapa('anuncios')} prefijo="anuncios" config={config} cambiarConfig={cambiarConfig} tituloSeparado={false} />
               </Bloque>
             </>
           )}
