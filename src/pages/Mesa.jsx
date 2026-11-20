@@ -29,6 +29,11 @@ const TEMAS_MESA = [
   { id: 'neon', etiqueta: 'Neón' },
   { id: 'esmeralda', etiqueta: 'Esmeralda' },
   { id: 'carbon', etiqueta: 'Carbón y rojo' },
+  // Estilos con materiales propios: además del color cambian botones, reloj y letra.
+  { id: 'oldschool', etiqueta: 'Old school' },
+  { id: 'metalico', etiqueta: 'Metálico' },
+  { id: 'vintage', etiqueta: 'Vintage' },
+  { id: 'pizarra', etiqueta: 'Pizarra' },
 ];
 const TIPOS_MESA = [
   { id: 'clasica', etiqueta: 'Clásica' },
@@ -422,7 +427,79 @@ function useMantenerPulsado(callback) {
   return { onPointerDown: empezar, onPointerUp: detener, onPointerLeave: detener, onPointerCancel: detener };
 }
 
-function RuedaReloj({ segundos, corriendo, editando, minutosEdit, segundosEdit, onCambiarMinutos, onCambiarSegundos, onEmpezarEdicion, onConfirmarEdicion, onCancelarEdicion, onAjustar, onReiniciar }) {
+// Rueda de pulgar horizontal (como una ruedita de volumen vista de canto):
+// arrastrar a la derecha suma y a la izquierda resta, 1 s cada PX_POR_SEGUNDO.
+// − y + en los extremos ajustan de a 1 s (mantener apretado = repetir). Las
+// barras de arriba muestran cuántos segundos se llevan movidos en este gesto.
+const PX_POR_SEGUNDO = 14;
+const BARRAS_RUEDA = 10;
+function PerillaReloj({ onAjustar }) {
+  const arrastre = useRef(null);
+  const limpiarRef = useRef(null);
+  const [desplazamiento, setDesplazamiento] = useState(0);
+  const [neto, setNeto] = useState(0);
+  const ajustar = (paso) => {
+    onAjustar(paso);
+    setNeto((n) => n + paso);
+    clearTimeout(limpiarRef.current);
+    limpiarRef.current = setTimeout(() => setNeto(0), 1500);
+  };
+  useEffect(() => () => clearTimeout(limpiarRef.current), []);
+  const menos = useMantenerPulsado(() => { ajustar(-1); setDesplazamiento((d) => d - PX_POR_SEGUNDO); });
+  const mas = useMantenerPulsado(() => { ajustar(1); setDesplazamiento((d) => d + PX_POR_SEGUNDO); });
+  const empezar = (e) => {
+    arrastre.current = { x: e.clientX, acumulado: 0 };
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+  };
+  const mover = (e) => {
+    const a = arrastre.current;
+    if (!a) return;
+    const dx = e.clientX - a.x;
+    a.x = e.clientX;
+    a.acumulado += dx;
+    setDesplazamiento((d) => d + dx);
+    while (a.acumulado >= PX_POR_SEGUNDO) { ajustar(1); a.acumulado -= PX_POR_SEGUNDO; }
+    while (a.acumulado <= -PX_POR_SEGUNDO) { ajustar(-1); a.acumulado += PX_POR_SEGUNDO; }
+  };
+  const soltar = () => { arrastre.current = null; };
+  const teclado = (e) => {
+    const paso = { ArrowUp: 1, ArrowRight: 1, ArrowDown: -1, ArrowLeft: -1 }[e.key];
+    if (!paso) return;
+    e.preventDefault();
+    ajustar(paso);
+    setDesplazamiento((d) => d + paso * PX_POR_SEGUNDO);
+  };
+  return (
+    <div className="mv-ruedita">
+      <div className="mv-ruedita-medidor" aria-hidden="true">
+        <div className="mv-ruedita-barras">
+          {Array.from({ length: BARRAS_RUEDA }, (_, i) => (
+            <span key={i} className={i < Math.abs(neto) ? 'on' : ''} style={{ height: `${30 + i * 7}%` }} />
+          ))}
+        </div>
+        <span className="mv-ruedita-neto">{neto ? `${neto > 0 ? '+' : ''}${neto} s` : ''}</span>
+      </div>
+      <div className="mv-ruedita-caja">
+        <button type="button" className="mv-ruedita-paso" aria-label="Restar un segundo" {...menos}>−</button>
+        <div
+          className="mv-ruedita-rodillo"
+          tabIndex={0}
+          aria-label="Rueda del reloj: deslizar a la derecha suma segundos, a la izquierda resta"
+          title="Deslizá con el pulgar: a la derecha suma, a la izquierda resta"
+          style={{ backgroundPositionX: `${desplazamiento}px` }}
+          onPointerDown={empezar}
+          onPointerMove={mover}
+          onPointerUp={soltar}
+          onPointerCancel={soltar}
+          onKeyDown={teclado}
+        />
+        <button type="button" className="mv-ruedita-paso" aria-label="Sumar un segundo" {...mas}>+</button>
+      </div>
+    </div>
+  );
+}
+
+function RuedaReloj({ segundos, corriendo, editando, minutosEdit, segundosEdit, onCambiarMinutos, onCambiarSegundos, onEmpezarEdicion, onConfirmarEdicion, onCancelarEdicion, onAjustar, onReiniciar, conPerilla = false }) {
   const [pulsoBoton, setPulsoBoton] = useState(null);
   const acumuladoRuedaRef = useRef(0);
   const pulsoTimeoutRef = useRef(null);
@@ -504,6 +581,7 @@ function RuedaReloj({ segundos, corriendo, editando, minutosEdit, segundosEdit, 
           <button type="button" className={`mv-rueda-btn ${pulsoBoton === 'arriba' ? 'pulso' : ''}`} title="Mantener para subir rápido — un toque suma 5s" {...subir}>▲</button>
           <button type="button" className={`mv-rueda-btn ${pulsoBoton === 'abajo' ? 'pulso' : ''}`} title="Mantener para bajar rápido — un toque resta 5s" {...bajar}>▼</button>
         </div>
+        {conPerilla && <PerillaReloj onAjustar={onAjustar} />}
         <button type="button" className="mv-pill mv-pill-reloj" onClick={() => onAjustar(60)}>+1:00</button>
       </div>
 
@@ -1759,7 +1837,7 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
                 <div className="mt-tipo mv-config-tipos" role="group" aria-label="Tipo de mesa">
                   {TIPOS_MESA.map((t) => <button key={t.id} type="button" className={tipoMesa === t.id ? 'activo' : ''} onClick={() => elegirTipoMesa(t.id)}>{t.etiqueta}</button>)}
                 </div>
-                <p className="mv-config-seccion">Color</p>
+                <p className="mv-config-seccion">Estilo y color</p>
                 <div className="mv-config-colores">
                   {TEMAS_MESA.map((t) => (
                     <button key={t.id} type="button" className={`mv-config-color mt-muestra-${t.id} ${temaMesa === t.id ? 'activo' : ''}`} onClick={() => elegirTemaMesa(t.id)}>
@@ -2017,6 +2095,7 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
                 onCancelarEdicion={cancelarEdicionReloj}
                 onAjustar={(delta) => emitirAccion('RELOJ_AJUSTAR', { segundos: delta })}
                 onReiniciar={() => emitirAccion('RELOJ_REINICIAR')}
+                conPerilla={ladoDerecho}
               />
 
               {/* Reloj de posesión (FIBA): 24 al cambiar la posesión, 14 tras
