@@ -13,7 +13,8 @@ const POSICIONES = [
   { id: 'pivot', etiqueta: 'Pívot', x: 33, y: 28 },
 ];
 
-const CAMISETA = 'M58 8 Q100 34 142 8 L168 18 Q176 60 196 66 L184 112 L160 104 L160 226 L40 226 L40 104 L16 112 L4 66 Q24 60 32 18 Z';
+// Camiseta de básquetbol: sin mangas, tiras anchas, sisas profundas y cuello en U.
+const CAMISETA = 'M62 4 L84 4 Q100 58 116 4 L138 4 C138 62 156 98 186 106 L186 226 L14 226 L14 106 C44 98 62 62 62 4 Z';
 
 function Foto({ jugador, mostrarFoto, className }) {
   if (mostrarFoto && jugador.fotoUrl) return <img className={className} src={urlFotoJugador(jugador.fotoUrl)} alt="" />;
@@ -97,8 +98,8 @@ export default function PresentacionQuinteto({ formato, equipo, presentados, con
             <path className="pq-cam-cuerpo" d={CAMISETA} fill="url(#pq-cam-tela)" />
             <path d={CAMISETA} fill="url(#pq-cam-malla)" />
             <path d={CAMISETA} fill="url(#pq-cam-luz)" />
-            <path className="pq-cam-ribete" d="M58 8 Q100 34 142 8 M168 18 Q176 60 196 66 M32 18 Q24 60 4 66" />
-            <path className="pq-cam-franja" d="M46 108 L46 222 M154 108 L154 222" />
+            <path className="pq-cam-ribete" d="M84 4 Q100 58 116 4 M138 4 C138 62 156 98 186 106 M62 4 C62 62 44 98 14 106" />
+            <path className="pq-cam-franja" d="M24 116 L24 222 M176 116 L176 222" />
           </svg>
           <span className="pq-camiseta-apellido">{apellido(actual.nombre)}</span>
           <span className="pq-camiseta-numero">{actual.dorsal ?? '–'}</span>

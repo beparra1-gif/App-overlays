@@ -39,11 +39,11 @@
 .pq-camiseta { position: relative; width: 360px; height: 414px; display: flex; flex-direction: column; align-items: center; animation: pq-sube .8s cubic-bezier(.16,1,.3,1) both; filter: drop-shadow(0 24px 40px rgba(0,0,0,.5)); }
 .pq-camiseta-forma { position: absolute; inset: 0; width: 100%; height: 100%; }
 .pq-camiseta-forma path { fill: var(--color-equipo); stroke: rgba(255,255,255,.85); stroke-width: 4; }
-.pq-camiseta-apellido { position: relative; margin-top: 92px; font-size: calc(30px * var(--nomina-escala-texto, 1)); font-weight: 800; letter-spacing: 3px; color: #fff; text-shadow: 0 2px 0 rgba(0,0,0,.25); }
+.pq-camiseta-apellido { position: relative; margin-top: 124px; font-size: calc(30px * var(--nomina-escala-texto, 1)); font-weight: 800; letter-spacing: 3px; color: #fff; text-shadow: 0 2px 0 rgba(0,0,0,.25); }
 .pq-camiseta-numero { position: relative; font-size: 170px; font-weight: 900; line-height: .95; color: #fff; text-shadow: 0 4px 0 rgba(0,0,0,.25); -webkit-text-stroke: 3px rgba(0,0,0,.15); }
 .pq-camiseta-equipo { position: relative; display: flex; align-items: center; gap: 8px; margin-top: 4px; font-size: 15px; letter-spacing: 3px; text-transform: uppercase; color: rgba(255,255,255,.85); }
 .pq-camisetas-chicas { display: flex; gap: 10px; }
-.pq-camiseta-chica { display: flex; flex-direction: column; align-items: center; min-width: 90px; padding: 6px 10px; border-radius: 10px 10px 24px 24px; background: var(--color-equipo); color: #fff; animation: pq-sube .4s ease both; }
+.pq-camiseta-chica { display: flex; flex-direction: column; align-items: center; min-width: 90px; padding: 10px 10px 6px; border-radius: 6px 6px 14px 14px; clip-path: polygon(14% 0, 36% 0, 50% 14%, 64% 0, 86% 0, 100% 34%, 100% 100%, 0 100%, 0 34%); background: var(--color-equipo); color: #fff; animation: pq-sube .4s ease both; }
 .pq-camiseta-chica b { font-size: 28px; line-height: 1; }
 .pq-camiseta-chica span { font-size: 11px; letter-spacing: 1px; }
 
@@ -99,8 +99,8 @@
 .pq-cam-c3 { stop-color: var(--pq-oscuro); }
 .pq-camiseta-forma path { stroke: none; }
 .pq-camiseta-forma .pq-cam-cuerpo { stroke: rgba(255,255,255,.55); stroke-width: 2.5; }
-.pq-cam-ribete { fill: none; stroke: #fff; stroke-width: 6; stroke-linecap: round; opacity: .9; }
-.pq-cam-franja { fill: none; stroke: rgba(255,255,255,.55); stroke-width: 5; }
+.pq-camiseta-forma .pq-cam-ribete { fill: none; stroke: #fff; stroke-width: 6; stroke-linecap: round; opacity: .9; }
+.pq-camiseta-forma .pq-cam-franja { fill: none; stroke: rgba(255,255,255,.55); stroke-width: 5; }
 .pq-camiseta { animation: pq-sube .8s cubic-bezier(.16,1,.3,1) both, pq-flota 5s ease-in-out .9s infinite; filter: drop-shadow(0 30px 34px rgba(0,0,0,.55)); }
 .pq-camiseta-numero, .pq-camiseta-apellido { background: linear-gradient(180deg, #fff 0%, #fff 55%, #d7dbe3 100%); -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-stroke: 0; text-shadow: none; filter: drop-shadow(0 3px 0 rgba(0,0,0,.28)) drop-shadow(0 0 1px rgba(0,0,0,.5)); }
 .pq-camiseta-chica { background: linear-gradient(160deg, var(--pq-claro), var(--color-equipo) 50%, var(--pq-oscuro)); box-shadow: 0 10px 22px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.35); }
