@@ -1,5 +1,6 @@
 import { urlFotoJugador } from '../../api/client';
 import LogoEquipo from '../LogoEquipo';
+import CamisetaSvg from './CamisetaSvg';
 import '../presentacion.css';
 
 // Formatos de "Presentación del quinteto" además de la tarjeta clásica
@@ -12,9 +13,6 @@ const POSICIONES = [
   { id: 'ala-pivot', etiqueta: 'Ala-pívot', x: 68, y: 30 },
   { id: 'pivot', etiqueta: 'Pívot', x: 33, y: 28 },
 ];
-
-// Camiseta de básquetbol: sin mangas, tiras anchas, sisas profundas y cuello en U.
-const CAMISETA = 'M62 4 L84 4 Q100 58 116 4 L138 4 C138 62 156 98 186 106 L186 226 L14 226 L14 106 C44 98 62 62 62 4 Z';
 
 function Foto({ jugador, mostrarFoto, className }) {
   if (mostrarFoto && jugador.fotoUrl) return <img className={className} src={urlFotoJugador(jugador.fotoUrl)} alt="" />;
@@ -77,38 +75,21 @@ export default function PresentacionQuinteto({ formato, equipo, presentados, con
   }
 
   if (formato === 'camiseta') {
+    const estiloCam = config?.presentacionCamisetaEstilo || 'clasica';
+    const color2 = config?.presentacionCamisetaColor2;
     return raiz(
       <>
         <div className="pq-camiseta" key={actual.id}>
-          <svg viewBox="0 0 200 230" className="pq-camiseta-forma" aria-hidden="true">
-            <defs>
-              <linearGradient id="pq-cam-tela" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0" className="pq-cam-c1" />
-                <stop offset=".55" className="pq-cam-c2" />
-                <stop offset="1" className="pq-cam-c3" />
-              </linearGradient>
-              <radialGradient id="pq-cam-luz" cx=".32" cy=".2" r=".85">
-                <stop offset="0" stopColor="#fff" stopOpacity=".38" />
-                <stop offset=".55" stopColor="#fff" stopOpacity="0" />
-              </radialGradient>
-              <pattern id="pq-cam-malla" width="5" height="5" patternUnits="userSpaceOnUse">
-                <circle cx="2.5" cy="2.5" r=".8" fill="rgba(0,0,0,.16)" />
-              </pattern>
-            </defs>
-            <path className="pq-cam-cuerpo" d={CAMISETA} fill="url(#pq-cam-tela)" />
-            <path d={CAMISETA} fill="url(#pq-cam-malla)" />
-            <path d={CAMISETA} fill="url(#pq-cam-luz)" />
-            <path className="pq-cam-ribete" d="M84 4 Q100 58 116 4 M138 4 C138 62 156 98 186 106 M62 4 C62 62 44 98 14 106" />
-            <path className="pq-cam-franja" d="M24 116 L24 222 M176 116 L176 222" />
-          </svg>
-          <span className="pq-camiseta-apellido">{apellido(actual.nombre)}</span>
-          <span className="pq-camiseta-numero">{actual.dorsal ?? '–'}</span>
-          <span className="pq-camiseta-equipo">{logo}{equipo.nombre}</span>
+          <CamisetaSvg className="pq-camiseta-forma" estilo={estiloCam} color={color} color2={color2} apellido={apellido(actual.nombre)} numero={actual.dorsal ?? ''} />
         </div>
+        <div className="pq-camiseta-pie" key={`pie-${actual.id}`}>{logo}<span>{equipo.nombre}</span><b>#{actual.dorsal ?? '–'} {actual.nombre}</b></div>
         {anteriores.length > 0 && (
           <div className="pq-camisetas-chicas">
             {anteriores.map((j) => (
-              <div key={j.id} className="pq-camiseta-chica"><b>{j.dorsal ?? '–'}</b><span>{apellido(j.nombre)}</span></div>
+              <div key={j.id} className="pq-camiseta-mini">
+                <CamisetaSvg mini estilo={estiloCam} color={color} color2={color2} numero={j.dorsal ?? ''} />
+                <span>{apellido(j.nombre)}</span>
+              </div>
             ))}
           </div>
         )}

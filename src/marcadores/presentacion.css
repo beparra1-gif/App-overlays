@@ -38,14 +38,7 @@
 .pq-formato-camiseta { flex-direction: column; gap: 22px; }
 .pq-camiseta { position: relative; width: 360px; height: 414px; display: flex; flex-direction: column; align-items: center; animation: pq-sube .8s cubic-bezier(.16,1,.3,1) both; filter: drop-shadow(0 24px 40px rgba(0,0,0,.5)); }
 .pq-camiseta-forma { position: absolute; inset: 0; width: 100%; height: 100%; }
-.pq-camiseta-forma path { fill: var(--color-equipo); stroke: rgba(255,255,255,.85); stroke-width: 4; }
-.pq-camiseta-apellido { position: relative; margin-top: 124px; font-size: calc(30px * var(--nomina-escala-texto, 1)); font-weight: 800; letter-spacing: 3px; color: #fff; text-shadow: 0 2px 0 rgba(0,0,0,.25); }
-.pq-camiseta-numero { position: relative; font-size: 170px; font-weight: 900; line-height: .95; color: #fff; text-shadow: 0 4px 0 rgba(0,0,0,.25); -webkit-text-stroke: 3px rgba(0,0,0,.15); }
-.pq-camiseta-equipo { position: relative; display: flex; align-items: center; gap: 8px; margin-top: 4px; font-size: 15px; letter-spacing: 3px; text-transform: uppercase; color: rgba(255,255,255,.85); }
 .pq-camisetas-chicas { display: flex; gap: 10px; }
-.pq-camiseta-chica { display: flex; flex-direction: column; align-items: center; min-width: 90px; padding: 10px 10px 6px; border-radius: 6px 6px 14px 14px; clip-path: polygon(14% 0, 36% 0, 50% 14%, 64% 0, 86% 0, 100% 34%, 100% 100%, 0 100%, 0 34%); background: var(--color-equipo); color: #fff; animation: pq-sube .4s ease both; }
-.pq-camiseta-chica b { font-size: 28px; line-height: 1; }
-.pq-camiseta-chica span { font-size: 11px; letter-spacing: 1px; }
 
 /* ── Cancha táctica ── */
 .pq-cancha-caja { display: flex; flex-direction: column; align-items: center; gap: 14px; }
@@ -94,16 +87,7 @@
 
 /* Camiseta: tela con degradé del color del equipo, luz y malla (ver SVG) */
 .pq-formato-camiseta::before { content: ''; position: absolute; left: 50%; top: 50%; margin: -380px 0 0 -380px; width: 760px; height: 760px; border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--color-equipo) 45%, transparent), transparent 62%); opacity: .75; pointer-events: none; animation: pq-aparece 1s ease both; }
-.pq-cam-c1 { stop-color: var(--pq-claro); }
-.pq-cam-c2 { stop-color: var(--color-equipo); }
-.pq-cam-c3 { stop-color: var(--pq-oscuro); }
-.pq-camiseta-forma path { stroke: none; }
-.pq-camiseta-forma .pq-cam-cuerpo { stroke: rgba(255,255,255,.55); stroke-width: 2.5; }
-.pq-camiseta-forma .pq-cam-ribete { fill: none; stroke: #fff; stroke-width: 6; stroke-linecap: round; opacity: .9; }
-.pq-camiseta-forma .pq-cam-franja { fill: none; stroke: rgba(255,255,255,.55); stroke-width: 5; }
 .pq-camiseta { animation: pq-sube .8s cubic-bezier(.16,1,.3,1) both, pq-flota 5s ease-in-out .9s infinite; filter: drop-shadow(0 30px 34px rgba(0,0,0,.55)); }
-.pq-camiseta-numero, .pq-camiseta-apellido { background: linear-gradient(180deg, #fff 0%, #fff 55%, #d7dbe3 100%); -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-stroke: 0; text-shadow: none; filter: drop-shadow(0 3px 0 rgba(0,0,0,.28)) drop-shadow(0 0 1px rgba(0,0,0,.5)); }
-.pq-camiseta-chica { background: linear-gradient(160deg, var(--pq-claro), var(--color-equipo) 50%, var(--pq-oscuro)); box-shadow: 0 10px 22px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.35); }
 @keyframes pq-flota { 0%, 100% { transform: translate3d(0, 0, 0); } 50% { transform: translate3d(0, -8px, 0); } }
 @keyframes pq-aparece { from { opacity: 0; } }
 
@@ -151,3 +135,23 @@
 .pq-cine-anteriores { position: relative; z-index: 1; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; max-width: 1500px; animation: pq-aparece .8s ease both; }
 .pq-cine-anteriores span { padding: 6px 14px; border-radius: 999px; background: color-mix(in srgb, var(--nomina-fondo, var(--pm-tablero, #0b0d14)) 80%, transparent); box-shadow: 0 8px 18px rgba(0,0,0,.35), inset 0 0 0 1px color-mix(in srgb, var(--color-equipo) 55%, transparent); font-size: calc(18px * var(--nomina-escala-texto, 1)); letter-spacing: 2px; }
 .pq-cine-anteriores b { color: var(--color-equipo); }
+
+/* Camiseta dibujada completa (número y apellido dentro del SVG) */
+.pq-camiseta { width: 380px; height: 437px; }
+.pq-camiseta-pie { display: flex; align-items: center; gap: 10px; padding: 8px 18px; border-radius: 999px; background: color-mix(in srgb, var(--nomina-fondo, var(--pm-tablero, #0b0d14)) 85%, transparent); box-shadow: 0 10px 24px rgba(0,0,0,.4), inset 0 0 0 1px color-mix(in srgb, var(--color-equipo) 50%, transparent); font-size: calc(16px * var(--nomina-escala-texto, 1)); letter-spacing: 2px; text-transform: uppercase; animation: pq-sube .7s cubic-bezier(.16,1,.3,1) .25s both; }
+.pq-camiseta-pie b { color: var(--color-equipo); margin-left: 6px; }
+.pq-camiseta-pie .pq-logo { width: 26px; height: 26px; }
+.pq-camiseta-mini { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 78px; animation: pq-sube .6s cubic-bezier(.16,1,.3,1) both; }
+.pq-camiseta-mini svg { width: 70px; height: 80px; filter: drop-shadow(0 8px 12px rgba(0,0,0,.45)); }
+.pq-camiseta-mini span { font-size: 11px; letter-spacing: 1px; text-shadow: 0 2px 6px rgba(0,0,0,.6); }
+/* Editor: selector de estilo de camiseta con su dibujo */
+.opciones-camiseta { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; margin-bottom: 10px; }
+.opcion-camiseta { all: unset; box-sizing: border-box; cursor: pointer; display: grid; justify-items: center; gap: 4px; padding: 8px 6px; border-radius: 12px; border: 2px solid transparent; background: rgba(127,127,127,.12); font-size: 12px; font-weight: 700; text-align: center; }
+.opcion-camiseta svg { width: 64px; height: 74px; filter: drop-shadow(0 4px 6px rgba(0,0,0,.3)); }
+.opcion-camiseta.activa { border-color: #0a84ff; background: rgba(10,132,255,.14); }
+.opcion-camiseta:focus-visible { outline: 2px solid #0a84ff; }
+/* Proporción de la camiseta de referencia (1 : 1,89) */
+.pq-camiseta { width: 300px; height: 567px; }
+.pq-camiseta-mini { width: 64px; }
+.pq-camiseta-mini svg { width: 54px; height: 102px; }
+.opcion-camiseta svg { width: 46px; height: 87px; }

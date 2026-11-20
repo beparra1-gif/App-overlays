@@ -8,6 +8,7 @@ import { coloresPorDefecto } from '../marcadores/coloresPorDefecto';
 import MiniPreviewMarcador from '../marcadores/MiniPreviewMarcador';
 import { CATALOGO_ICONOS, IconoSvg } from '../marcadores/iconosLibres';
 import { CATALOGO_FORMAS, clipPathDeForma } from '../marcadores/ElementosLibres';
+import CamisetaSvg, { ESTILOS_CAMISETA } from '../marcadores/vistas/CamisetaSvg';
 import PreviaCombinada from '../marcadores/PreviaCombinada';
 import EquipoFicha from '../components/EquipoFicha';
 import SelectorLogo from '../components/SelectorLogo';
@@ -2816,6 +2817,20 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
                     </button>
                   ))}
                 </div>
+                {(config.presentacionEstilo || 'tarjeta') === 'camiseta' && (
+                  <>
+                    <p className="seccion-titulo">Estilo de camiseta</p>
+                    <div className="opciones-camiseta" role="group" aria-label="Estilo de camiseta">
+                      {ESTILOS_CAMISETA.map((o) => (
+                        <button key={o.id} type="button" className={`opcion-camiseta ${(config.presentacionCamisetaEstilo || 'clasica') === o.id ? 'activa' : ''}`} aria-pressed={(config.presentacionCamisetaEstilo || 'clasica') === o.id} onClick={() => cambiarConfig('presentacionCamisetaEstilo', o.id)}>
+                          <CamisetaSvg mini estilo={o.id} color={equipoLocalVivo?.color || '#c8102e'} color2={config.presentacionCamisetaColor2} numero="23" />
+                          <span>{o.etiqueta}</span>
+                        </button>
+                      ))}
+                    </div>
+                    <ColorOpcional etiqueta="Segundo color (ribetes, paneles, contorno del número)" valor={config.presentacionCamisetaColor2} vacio="blanco" onChange={(v) => cambiarConfig('presentacionCamisetaColor2', v)} />
+                  </>
+                )}
                 <div className="fila-form" style={{ alignItems: 'center' }}>
                   <p className="texto-tenue bloque-nota" style={{ margin: 0, flex: 1 }}>Se ve en la vista previa. En vivo se dispara desde la Mesa con 🎬 Presentar.</p>
                   <button type="button" className="btn-secundario" onClick={() => setClavePresentacion((n) => n + 1)}>↻ Repetir animación</button>

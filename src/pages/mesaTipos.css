@@ -654,3 +654,13 @@
 .mv-barra-rapida .mv-deshacer { max-width: 280px; overflow: hidden; text-overflow: ellipsis; }
 .mv-barra-rapida .mv-deshacer small { font-size: 10px; font-weight: 700; opacity: .8; margin-left: 4px; text-transform: none; letter-spacing: 0; }
 @media (max-width: 1100px) { .mv-barra-rapida .mv-deshacer { max-width: 200px; } }
+
+/* ═════════ Menú "En pantalla": botones parejos en grilla ═════════ */
+.mv-aire .mv-aire-botones { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; }
+.mv-aire .mv-aire-botones > :is(button, .mv-pill, .btn-secundario, .btn-peligro-suave) { box-sizing: border-box; width: 100%; min-height: 48px; margin: 0; padding: 8px 12px; border-radius: 12px; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 13px; font-weight: 800; line-height: 1.15; white-space: normal; max-width: none; }
+.mv-aire .mv-disparadores { display: grid; gap: 8px; }
+.mv-aire .mv-disparadores .mv-pill-destacada { background: linear-gradient(180deg, #ffd60a, #ffb000); color: #1a1205; border-color: transparent; }
+.mv-aire-check { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--mv-texto-tenue, #c2c7d0); }
+.mv-aire-check input { width: 18px; height: 18px; }
+.mv-wrap.mv-app .mv-barra-app > .mv-aire .mv-aire-cuerpo { padding: 6px 14px 14px; }
+.mv-wrap.mv-app .mv-barra-app > .mv-aire .mv-aire-cuerpo { right: auto; width: min(780px, calc(100vw - 24px)); }

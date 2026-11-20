@@ -846,7 +846,6 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
   // lado es por `modalNomina` (esta ventana solo se puede abrir con la de
   // nómina ya abierta).
   const [modalElegirEquipo, setModalElegirEquipo] = useState(false);
-  const [detalleJugadores, setDetalleJugadores] = useState(false);
   // Al disparar Nómina/Estadísticas: si se tapa el marcador base mientras
   // esa capa está en pantalla, o se lo deja visible debajo (por defecto).
   const [ocultarMarcador, setOcultarMarcador] = useState(false);
@@ -1448,7 +1447,6 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
   const escenaMarcadorActual = escenas.find((e) => e.tipo === 'marcador');
 
   const reproducirNomina = (modo) => emitirAccion('NOMINA_REPRODUCIR', { modo, ocultarMarcador });
-  const dispararEstadisticas = (payload) => emitirAccion('ESTADISTICAS_MOSTRAR', { ...payload, ocultarMarcador });
   // Presentación automática por dorsal (menor a mayor). Cada paso manda la
   // lista acumulada de ESE equipo: el último es quien entra en grande y el
   // resto queda en la fila de abajo (ver VistaNomina, modo 'presentacion').
@@ -1481,10 +1479,6 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
     };
     paso(0);
   };
-  const jugadoresDeAmbos = [
-    ...partido.equipoLocal.roster.map((j) => ({ ...j, equipoNombre: partido.equipoLocal.nombre })),
-    ...partido.equipoVisita.roster.map((j) => ({ ...j, equipoNombre: partido.equipoVisita.nombre })),
-  ];
 
   // Piezas que cada tipo de mesa ubica en otro lugar (mismos botones, mismas acciones).
   const botonesPantallas = [['previa', '🎬 Previa'], ['final', '🏁 Final'], ['mvp', '⭐ Jugadora del partido']].map(([modo, etiqueta]) => (
@@ -1520,44 +1514,22 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
   );
   const disparadoresMesa = (
     <div className="mv-disparadores mv-disparadores-compacto">
-      <div className="fila-form">
-        <span className="mv-disparadores-etiqueta" title="Nómina">👥</span>
-        <button className="mv-pill mv-pill-chico" title="Mostrar nómina — Local" onClick={() => reproducirNomina('local')}>Local</button>
-        <button className="mv-pill mv-pill-chico" title="Mostrar nómina — Visita" onClick={() => reproducirNomina('visita')}>Visita</button>
-        <button className="mv-pill mv-pill-chico" title="Mostrar nómina — Ambos" onClick={() => reproducirNomina('ambos')}>Ambos</button>
+      <div className="mv-aire-botones">
+        <button className="mv-pill" title="Mostrar la nómina de Local" onClick={() => reproducirNomina('local')}>👥 Nómina Local</button>
+        <button className="mv-pill" title="Mostrar la nómina de Visita" onClick={() => reproducirNomina('visita')}>👥 Nómina Visita</button>
+        <button className="mv-pill" title="Mostrar las dos nóminas" onClick={() => reproducirNomina('ambos')}>👥 Ambas nóminas</button>
         <button
-          className={`mv-pill mv-pill-chico ${mostrarPresentacion ? 'activo' : ''}`}
-          title="Presentar el plantel titular uno por uno, con foto y nombre"
+          className={`mv-pill mv-pill-destacada ${mostrarPresentacion ? 'activo' : ''}`}
+          title="Presentar a cada jugador/a de a uno, con foto y nombre en grande"
           onClick={() => { setAireAbierto(false); setMostrarPresentacion(true); }}
         >
-          🎬 Presentar
+          🎬 Presentar jugadores
         </button>
-        <span className="mv-disparadores-sep" />
-        <span className="mv-disparadores-etiqueta" title="Estadísticas">📊</span>
-        <button className="mv-pill mv-pill-chico" title="Estadísticas — Equipo Local" onClick={() => dispararEstadisticas({ modo: 'equipo', equipo: 'local', detalle: detalleJugadores })}>Local</button>
-        <button className="mv-pill mv-pill-chico" title="Estadísticas — Equipo Visita" onClick={() => dispararEstadisticas({ modo: 'equipo', equipo: 'visita', detalle: detalleJugadores })}>Visita</button>
-        <button className="mv-pill mv-pill-chico" title="Estadísticas — Ambos Equipos" onClick={() => dispararEstadisticas({ modo: 'ambos', detalle: detalleJugadores })}>Ambos</button>
-        <select
-          className="mv-select mv-select-chico"
-          title="Estadísticas de un jugador puntual"
-          value=""
-          onChange={(ev) => { if (ev.target.value) dispararEstadisticas({ modo: 'jugador', jugadorId: Number(ev.target.value) }); }}
-        >
-          <option value="">Jugador…</option>
-          {jugadoresDeAmbos.map((j) => (
-            <option key={j.id} value={j.id}>{j.equipoNombre} — #{j.dorsal ?? '-'} {j.nombre}</option>
-          ))}
-        </select>
-        <span className="mv-disparadores-sep" />
-        <label className="mv-check-detalle" title="Incluir detalle por jugador en Equipo Local/Visita/Ambos">
-          <input type="checkbox" checked={detalleJugadores} onChange={(e) => setDetalleJugadores(e.target.checked)} />
-          Detalle x jugador
-        </label>
-        <label className="mv-check-detalle" title="Ocultar el marcador mientras se muestra Nómina/Estadísticas">
-          <input type="checkbox" checked={ocultarMarcador} onChange={(e) => setOcultarMarcador(e.target.checked)} />
-          Ocultar marcador
-        </label>
       </div>
+      <label className="mv-check-detalle mv-aire-check" title="Ocultar el marcador mientras se muestra la nómina">
+        <input type="checkbox" checked={ocultarMarcador} onChange={(e) => setOcultarMarcador(e.target.checked)} />
+        Ocultar el marcador mientras se muestra la nómina
+      </label>
     </div>
   );
 
@@ -1638,7 +1610,7 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
               <div className="mv-aire-botones">{botonesAire}</div>
               <p className="mv-aire-seccion">Pantallas grandes</p>
               <div className="mv-aire-botones">{botonesPantallas}</div>
-              <p className="mv-aire-seccion">Nómina y estadísticas</p>
+              <p className="mv-aire-seccion">Nómina</p>
               {disparadoresMesa}
             </div>
           </aside>
@@ -1732,7 +1704,7 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
                   <div className="mv-aire-botones">{botonesAire}</div>
                   <p className="mv-aire-seccion">Pantallas grandes</p>
                   <div className="mv-aire-botones">{botonesPantallas}</div>
-                  <p className="mv-aire-seccion">Nómina y estadísticas</p>
+                  <p className="mv-aire-seccion">Nómina</p>
                   {disparadoresMesa}
                 </div>
               </aside>
