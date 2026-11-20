@@ -215,6 +215,7 @@ export default function EscenaPublica() {
   if (error || !datos?.partido || !datos?.escena) return null;
   if (datos.escena.eliminada || datos.escena.activo === false) return null;
 
+  const contenido = (() => {
   switch (datos.escena.tipo) {
     case 'marcador': {
       // Enlace único por diseño: el marcador compone encima suyo la Nómina
@@ -349,4 +350,40 @@ export default function EscenaPublica() {
     default:
       return null;
   }
+  })();
+  return <LienzoEscena>{contenido}</LienzoEscena>;
+}
+
+// Lienzo fijo de 1920×1080 escalado al tamaño de la ventana, igual que la
+// vista previa del editor: en OBS (1920×1080) la escala es 1 y no cambia
+// nada; en apps que cargan el enlace en un recuadro más chico (celular,
+// otras apps de transmisión) todo se achica junto, en el mismo lugar y
+// proporción que en el editor, en vez de quedar gigante.
+function escalaVentana() {
+  if (typeof window === 'undefined' || !window.innerWidth || !window.innerHeight) return 1;
+  return Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+}
+function LienzoEscena({ children }) {
+  const [escala, setEscala] = useState(escalaVentana);
+  useEffect(() => {
+    const medir = () => setEscala(escalaVentana());
+    window.addEventListener('resize', medir);
+    window.visualViewport?.addEventListener('resize', medir);
+    return () => {
+      window.removeEventListener('resize', medir);
+      window.visualViewport?.removeEventListener('resize', medir);
+    };
+  }, []);
+  return (
+    <div
+      className="escena-lienzo"
+      style={{
+        position: 'fixed', left: '50%', top: '50%', width: 1920, height: 1080,
+        transform: `translate(-50%, -50%) scale(${escala})`, transformOrigin: 'center',
+        pointerEvents: 'none', '--u-vw': '19.2px', '--u-vh': '10.8px',
+      }}
+    >
+      {children}
+    </div>
+  );
 }

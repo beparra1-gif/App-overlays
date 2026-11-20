@@ -33,6 +33,9 @@
      solo mueve algo cuando el usuario lo arrastra estando con zoom > 100%. */
   transform: translate(var(--pan-x, 0px), var(--pan-y, 0px)) scale(var(--escala-lienzo, 0.25));
   transform-origin: top left;
+  /* 1vw/1vh del lienzo (no de la ventana): igual que en el enlace público. */
+  --u-vw: 19.2px;
+  --u-vh: 10.8px;
 }
 
 /* Previa combinada del panel de personalización: más grande que las

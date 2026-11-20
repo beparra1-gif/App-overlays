@@ -22,7 +22,7 @@
      contenedor (regla del spec de CSS — mismo quirk que paddingTopDesdeY en
      utils.js), nunca sobre la altura de ESTE elemento. vh/vw no tienen ese
      problema: cada uno queda relativo a su propio eje de la pantalla. */
-  padding: 1vh 1.6vw;
+  padding: calc(1 * var(--u-vh, 1vh)) calc(1.6 * var(--u-vw, 1vw));
 }
 
 /* "Entretiempo" — estado del PARTIDO, mismos colores que el propio
@@ -56,7 +56,7 @@
 .alerta-marcador-subtitulo {
   font-family: inherit;
   font-weight: 700;
-  font-size: 1.3vw;
+  font-size: calc(1.3 * var(--u-vw, 1vw));
   letter-spacing: 0.12em;
   text-transform: uppercase;
   opacity: 0.85;

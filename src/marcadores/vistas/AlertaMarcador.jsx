@@ -65,7 +65,7 @@ export default function AlertaMarcador({ texto, subtitulo, equipo, caja, config 
       <span
         ref={textoRef}
         className="alerta-marcador-texto"
-        style={{ fontSize: `${tamanoBasePorAlto(caja)}vw`, transform: `scale(${escala})` }}
+        style={{ fontSize: `calc(${tamanoBasePorAlto(caja)} * var(--u-vw, 1vw))`, transform: `scale(${escala})` }}
       >
         {texto}
       </span>

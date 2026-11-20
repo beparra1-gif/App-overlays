@@ -108,7 +108,7 @@ export default function VistaNomina({ partido, modo = 'ambos', claveAnimacion = 
   const offsetXFondo = Number(config?.nominaLogoFondoOffsetX) || 0;
   const offsetYFondo = Number(config?.nominaLogoFondoOffsetY) || 0;
   const estiloLogoFondo = (esLocal) => ({
-    height: `${altoLogoFondo}vh`,
+    height: `calc(${altoLogoFondo} * var(--u-vh, 1vh))`,
     opacity: opacidadLogo,
     '--logo-opacidad-final': opacidadLogo,
     '--logofondo-offset-x': `${esLocal ? -offsetXFondo : offsetXFondo}px`,

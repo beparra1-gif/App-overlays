@@ -93,7 +93,7 @@ html:has(.plantilla-marcador) {
   height: 100%; padding: 0 0 18px; font-family: var(--pm-fuente, 'Oswald', sans-serif);
 }
 .pn-barra {
-  width: min(460px, 90vw); background: var(--pm-tablero, linear-gradient(90deg, #0b1120 0%, #131b2e 50%, #1a0b12 100%));
+  width: min(460px, calc(90 * var(--u-vw, 1vw))); background: var(--pm-tablero, linear-gradient(90deg, #0b1120 0%, #131b2e 50%, #1a0b12 100%));
   border-radius: 10px; padding: 10px 20px; display: grid; grid-template-columns: 1fr auto 1fr;
   align-items: center; box-shadow: 0 16px 40px rgba(0,0,0,.5); border-bottom: 3px solid var(--pm-banner, #c8102e);
 }
