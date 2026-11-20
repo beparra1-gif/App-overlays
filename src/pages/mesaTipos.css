@@ -127,7 +127,7 @@
 .mv-tipo-jugadora .mv-zona-centro { grid-area: centro; }
 .mv-tipo-jugadora .mv-zona-visita { grid-area: visita; }
 .mv-tipo-jugadora > .mv-jugadas { grid-area: jugadas; }
-.mv-tipo-jugadora > .mv-panel-fondo, .mv-tipo-jugadora > .mv-acciones-espera { grid-area: acciones; margin-bottom: 12px; }
+.mv-tipo-jugadora > .mv-panel-fondo:not(.mv-escenas-fondo), .mv-tipo-jugadora > .mv-acciones-espera { grid-area: acciones; margin-bottom: 12px; }
 .mv-tipo-jugadora .mv-equipo-pts { font-size: 30px; }
 .mv-tipo-jugadora .mv-zona { padding: 10px; border-radius: 14px; min-width: 0; }
 .mv-tipo-jugadora .mv-zona-titulo-fila { flex-wrap: wrap; }
@@ -143,7 +143,7 @@
 .mv-tipo-jugadora .mv-control-card h6 { grid-column: 1 / -1; margin: 0; }
 .mv-tipo-jugadora .mv-btn-electrico-grande { margin-top: 0; }
 /* Panel de acciones acoplado al centro, siempre a la vista. */
-.mv-tipo-jugadora > .mv-panel-fondo { position: static; inset: auto; z-index: auto; padding: 0; background: none; -webkit-backdrop-filter: none; backdrop-filter: none; animation: none; display: block; }
+.mv-tipo-jugadora > .mv-panel-fondo:not(.mv-escenas-fondo) { position: static; inset: auto; z-index: auto; padding: 0; background: none; -webkit-backdrop-filter: none; backdrop-filter: none; animation: none; display: block; }
 .mv-tipo-jugadora .mv-panel-acciones { width: auto; max-height: none; overflow: visible; border-radius: 18px; animation: none; box-shadow: none; background: var(--mv-tarjeta); -webkit-backdrop-filter: none; backdrop-filter: none; }
 .mv-tipo-jugadora .mv-panel-fade { display: none; }
 .mv-tipo-jugadora .fiba-botones-grid { grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); gap: 8px; }
@@ -318,13 +318,13 @@
   .mv-wrap.mv-app {
     overflow: hidden; display: grid; gap: 6px 8px; align-content: stretch; align-items: stretch;
     grid-template-columns: minmax(0, 1fr) minmax(0, .95fr) minmax(0, 1fr);
-    grid-template-rows: auto auto auto auto auto auto minmax(0, 1fr);
-    grid-template-areas: "fila fila fila" "top top top" "aire aire aire" "extra extra extra" "score score score" "local centro visita" "local jugadas visita";
+    grid-template-rows: auto auto auto auto minmax(0, 1fr);
+    grid-template-areas: "barra barra barra" "extra extra extra" "score score score" "local centro visita" "local jugadas visita";
   }
   .mv-wrap.mv-app > * { margin: 0 !important; min-width: 0; min-height: 0; grid-column: auto; grid-row: auto; }
   .mv-wrap.mv-app > .mv-fila-completa { grid-area: fila; }
   .mv-wrap.mv-app > .mv-topbar { grid-area: top; flex-wrap: wrap; justify-content: flex-start; gap: 6px; }
-  .mv-wrap.mv-app > .mv-aire, .mv-wrap.mv-app > .mv-disparadores { grid-area: aire; }
+  .mv-wrap.mv-app .mv-barra-app > .mv-aire, .mv-wrap.mv-app > .mv-disparadores { grid-area: aire; }
   .mv-wrap.mv-app > .mv-presentacion-panel, .mv-wrap.mv-app > .mensaje-error { grid-area: extra; max-height: 30dvh; overflow: auto; }
   .mv-wrap.mv-app > .mv-scorebar { grid-area: score; }
   .mv-wrap.mv-app .mv-layout-grid { display: contents; }
@@ -344,10 +344,10 @@
   .mv-wrap.mv-app > .mv-topbar .mt-tipo button { padding: 4px 11px; font-size: 12px; }
 
   /* "En pantalla": una franja de una línea; al abrirla se despliega ENCIMA, sin empujar nada. */
-  .mv-wrap.mv-app > .mv-aire { position: relative; z-index: 30; overflow: visible; }
-  .mv-wrap.mv-app > .mv-aire .mv-aire-titulo { padding: 7px 12px; min-height: 0; }
-  .mv-wrap.mv-app > .mv-aire .mv-aire-cuerpo { position: absolute; left: -1px; right: -1px; top: calc(100% + 4px); max-height: 70dvh; overflow: auto; padding: 4px 14px 14px; background: #15171c; border: 1px solid rgba(255,255,255,.16); border-radius: 14px; box-shadow: 0 22px 50px rgba(0,0,0,.6); }
-  .mv-wrap.mv-app > .mv-aire:not(.abierto) .mv-aire-cuerpo { display: none; }
+  .mv-wrap.mv-app .mv-barra-app > .mv-aire { position: relative; z-index: 30; overflow: visible; }
+  .mv-wrap.mv-app .mv-barra-app > .mv-aire .mv-aire-titulo { padding: 7px 12px; min-height: 0; }
+  .mv-wrap.mv-app .mv-barra-app > .mv-aire .mv-aire-cuerpo { position: absolute; left: -1px; right: -1px; top: calc(100% + 4px); max-height: 70dvh; overflow: auto; padding: 4px 14px 14px; background: #15171c; border: 1px solid rgba(255,255,255,.16); border-radius: 14px; box-shadow: 0 22px 50px rgba(0,0,0,.6); }
+  .mv-wrap.mv-app .mv-barra-app > .mv-aire:not(.abierto) .mv-aire-cuerpo { display: none; }
 
   .mv-wrap.mv-app .mv-zona-centro { display: flex; flex-direction: column; gap: 8px; }
   .mv-wrap.mv-app .mv-zona-centro > * { margin: 0 !important; }
@@ -386,10 +386,10 @@
   /* POR JUGADORA: planteles a los costados; al medio el reloj y debajo el teclado de acciones. */
   .mv-wrap.mv-app.mv-tipo-jugadora {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr) minmax(0, 1fr);
-    grid-template-rows: auto auto auto auto auto auto minmax(0, 1fr) auto;
-    grid-template-areas: "fila fila fila" "top top top" "aire aire aire" "extra extra extra" "score score score" "local centro visita" "local acciones visita" "local jugadas visita";
+    grid-template-rows: auto auto auto auto minmax(0, 1fr) auto;
+    grid-template-areas: "barra barra barra" "extra extra extra" "score score score" "local centro visita" "local acciones visita" "local jugadas visita";
   }
-  .mv-wrap.mv-app.mv-tipo-jugadora > .mv-panel-fondo, .mv-wrap.mv-app.mv-tipo-jugadora > .mv-acciones-espera { grid-area: acciones; overflow: auto; }
+  .mv-wrap.mv-app.mv-tipo-jugadora > .mv-panel-fondo:not(.mv-escenas-fondo), .mv-wrap.mv-app.mv-tipo-jugadora > .mv-acciones-espera { grid-area: acciones; overflow: auto; }
   .mv-wrap.mv-app.mv-tipo-jugadora > .mv-acciones-espera { min-height: 0; }
   .mv-wrap.mv-app.mv-tipo-jugadora > .mv-jugadas { max-height: 92px; }
   .mv-wrap.mv-app.mv-tipo-jugadora .mv-jugadas-lista li:nth-child(n+2) { display: none; }
@@ -402,28 +402,17 @@
   .mv-wrap.mv-app.mv-tipo-jugadora .mv-seccion-titulo { margin: 6px 0 3px; }
 }
 
-/* Consola en pantallas anchas: "En pantalla" siempre abierto como columna derecha. */
-@media (min-width: 1280px) and (min-height: 540px) {
-  .mv-wrap.mv-app.mv-tipo-consola {
-    grid-template-columns: minmax(0, 1fr) minmax(0, .9fr) minmax(0, 1fr) 300px;
-    grid-template-areas: "fila fila fila fila" "top top top top" "extra extra extra aire" "score score score aire" "local centro visita aire" "local centro visita aire" "local jugadas visita aire";
-  }
-  .mv-wrap.mv-app.mv-tipo-consola > .mv-aire { overflow: auto; }
-  .mv-wrap.mv-app.mv-tipo-consola > .mv-aire .mv-aire-titulo { pointer-events: none; cursor: default; }
-  .mv-wrap.mv-app.mv-tipo-consola > .mv-aire .mv-aire-flecha { display: none; }
-  .mv-wrap.mv-app.mv-tipo-consola > .mv-aire .mv-aire-cuerpo, .mv-wrap.mv-app.mv-tipo-consola > .mv-aire:not(.abierto) .mv-aire-cuerpo { display: block; position: static; max-height: none; border: 0; box-shadow: none; border-radius: 0; background: none; }
-}
 
 /* iPad en vertical (y pantallas más altas que anchas): controles en franja, planteles lado a lado. */
 @media (min-width: 700px) and (min-height: 540px) and (max-width: 1099px) and (max-aspect-ratio: 1/1) {
   .mv-wrap.mv-app, .mv-wrap.mv-app.mv-tipo-tablet {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-rows: auto auto auto auto auto auto minmax(0, 1fr) auto;
-    grid-template-areas: "fila fila" "top top" "aire aire" "extra extra" "score score" "centro centro" "local visita" "jugadas jugadas";
+    grid-template-rows: auto auto auto auto minmax(0, 1fr) auto;
+    grid-template-areas: "barra barra" "extra extra" "score score" "centro centro" "local visita" "jugadas jugadas";
   }
   .mv-wrap.mv-app.mv-tipo-jugadora {
-    grid-template-rows: auto auto auto auto auto auto auto minmax(0, 1fr) auto;
-    grid-template-areas: "fila fila" "top top" "aire aire" "extra extra" "score score" "centro centro" "acciones acciones" "local visita" "jugadas jugadas";
+    grid-template-rows: auto auto auto auto auto minmax(0, 1fr) auto;
+    grid-template-areas: "barra barra" "extra extra" "score score" "centro centro" "acciones acciones" "local visita" "jugadas jugadas";
   }
   .mv-wrap.mv-app .mv-zona-centro > * { margin: 0 !important; }
   .mv-wrap.mv-app > .mv-jugadas { max-height: 84px; }
@@ -451,7 +440,7 @@
 
 /* POR JUGADORA en horizontal: el teclado de acciones entero a la vista (sin desplazarse). */
 @media (min-width: 700px) and (min-height: 540px) {
-  .mv-wrap.mv-app.mv-tipo-jugadora:has(> .mv-panel-fondo) > .mv-jugadas { display: none; }
+  .mv-wrap.mv-app.mv-tipo-jugadora:has(> .mv-panel-fondo:not(.mv-escenas-fondo)) > .mv-jugadas { display: none; }
   .mv-wrap.mv-app.mv-tipo-jugadora .mv-panel-acciones { padding: 8px 10px; }
   .mv-wrap.mv-app.mv-tipo-jugadora .mv-panel-acciones-header { padding: 0 34px 0 0; margin: 0; }
   .mv-wrap.mv-app.mv-tipo-jugadora .mv-panel-titulo-wrap { flex-direction: row; justify-content: flex-start; gap: 8px; text-align: left; }
@@ -570,3 +559,38 @@
 .mv-wrap.mt-tema.mv-tipo-consola .mv-zona-visita { border-top-color: var(--mt-visita) !important; }
 .mt-tema-select { appearance: none; -webkit-appearance: none; cursor: pointer; padding-right: 12px; }
 .mt-tema-select option { color: #000; }
+
+/* ═════════ BARRA ÚNICA: "En pantalla" + lo esencial + ⚙ Configuración ═════════ */
+.mv-barra-app { display: flex; align-items: stretch; gap: 8px; min-width: 0; }
+.mv-wrap.mv-app > .mv-barra-app { grid-area: barra; }
+.mv-barra-app > .mv-aire { flex: 1 1 auto; min-width: 0; margin: 0 !important; }
+.mv-barra-rapida { display: flex; align-items: center; gap: 6px; flex: 0 0 auto; }
+.mv-barra-rapida .mv-pill { min-height: 36px; padding: 5px 12px; font-size: 12px; white-space: nowrap; }
+.mv-barra-rapida .mv-ok { color: #b7f5c9; border-color: rgba(52,199,89,.55); }
+.mv-btn-config { background: #2b2d35; border-color: rgba(255,255,255,.28); font-weight: 800; }
+.mv-wrap.mt-tema .mv-btn-config { background: var(--t-acento); color: var(--t-acento-txt); border-color: transparent; }
+/* Ventana de configuración */
+.mv-config-caja { width: min(760px, 94vw); }
+.mv-config-titulo { margin: 0 0 6px; font-size: 18px; }
+.mv-config-seccion { margin: 14px 0 6px; font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--mv-texto-tenue, #c2c7d0); }
+.mv-config-tipos { display: flex; width: 100%; box-sizing: border-box; }
+.mv-config-tipos button { flex: 1; text-align: center; padding: 10px 8px; font-size: 14px; }
+.mv-config-botones { display: flex; flex-wrap: wrap; gap: 8px; }
+.mv-config-botones .mv-pill { min-height: 42px; padding: 8px 14px; font-size: 13px; }
+.mv-config-colores { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.mv-config-color { all: unset; box-sizing: border-box; cursor: pointer; display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: #1f2128; border: 2px solid rgba(255,255,255,.1); font-size: 13px; font-weight: 700; color: #fff; }
+.mv-config-color.activo { border-color: #fff; box-shadow: 0 0 0 3px rgba(255,255,255,.18); }
+.mv-config-color:focus-visible { outline: 2px solid #007aff; }
+.mv-config-muestra { flex: 0 0 auto; width: 34px; height: 24px; border-radius: 6px; border: 1px solid rgba(255,255,255,.25); }
+.mt-muestra-original .mv-config-muestra { background: linear-gradient(135deg, #000 50%, #007aff 50%); }
+.mt-muestra-medianoche .mv-config-muestra { background: linear-gradient(135deg, #0f1a33 50%, #4f8cff 50%); }
+.mt-muestra-duela .mv-config-muestra { background: linear-gradient(135deg, #2b1d10 50%, #f28c28 50%); }
+.mt-muestra-neon .mv-config-muestra { background: linear-gradient(135deg, #140a24 50%, #ff2fd6 50%); }
+.mt-muestra-esmeralda .mv-config-muestra { background: linear-gradient(135deg, #0b2219 50%, #20c997 50%); }
+.mt-muestra-carbon .mv-config-muestra { background: linear-gradient(135deg, #19191c 50%, #e10600 50%); }
+.mv-config-atajos { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 8px; font-size: 12px; color: #d6dae2; }
+@media (max-width: 1000px) {
+  .mv-barra-rapida .mv-pill { padding: 5px 9px; font-size: 11px; }
+  .mv-config-colores { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.mv-config-botones a.mv-pill { text-decoration: none; }

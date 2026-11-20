@@ -22,7 +22,7 @@ import './mesaTipos.css';
 // Tipos de mesa: mismas piezas y funciones, distinto orden y aspecto.
 // Paletas de color de la mesa (solo se ven en la Mesa, no salen al aire).
 const TEMAS_MESA = [
-  { id: 'original', etiqueta: 'Color: original' },
+  { id: 'original', etiqueta: 'Original' },
   { id: 'medianoche', etiqueta: 'Medianoche' },
   { id: 'duela', etiqueta: 'Duela (madera)' },
   { id: 'neon', etiqueta: 'Neón' },
@@ -823,7 +823,8 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
   const [enPantallaCompleta, setEnPantallaCompleta] = useState(false);
   // Mesa propia (no embebida): ocupa siempre la pantalla visible exacta, sin
   // scroll de página; "Pantalla completa" solo suma esconder la barra del navegador.
-  const modoApp = !embebido;
+  const modoApp = !embebido || enPantallaCompleta;
+  const [verConfig, setVerConfig] = useState(false);
   // Interruptor manual, independiente de Nómina/Estadísticas — decide si el
   // marcador se ve o no en la transmisión AHORA MISMO, a criterio de quien
   // maneja la Mesa (por ejemplo, apagarlo en un corte publicitario). No se
@@ -1611,21 +1612,40 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
               </div>
             </div>
           )}
-          <div className="mv-topbar">
-            {(modoApp || enPantallaCompleta) && (
-              <div className="mv-fila-completa">
-                {modoApp && <Link className="mv-pill" to="/partidos" title="Volver a Partidos">← Partidos</Link>}
-                <div className="mt-tipo" role="group" aria-label="Tipo de mesa">
-                  {TIPOS_MESA.map((t) => <button key={t.id} type="button" className={tipoMesa === t.id ? 'activo' : ''} onClick={() => elegirTipoMesa(t.id)}>{t.etiqueta}</button>)}
-                </div>
-                <select className="mv-pill mt-tema-select" value={temaMesa} onChange={(e) => elegirTemaMesa(e.target.value)} aria-label="Color de la mesa" title="Color de la mesa">
-                  {TEMAS_MESA.map((t) => <option key={t.id} value={t.id}>🎨 {t.etiqueta}</option>)}
-                </select>
-                <button className="mv-pill" onClick={() => setMostrarResumen(true)}>📊 Resumen</button>
-                {clasica && botonesPantallas}
-                {modoApp && <button className={`mv-pill ${mostrarGestionEscenas ? 'activa' : ''}`} onClick={() => setMostrarGestionEscenas((v) => !v)}>⚙ Escenas</button>}
+          {modoApp ? (
+            <div className="mv-barra-app">
+          <aside className={`mv-aire ${aireAbierto ? 'abierto' : ''}`} aria-label="Gráficos en pantalla">
+            <button type="button" className="mv-aire-titulo" onClick={() => setAireAbierto((v) => !v)} aria-expanded={aireAbierto}>
+              <span>📺 En pantalla</span>
+              <span className="mv-aire-resumen">{[!marcadorOculto && 'Marcador', intertantoActivo && 'Intertanto', pantallaEspecial && ({ previa: 'Previa', final: 'Final', mvp: 'Jugadora del partido', tabla: 'Tabla' })[pantallaEspecial], alertaMarcador?.texto === 'ENTRETIEMPO' && 'Entretiempo'].filter(Boolean).join(' · ') || 'Nada al aire'}</span>
+              <span className="mv-aire-flecha">{aireAbierto ? '▴' : '▾'}</span>
+            </button>
+            <div className="mv-aire-cuerpo">
+              <p className="mv-aire-seccion">Marcador</p>
+              <div className="mv-aire-botones">{botonesAire}</div>
+              <p className="mv-aire-seccion">Pantallas grandes</p>
+              <div className="mv-aire-botones">{botonesPantallas}</div>
+              <p className="mv-aire-seccion">Nómina y estadísticas</p>
+              {disparadoresMesa}
+            </div>
+          </aside>
+              <div className="mv-barra-rapida">
+                <button className="mv-pill" disabled={!partido.ultimaJugada} onClick={deshacerUltima} title={partido.ultimaJugada ? `Deshacer: ${describirUltima(partido.ultimaJugada)} (Ctrl+Z)` : 'Nada para deshacer'}>↶ Deshacer</button>
+                <span className={`mv-pill ${conectado ? 'mv-ok' : 'mv-pill-alerta'}`} title={conectado ? 'Conectado al servidor' : 'Sin conexión: las jugadas se guardan y se envían solas al volver'}>
+                  {conectado ? '🟢 Conectado' : '🔴 Sin conexión'}
+                </span>
+                {escenaMarcadorActual && (
+                  <span className={`mv-pill ${viewersMarcador > 0 ? 'mv-ok' : 'mv-pill-alerta'}`} title="Fuentes (OBS u otro navegador) con el enlace del marcador abierto">
+                    {viewersMarcador === null ? '📡 …' : viewersMarcador > 0 ? `📡 OBS: ${viewersMarcador}` : '📡 OBS: nadie'}
+                  </span>
+                )}
+                <button className="mv-pill" onClick={alternarPantallaCompleta}>{enPantallaCompleta ? '✕ Salir' : '⛶ Pantalla completa'}</button>
+                <button className={`mv-pill mv-btn-config ${verConfig ? 'activa' : ''}`} onClick={() => setVerConfig(true)} title="Configuración de la mesa">⚙ Configuración</button>
               </div>
-            )}
+            </div>
+          ) : (
+            <>
+          <div className="mv-topbar">
             <span className={`mv-pill ${conectado ? '' : 'mv-pill-alerta'}`} title={conectado ? 'Conectado al servidor' : 'Sin conexión: las jugadas se guardan y se envían solas al volver'}>
               {conectado ? '🟢 Conectado' : '🔴 Sin conexión · se envía al volver'}
             </span>
@@ -1685,22 +1705,68 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
           </div>
 
 
-          {clasica ? disparadoresMesa : (
-            <aside className={`mv-aire ${aireAbierto ? 'abierto' : ''}`} aria-label="Gráficos en pantalla">
-              <button type="button" className="mv-aire-titulo" onClick={() => setAireAbierto((v) => !v)} aria-expanded={aireAbierto}>
-                <span>📺 En pantalla</span>
-                <span className="mv-aire-resumen">{[!marcadorOculto && 'Marcador', intertantoActivo && 'Intertanto', pantallaEspecial && ({ previa: 'Previa', final: 'Final', mvp: 'Jugadora del partido', tabla: 'Tabla' })[pantallaEspecial], alertaMarcador?.texto === 'ENTRETIEMPO' && 'Entretiempo'].filter(Boolean).join(' · ') || 'Nada al aire'}</span>
-                <span className="mv-aire-flecha">{aireAbierto ? '▴' : '▾'}</span>
-              </button>
-              <div className="mv-aire-cuerpo">
-                <p className="mv-aire-seccion">Marcador</p>
-                <div className="mv-aire-botones">{botonesAire}</div>
-                <p className="mv-aire-seccion">Pantallas grandes</p>
-                <div className="mv-aire-botones">{botonesPantallas}</div>
-                <p className="mv-aire-seccion">Nómina y estadísticas</p>
-                {disparadoresMesa}
+              {clasica ? disparadoresMesa : (
+              <aside className={`mv-aire ${aireAbierto ? 'abierto' : ''}`} aria-label="Gráficos en pantalla">
+                <button type="button" className="mv-aire-titulo" onClick={() => setAireAbierto((v) => !v)} aria-expanded={aireAbierto}>
+                  <span>📺 En pantalla</span>
+                  <span className="mv-aire-resumen">{[!marcadorOculto && 'Marcador', intertantoActivo && 'Intertanto', pantallaEspecial && ({ previa: 'Previa', final: 'Final', mvp: 'Jugadora del partido', tabla: 'Tabla' })[pantallaEspecial], alertaMarcador?.texto === 'ENTRETIEMPO' && 'Entretiempo'].filter(Boolean).join(' · ') || 'Nada al aire'}</span>
+                  <span className="mv-aire-flecha">{aireAbierto ? '▴' : '▾'}</span>
+                </button>
+                <div className="mv-aire-cuerpo">
+                  <p className="mv-aire-seccion">Marcador</p>
+                  <div className="mv-aire-botones">{botonesAire}</div>
+                  <p className="mv-aire-seccion">Pantallas grandes</p>
+                  <div className="mv-aire-botones">{botonesPantallas}</div>
+                  <p className="mv-aire-seccion">Nómina y estadísticas</p>
+                  {disparadoresMesa}
+                </div>
+              </aside>
+              )}
+            </>
+          )}
+
+          {modoApp && verConfig && (
+            <div className="mv-panel-fondo mv-escenas-fondo" onClick={() => setVerConfig(false)}>
+              <div className="mv-escenas-caja mv-config-caja" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Configuración de la mesa">
+                <button type="button" className="mv-panel-cerrar" onClick={() => setVerConfig(false)} title="Cerrar">✕</button>
+                <h3 className="mv-config-titulo">⚙ Configuración de la mesa</h3>
+                <p className="mv-config-seccion">Tipo de mesa</p>
+                <div className="mt-tipo mv-config-tipos" role="group" aria-label="Tipo de mesa">
+                  {TIPOS_MESA.map((t) => <button key={t.id} type="button" className={tipoMesa === t.id ? 'activo' : ''} onClick={() => elegirTipoMesa(t.id)}>{t.etiqueta}</button>)}
+                </div>
+                <p className="mv-config-seccion">Color</p>
+                <div className="mv-config-colores">
+                  {TEMAS_MESA.map((t) => (
+                    <button key={t.id} type="button" className={`mv-config-color mt-muestra-${t.id} ${temaMesa === t.id ? 'activo' : ''}`} onClick={() => elegirTemaMesa(t.id)}>
+                      <span className="mv-config-muestra" aria-hidden="true" />{t.etiqueta}
+                    </button>
+                  ))}
+                </div>
+                <p className="mv-config-seccion">Mesa</p>
+                <div className="mv-config-botones">
+                  <button className="mv-pill" onClick={() => { setVerConfig(false); setMostrarResumen(true); }}>📊 Resumen / intertanto</button>
+                  <button className={`mv-pill ${bocinaActiva ? 'activa' : ''}`} onClick={alternarBocina}>{bocinaActiva ? '🔔 Bocina: sí' : '🔕 Bocina: no'}</button>
+                  <button className={`mv-pill ${partido.sincronizacionCamara?.activo ? (lectorEstado?.conectado ? 'activa' : 'mv-pill-alerta') : ''}`} onClick={() => { setVerConfig(false); setMostrarCamara(true); }} title="Leer el marcador del estadio con la cámara de un celular, o dejarlo manual">
+                    {!partido.sincronizacionCamara?.activo ? '📷 Marcador: manual' : lectorEstado?.conectado ? '📷 Marcador por cámara ●' : '📷 Cámara sin señal'}
+                  </button>
+                  <button className={`mv-pill ${verAtajos ? 'activa' : ''}`} onClick={() => setVerAtajos((v) => !v)}>⌨️ Atajos</button>
+                  <button className="mv-pill" onClick={() => { setVerConfig(false); setMostrarGestionEscenas(true); }}>🎬 Escenas</button>
+                </div>
+                {verAtajos && (
+                  <div className="mv-config-atajos" role="note">
+                    {ATAJOS_MESA.map(([tecla, que]) => <span key={tecla}><kbd>{tecla}</kbd> {que}</span>)}
+                  </div>
+                )}
+                <p className="mv-config-seccion">Partido</p>
+                <div className="mv-config-botones">
+                  {!embebido && <Link className="mv-pill" to="/partidos">← Partidos</Link>}
+                  {!embebido && <Link className="mv-pill" to={`/mesa/${id}/simple`}>📋 Mesa simple</Link>}
+                  {!embebido && escenaMarcadorActual?.diseno_id && <Link className="mv-pill" to={`/disenos?editar=${escenaMarcadorActual.diseno_id}`}>🎨 Personalizar</Link>}
+                  <button className="mv-pill" title="Vuelve el marcador a 0-0 para empezar otro partido — el enlace de OBS no cambia" onClick={() => { setVerConfig(false); reiniciarPartido(); }}>↺ Reiniciar partido</button>
+                  <button className="mv-pill mv-pill-peligro" title="El enlace de OBS sigue funcionando después de finalizar" onClick={() => { setVerConfig(false); finalizarPartido(); }}>⏹ Finalizar partido</button>
+                </div>
               </div>
-            </aside>
+            </div>
           )}
 
           {mostrarPresentacion && (
