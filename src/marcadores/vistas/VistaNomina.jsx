@@ -125,7 +125,8 @@ export default function VistaNomina({ partido, modo = 'ambos', claveAnimacion = 
   // "arriba" sigue siendo el default, pero config.nominaPosicionVertical
   // permite elegir centro/abajo a propósito si el usuario lo quiere así —
   // ya no es una regla fija, es una libertad más.
-  const horizontal = modo === 'local' ? 'izquierda' : modo === 'visita' ? 'derecha' : config?.nominaPosicion;
+  // Un solo equipo: cada club tiene su propia ubicación (Personalizar → Nómina → Solo Local / Solo Visita).
+  const horizontal = modo === 'local' ? (config?.nominaUbicacionLocal || 'izquierda') : modo === 'visita' ? (config?.nominaUbicacionVisita || 'derecha') : config?.nominaPosicion;
   const justifyContent = horizontal === 'izquierda' ? 'flex-start' : horizontal === 'derecha' ? 'flex-end' : 'center';
   const vertical = config?.nominaPosicionVertical || 'arriba';
   const alignItems = vertical === 'abajo' ? 'flex-end' : vertical === 'centro' ? 'center' : 'flex-start';

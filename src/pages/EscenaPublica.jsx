@@ -148,7 +148,7 @@ export default function EscenaPublica() {
   }, [nomina?.ts, duracionNominaMs]);
   useEffect(() => {
     if (!intertanto?.saliendo) return undefined;
-    const t = setTimeout(() => setIntertanto(null), 450);
+    const t = setTimeout(() => setIntertanto(null), 620);
     return () => clearTimeout(t);
   }, [intertanto?.saliendo]);
   // Duración opcional (Personalizar → Intertanto): 0/vacío = queda hasta que

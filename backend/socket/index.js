@@ -528,6 +528,8 @@ export function registrarSocketPartidos(io) {
             if (!Number.isInteger(periodoElegido) || periodoElegido < 1) throw new Error('Período inválido');
             actualizado = await fijarPeriodo(partido, periodoElegido);
             partidosConRelojActivo.delete(actualizado.id);
+            // Cambio de cuarto: el Intertanto (si estaba en pantalla) se va solo.
+            if (periodoElegido !== partido.periodo && transmisionPorToken.get(publicToken)?.intertanto) emitirIntertanto(publicToken, { activo: false });
             break;
           }
           case 'POSESION_FIJAR': {
@@ -646,11 +648,11 @@ export function registrarSocketPartidos(io) {
           const detenido = await pausarReloj(partido);
           partidosConRelojActivo.delete(partidoId);
           io.to(roomPartido(publicToken)).emit('estado', await construirEstado(detenido));
-          // Fin del cuarto: si el diseño lo pide (Personalizar → Intertanto
-          // → "Mostrar solo al terminar cada cuarto"), aparece el resumen.
+          // Fin del cuarto: la Mesa pregunta si se muestra el Intertanto
+          // (Personalizar → Intertanto → "Preguntar al terminar cada cuarto").
           const cfg = await configDisenoDelPartido(partidoId);
           if (cfg.mostrarIntertanto !== false && cfg.intertantoAuto !== false) {
-            emitirIntertanto(publicToken, { activo: true, ocultarMarcador: cfg.intertantoOcultarMarcador !== false, auto: true, ts: Date.now() });
+            io.to(roomPartido(publicToken)).emit('fin_periodo', { periodo: detenido.periodo, ts: Date.now() });
           }
           return;
         }

@@ -4,9 +4,9 @@
 .pq-raiz { font-family: var(--nomina-titulo-fuente, var(--sx-titulo, var(--pm-fuente, 'Oswald', sans-serif))); color: var(--nomina-texto, var(--pm-texto, #fff)); }
 .pq-logo { object-fit: contain; opacity: var(--pm-logo-opacidad, 1); }
 .pq-foto-vacia { display: grid; place-items: center; background: var(--color-equipo); color: #fff; font-weight: 800; }
-@keyframes pq-sube { from { opacity: 0; transform: translateY(40px) scale(.9); } to { opacity: 1; transform: none; } }
+@keyframes pq-sube { from { opacity: 0; transform: translate3d(0, 30px, 0) scale(.95); } to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); } }
 @keyframes pq-barre { from { opacity: 0; clip-path: inset(0 100% 0 0); } to { opacity: 1; clip-path: inset(0); } }
-@keyframes pq-pop { 0% { opacity: 0; transform: translate(-50%, -50%) scale(.3); } 70% { opacity: 1; transform: translate(-50%, -50%) scale(1.15); } 100% { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+@keyframes pq-pop { from { opacity: 0; transform: translate(-50%, -50%) scale(.6); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
 
 /* ── Retratos en fila ── */
 
@@ -14,7 +14,7 @@
 .pq-encabezado { display: flex; align-items: center; gap: 12px; padding: 8px 22px; border-radius: 999px; background: var(--nomina-fondo, var(--pm-tablero, rgba(10,12,20,.88))); font-size: calc(26px * var(--nomina-escala-titulo, 1)); text-transform: uppercase; letter-spacing: 2px; }
 .pq-encabezado small { font-size: 14px; color: var(--color-equipo); letter-spacing: 3px; }
 .pq-retratos { display: flex; gap: 14px; align-items: flex-end; }
-.pq-retrato { display: flex; flex-direction: column; align-items: center; width: 190px; padding-bottom: 10px; border-radius: 16px; overflow: hidden; background: var(--nomina-fondo, var(--pm-tablero, rgba(10,12,20,.88))); border-bottom: 6px solid var(--color-equipo); animation: pq-sube .5s cubic-bezier(.2,.9,.3,1.1) both; transition: transform .4s ease, opacity .4s ease; opacity: .78; }
+.pq-retrato { display: flex; flex-direction: column; align-items: center; width: 190px; padding-bottom: 10px; border-radius: 16px; overflow: hidden; background: var(--nomina-fondo, var(--pm-tablero, rgba(10,12,20,.88))); border-bottom: 6px solid var(--color-equipo); animation: pq-sube .7s cubic-bezier(.16,1,.3,1) both; transition: transform .6s cubic-bezier(.16,1,.3,1), opacity .6s ease, box-shadow .6s ease; opacity: .78; }
 .pq-retrato-actual { transform: translateY(-24px) scale(1.12); opacity: 1; box-shadow: 0 24px 50px rgba(0,0,0,.5), 0 0 0 3px var(--color-equipo); }
 .pq-retrato-vacio { height: 260px; justify-content: center; opacity: .35; border-bottom-color: rgba(255,255,255,.2); font-size: 60px; animation: none; }
 .pq-retrato-foto { width: 190px; height: 210px; object-fit: cover; object-position: top; font-size: 70px; }
@@ -23,10 +23,10 @@
 
 /* ── Gran titular ── */
 .pq-titular-caja { display: flex; align-items: stretch; gap: 0; filter: drop-shadow(0 20px 40px rgba(0,0,0,.45)); }
-.pq-titular-palabra { writing-mode: vertical-rl; transform: rotate(180deg); padding: 12px 6px; background: var(--color-equipo); color: #fff; font-size: 108px; font-weight: 900; line-height: .85; letter-spacing: 2px; animation: pq-barre .6s cubic-bezier(.2,.9,.3,1) both; }
+.pq-titular-palabra { writing-mode: vertical-rl; transform: rotate(180deg); padding: 12px 6px; background: var(--color-equipo); color: #fff; font-size: 108px; font-weight: 900; line-height: .85; letter-spacing: 2px; animation: pq-barre .75s cubic-bezier(.16,1,.3,1) both; }
 .pq-titular-lista { display: flex; flex-direction: column; justify-content: center; gap: 8px; padding: 18px 22px; min-width: 560px; background: var(--nomina-fondo, var(--pm-tablero, rgba(10,12,20,.9))); }
 .pq-titular-equipo { display: flex; align-items: center; gap: 10px; font-size: 22px; text-transform: uppercase; letter-spacing: 3px; color: var(--color-equipo); margin-bottom: 4px; }
-.pq-franja { display: flex; align-items: center; gap: 14px; padding: 6px 18px; background: rgba(255,255,255,.08); transform: skewX(-12deg); animation: pq-barre .45s cubic-bezier(.2,.9,.3,1) both; }
+.pq-franja { display: flex; align-items: center; gap: 14px; padding: 6px 18px; background: rgba(255,255,255,.08); transform: skewX(-12deg); animation: pq-barre .75s cubic-bezier(.16,1,.3,1) both; }
 .pq-franja > * { transform: skewX(12deg); }
 .pq-franja-actual { background: #fff; color: #111; padding: 10px 18px; }
 .pq-franja-dorsal { min-width: 46px; font-size: calc(30px * var(--nomina-escala-texto, 1)); font-weight: 900; color: var(--color-equipo); }
@@ -36,7 +36,7 @@
 
 /* ── Camiseta ── */
 .pq-formato-camiseta { flex-direction: column; gap: 22px; }
-.pq-camiseta { position: relative; width: 360px; height: 414px; display: flex; flex-direction: column; align-items: center; animation: pq-sube .6s cubic-bezier(.2,.9,.3,1.15) both; filter: drop-shadow(0 24px 40px rgba(0,0,0,.5)); }
+.pq-camiseta { position: relative; width: 360px; height: 414px; display: flex; flex-direction: column; align-items: center; animation: pq-sube .8s cubic-bezier(.16,1,.3,1) both; filter: drop-shadow(0 24px 40px rgba(0,0,0,.5)); }
 .pq-camiseta-forma { position: absolute; inset: 0; width: 100%; height: 100%; }
 .pq-camiseta-forma path { fill: var(--color-equipo); stroke: rgba(255,255,255,.85); stroke-width: 4; }
 .pq-camiseta-apellido { position: relative; margin-top: 92px; font-size: calc(30px * var(--nomina-escala-texto, 1)); font-weight: 800; letter-spacing: 3px; color: #fff; text-shadow: 0 2px 0 rgba(0,0,0,.25); }
@@ -58,7 +58,7 @@
 .pq-spot { position: absolute; display: flex; flex-direction: column; align-items: center; gap: 6px; transform: translate(-50%, -50%); }
 .pq-spot-foto { width: 74px; height: 74px; border-radius: 50%; object-fit: cover; border: 4px solid rgba(255,255,255,.35); font-size: 30px; }
 .pq-spot .pq-foto-vacia { background: rgba(255,255,255,.08); color: rgba(255,255,255,.4); }
-.pq-spot-lleno { animation: pq-pop .55s cubic-bezier(.3,1.6,.5,1) both; }
+.pq-spot-lleno { animation: pq-pop .7s cubic-bezier(.16,1,.3,1) both; }
 .pq-spot-lleno .pq-spot-foto { border-color: var(--color-equipo); }
 .pq-spot-actual .pq-spot-foto { width: 104px; height: 104px; box-shadow: 0 0 0 6px color-mix(in srgb, var(--color-equipo) 45%, transparent), 0 0 30px var(--color-equipo); }
 .pq-spot-etiqueta { padding: 3px 10px; border-radius: 6px; background: rgba(0,0,0,.6); font-size: calc(15px * var(--nomina-escala-texto, 1)); font-weight: 700; text-transform: uppercase; white-space: nowrap; }
@@ -68,9 +68,69 @@
 /* ── Cine ── */
 .pq-raiz.pq-cine-raiz { padding: 0; flex-direction: column; justify-content: space-between; align-items: stretch; }
 .pq-cine-barra { display: flex; align-items: center; justify-content: center; gap: 26px; height: 130px; background: #000; color: rgba(255,255,255,.7); font-size: 18px; letter-spacing: 3px; animation: pq-barre .5s ease both; }
-.pq-cine-escena { display: flex; align-items: center; gap: 40px; margin: 0 auto; animation: pq-sube .8s cubic-bezier(.2,.9,.3,1) both; }
+.pq-cine-escena { display: flex; align-items: center; gap: 40px; margin: 0 auto; animation: pq-sube .8s cubic-bezier(.16,1,.3,1) both; }
 .pq-cine-foto { width: 340px; height: 420px; object-fit: cover; object-position: top; border-radius: 4px; box-shadow: 0 30px 60px rgba(0,0,0,.6); font-size: 140px; }
 .pq-cine-texto { display: flex; flex-direction: column; gap: 6px; max-width: 900px; text-shadow: 0 4px 20px rgba(0,0,0,.7); }
 .pq-cine-equipo { display: flex; align-items: center; gap: 10px; font-size: 20px; letter-spacing: 6px; text-transform: uppercase; color: var(--color-equipo); }
 .pq-cine-nombre { font-size: calc(110px * var(--nomina-escala-texto, 1)); font-weight: 900; line-height: .9; text-transform: uppercase; letter-spacing: -1px; }
 .pq-cine-dorsal { font-size: 24px; letter-spacing: 8px; text-transform: uppercase; opacity: .8; }
+
+/* ═════════ Volumen y luz (todos los formatos): degradés, brillo y sombras en
+   vez de planos lisos. Solo transform/opacity se animan: entradas fluidas. ═════════ */
+.pq-raiz { --pq-claro: color-mix(in srgb, var(--color-equipo) 70%, #fff); --pq-oscuro: color-mix(in srgb, var(--color-equipo) 55%, #000); }
+.pq-raiz * { backface-visibility: hidden; }
+
+/* Retratos */
+.pq-retrato { position: relative; background: linear-gradient(180deg, rgba(255,255,255,.10) 0%, transparent 38%), linear-gradient(180deg, var(--nomina-fondo, var(--pm-tablero, #10131c)) 45%, color-mix(in srgb, var(--color-equipo) 45%, #05060a) 100%); box-shadow: 0 18px 40px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.18); }
+.pq-retrato-foto { -webkit-mask-image: linear-gradient(180deg, #000 72%, transparent); mask-image: linear-gradient(180deg, #000 72%, transparent); }
+.pq-retrato-actual { box-shadow: 0 30px 60px rgba(0,0,0,.55), 0 0 0 3px var(--color-equipo), 0 0 46px color-mix(in srgb, var(--color-equipo) 55%, transparent); }
+.pq-retrato-dorsal { text-shadow: 0 2px 10px color-mix(in srgb, var(--color-equipo) 70%, transparent); }
+
+/* Gran titular */
+.pq-titular-palabra { background: linear-gradient(180deg, var(--pq-claro), var(--color-equipo) 45%, var(--pq-oscuro)); text-shadow: 0 4px 18px rgba(0,0,0,.35); }
+.pq-titular-lista { background: linear-gradient(135deg, rgba(255,255,255,.08), transparent 40%), var(--nomina-fondo, var(--pm-tablero, rgba(10,12,20,.92))); box-shadow: inset 0 1px 0 rgba(255,255,255,.12); }
+.pq-franja { background: linear-gradient(90deg, rgba(255,255,255,.14), rgba(255,255,255,.04)); box-shadow: inset 0 1px 0 rgba(255,255,255,.12); }
+.pq-franja-actual { background: linear-gradient(90deg, #fff, #e9edf3); box-shadow: 0 10px 26px rgba(0,0,0,.35), 0 0 0 2px var(--color-equipo); }
+
+/* Camiseta: tela con degradé del color del equipo, luz y malla (ver SVG) */
+.pq-formato-camiseta::before { content: ''; position: absolute; left: 50%; top: 50%; margin: -380px 0 0 -380px; width: 760px; height: 760px; border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--color-equipo) 45%, transparent), transparent 62%); opacity: .75; pointer-events: none; animation: pq-aparece 1s ease both; }
+.pq-cam-c1 { stop-color: var(--pq-claro); }
+.pq-cam-c2 { stop-color: var(--color-equipo); }
+.pq-cam-c3 { stop-color: var(--pq-oscuro); }
+.pq-camiseta-forma path { stroke: none; }
+.pq-camiseta-forma .pq-cam-cuerpo { stroke: rgba(255,255,255,.55); stroke-width: 2.5; }
+.pq-cam-ribete { fill: none; stroke: #fff; stroke-width: 6; stroke-linecap: round; opacity: .9; }
+.pq-cam-franja { fill: none; stroke: rgba(255,255,255,.55); stroke-width: 5; }
+.pq-camiseta { animation: pq-sube .8s cubic-bezier(.16,1,.3,1) both, pq-flota 5s ease-in-out .9s infinite; filter: drop-shadow(0 30px 34px rgba(0,0,0,.55)); }
+.pq-camiseta-numero, .pq-camiseta-apellido { background: linear-gradient(180deg, #fff 0%, #fff 55%, #d7dbe3 100%); -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-stroke: 0; text-shadow: none; filter: drop-shadow(0 3px 0 rgba(0,0,0,.28)) drop-shadow(0 0 1px rgba(0,0,0,.5)); }
+.pq-camiseta-chica { background: linear-gradient(160deg, var(--pq-claro), var(--color-equipo) 50%, var(--pq-oscuro)); box-shadow: 0 10px 22px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.35); }
+@keyframes pq-flota { 0%, 100% { transform: translate3d(0, 0, 0); } 50% { transform: translate3d(0, -8px, 0); } }
+@keyframes pq-aparece { from { opacity: 0; } }
+
+/* Cancha: piso con luz cenital, parquet sutil y pintura del color del equipo */
+.pq-cancha { background:
+    radial-gradient(70% 60% at 50% 35%, rgba(255,255,255,.10), transparent 70%),
+    repeating-linear-gradient(90deg, rgba(255,255,255,.035) 0 2px, transparent 2px 38px),
+    linear-gradient(180deg, color-mix(in srgb, var(--color-equipo) 16%, var(--nomina-fondo, var(--pm-tablero, #0f1219))) 0%, var(--nomina-fondo, var(--pm-tablero, #0b0d14)) 100%);
+  box-shadow: 0 30px 60px rgba(0,0,0,.55), inset 0 0 80px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.2); }
+.pq-cancha-llave { background: linear-gradient(180deg, color-mix(in srgb, var(--color-equipo) 40%, transparent), color-mix(in srgb, var(--color-equipo) 16%, transparent)); }
+.pq-spot-foto { box-shadow: 0 10px 18px rgba(0,0,0,.5), inset 0 2px 0 rgba(255,255,255,.25); }
+.pq-spot .pq-foto-vacia { background: radial-gradient(circle at 35% 30%, rgba(255,255,255,.18), rgba(255,255,255,.04)); }
+.pq-spot-lleno .pq-foto-vacia { background: radial-gradient(circle at 35% 30%, var(--pq-claro), var(--color-equipo) 55%, var(--pq-oscuro)); color: #fff; }
+.pq-spot-etiqueta { background: linear-gradient(180deg, rgba(20,22,30,.92), rgba(5,6,10,.92)); box-shadow: 0 6px 14px rgba(0,0,0,.4); }
+.pq-spot-actual .pq-spot-etiqueta { background: linear-gradient(180deg, var(--pq-claro), var(--color-equipo)); }
+.pq-spot-actual .pq-spot-foto { animation: pq-latido 2.2s ease-in-out .7s infinite; }
+@keyframes pq-latido { 0%, 100% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--color-equipo) 45%, transparent), 0 0 30px var(--color-equipo); } 50% { box-shadow: 0 0 0 10px color-mix(in srgb, var(--color-equipo) 25%, transparent), 0 0 44px var(--color-equipo); } }
+
+/* Cine: foco de luz detrás, barrido de brillo sobre la foto y nombre con degradé */
+.pq-cine-raiz::before { content: ''; position: absolute; inset: 0; background: radial-gradient(45% 60% at 35% 50%, color-mix(in srgb, var(--color-equipo) 35%, transparent), transparent 70%); pointer-events: none; animation: pq-aparece 1.2s ease both; }
+.pq-cine-barra { background: linear-gradient(180deg, #000, #0a0a0a); position: relative; z-index: 1; }
+.pq-cine-escena { position: relative; z-index: 1; animation-duration: 1s; }
+.pq-cine-foto { position: relative; box-shadow: 0 40px 80px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,.12), 0 0 60px color-mix(in srgb, var(--color-equipo) 40%, transparent); -webkit-mask-image: linear-gradient(180deg, #000 80%, transparent); mask-image: linear-gradient(180deg, #000 80%, transparent); }
+.pq-cine-nombre { background: linear-gradient(180deg, #fff 30%, #c9ced8); -webkit-background-clip: text; background-clip: text; color: transparent; text-shadow: none; filter: drop-shadow(0 6px 24px rgba(0,0,0,.6)); }
+.pq-cine-escena::after { content: ''; position: absolute; top: 0; bottom: 0; left: 0; width: 160px; background: linear-gradient(100deg, transparent, rgba(255,255,255,.22), transparent); transform: translate3d(-200px, 0, 0); animation: pq-barrido 1.6s cubic-bezier(.4,0,.2,1) .5s both; pointer-events: none; }
+@keyframes pq-barrido { to { transform: translate3d(1400px, 0, 0); opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .pq-camiseta, .pq-spot-actual .pq-spot-foto, .pq-cine-escena::after { animation: none !important; }
+}

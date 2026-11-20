@@ -13,6 +13,8 @@ const POSICIONES = [
   { id: 'pivot', etiqueta: 'Pívot', x: 33, y: 28 },
 ];
 
+const CAMISETA = 'M58 8 Q100 34 142 8 L168 18 Q176 60 196 66 L184 112 L160 104 L160 226 L40 226 L40 104 L16 112 L4 66 Q24 60 32 18 Z';
+
 function Foto({ jugador, mostrarFoto, className }) {
   if (mostrarFoto && jugador.fotoUrl) return <img className={className} src={urlFotoJugador(jugador.fotoUrl)} alt="" />;
   return <span className={`${className} pq-foto-vacia`}>{jugador.dorsal ?? '–'}</span>;
@@ -29,7 +31,7 @@ export default function PresentacionQuinteto({ formato, equipo, presentados, con
   const color = equipo.color || '#ffd60a';
   const logo = <LogoEquipo equipo={equipo} config={config} className="pq-logo" contexto="nomina" />;
   const raiz = (contenido, extra = '') => (
-    <div className={`${claseRaiz} pq-raiz pq-formato-${formato} ${extra}`} style={{ ...estilo, '--color-equipo': color }}>{contenido}</div>
+    <div className={`${claseRaiz} pq-raiz pq-formato-${formato} ${extra}`} style={{ ...estilo, '--color-equipo': color, ...(formato === 'cine' ? { justifyContent: 'space-between', alignItems: 'stretch' } : {}) }}>{contenido}</div>
   );
 
   if (formato === 'retratos') {
@@ -78,7 +80,25 @@ export default function PresentacionQuinteto({ formato, equipo, presentados, con
       <>
         <div className="pq-camiseta" key={actual.id}>
           <svg viewBox="0 0 200 230" className="pq-camiseta-forma" aria-hidden="true">
-            <path d="M58 8 Q100 34 142 8 L168 18 Q176 60 196 66 L184 112 L160 104 L160 226 L40 226 L40 104 L16 112 L4 66 Q24 60 32 18 Z" />
+            <defs>
+              <linearGradient id="pq-cam-tela" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" className="pq-cam-c1" />
+                <stop offset=".55" className="pq-cam-c2" />
+                <stop offset="1" className="pq-cam-c3" />
+              </linearGradient>
+              <radialGradient id="pq-cam-luz" cx=".32" cy=".2" r=".85">
+                <stop offset="0" stopColor="#fff" stopOpacity=".38" />
+                <stop offset=".55" stopColor="#fff" stopOpacity="0" />
+              </radialGradient>
+              <pattern id="pq-cam-malla" width="5" height="5" patternUnits="userSpaceOnUse">
+                <circle cx="2.5" cy="2.5" r=".8" fill="rgba(0,0,0,.16)" />
+              </pattern>
+            </defs>
+            <path className="pq-cam-cuerpo" d={CAMISETA} fill="url(#pq-cam-tela)" />
+            <path d={CAMISETA} fill="url(#pq-cam-malla)" />
+            <path d={CAMISETA} fill="url(#pq-cam-luz)" />
+            <path className="pq-cam-ribete" d="M58 8 Q100 34 142 8 M168 18 Q176 60 196 66 M32 18 Q24 60 4 66" />
+            <path className="pq-cam-franja" d="M46 108 L46 222 M154 108 L154 222" />
           </svg>
           <span className="pq-camiseta-apellido">{apellido(actual.nombre)}</span>
           <span className="pq-camiseta-numero">{actual.dorsal ?? '–'}</span>

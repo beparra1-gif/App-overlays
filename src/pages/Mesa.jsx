@@ -4,6 +4,7 @@ import { api, getToken } from '../api/client';
 import { crearSocket } from '../socket';
 import { useRelojVivo, useRelojPosesion, formatearPosesion, contrasteTexto, formatearReloj as formatearRelojVivo } from '../marcadores/utils';
 import EquipoRoster from '../components/EquipoRoster';
+import SelectorNomina from '../components/SelectorNomina';
 import TablaEstadisticas from '../components/TablaEstadisticas';
 import PanelMarcadorCamara from '../components/PanelMarcadorCamara';
 import { hayNominas, lideresPartido, tablaPorPeriodo, tituloIntertanto } from '../marcadores/intertanto';
@@ -45,16 +46,6 @@ const TIPOS_FALTA = [
 ];
 // Solo los convertidos (+1/+2/+3): menos opciones, menos errores en vivo.
 const COMBOS_TIRO_LIBRE = [1, 2, 3].map((n) => ({ convertidos: n, intentos: n }));
-
-// Categoría/rama en la etiqueta ("Sub-15 · Femenino — Halcones") para poder
-// distinguir equipos del mismo club sin adivinar — mismo criterio que
-// EquipoFicha.jsx (ver etiquetaEquipoGuardado ahí).
-function etiquetaEquipoGuardado(e) {
-  const detalle = [e.categoria, e.rama === 'femenino' ? 'Femenino' : e.rama === 'masculino' ? 'Masculino' : null]
-    .filter(Boolean)
-    .join(' · ');
-  return `${detalle ? `${detalle} — ` : ''}${e.nombre}`;
-}
 
 const formatearReloj = (totalSegundos = 0) => {
   const segurosTotal = Math.max(0, Number(totalSegundos) || 0);
@@ -238,11 +229,6 @@ function ModalRoster({ onCerrar, children }) {
   );
 }
 
-const RAMA_OPCIONES = [
-  { value: '', label: 'Todas las ramas' },
-  { value: 'femenino', label: 'Femenino' },
-  { value: 'masculino', label: 'Masculino' },
-];
 
 // Buscador de equipo guardado para copiar su nómina — antes era un <select>
 // plano con TODOS los equipos del usuario mezclados; un club con muchas
@@ -256,9 +242,6 @@ const RAMA_OPCIONES = [
 // equipo queda guardado de verdad, reusable después desde cualquier lado,
 // no es algo temporal solo para hoy.
 function ModalElegirEquipo({ equipos, equipoActualId, onUsar, onCerrar }) {
-  const [busqueda, setBusqueda] = useState('');
-  const [filtroRama, setFiltroRama] = useState('');
-  const [filtroCategoria, setFiltroCategoria] = useState('');
   const [creando, setCreando] = useState(false);
   const [nombreNuevo, setNombreNuevo] = useState('');
   const [categoriaNueva, setCategoriaNueva] = useState('');
@@ -269,17 +252,6 @@ function ModalElegirEquipo({ equipos, equipoActualId, onUsar, onCerrar }) {
   const [error, setError] = useState('');
 
   const disponibles = equipos.filter((e) => e.id !== equipoActualId && e.jugadores_count > 0);
-  const categoriasDisponibles = [...new Set(disponibles.map((e) => e.categoria).filter(Boolean))].sort();
-
-  const filtrados = disponibles
-    .filter((e) => {
-      const texto = busqueda.trim().toLowerCase();
-      const coincideTexto = !texto || e.nombre.toLowerCase().includes(texto) || (e.categoria || '').toLowerCase().includes(texto);
-      const coincideRama = !filtroRama || e.rama === filtroRama;
-      const coincideCategoria = !filtroCategoria || e.categoria === filtroCategoria;
-      return coincideTexto && coincideRama && coincideCategoria;
-    })
-    .sort((a, b) => a.nombre.localeCompare(b.nombre));
 
   const crearEquipoNuevo = async (e) => {
     e.preventDefault();
@@ -303,40 +275,16 @@ function ModalElegirEquipo({ equipos, equipoActualId, onUsar, onCerrar }) {
 
   return (
     <div className="modal-fondo" onClick={onCerrar}>
-      <div className="modal-caja mv-modal-elegir-equipo" onClick={(e) => e.stopPropagation()}>
+      <div className={`modal-caja mv-modal-elegir-equipo ${creando ? '' : 'sn-modal'}`} onClick={(e) => e.stopPropagation()}>
         {error && <p className="mensaje-error">{error}</p>}
 
         {!creando ? (
           <>
-            <h3>Elegir nómina de un equipo guardado</h3>
-            <input
-              className="mv-buscador-equipo"
-              placeholder="Buscar por nombre o categoría…"
-              value={busqueda}
-              onChange={(ev) => setBusqueda(ev.target.value)}
-              autoFocus
-            />
-            <div className="fila-form" style={{ marginTop: 8 }}>
-              <select value={filtroRama} onChange={(ev) => setFiltroRama(ev.target.value)}>
-                {RAMA_OPCIONES.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
-              <select value={filtroCategoria} onChange={(ev) => setFiltroCategoria(ev.target.value)}>
-                <option value="">Todas las categorías</option>
-                {categoriasDisponibles.map((c) => <option key={c} value={c}>{c}</option>)}
-              </select>
+            <div className="sn-modal-cabeza">
+              <h3>Elegir nómina de un equipo guardado</h3>
+              <button type="button" className="sn-cerrar" onClick={onCerrar} title="Cerrar">✕</button>
             </div>
-
-            <ul className="modal-lista-filas mv-lista-equipos" style={{ marginTop: 12 }}>
-              {filtrados.map((e) => (
-                <li key={e.id}>
-                  <button type="button" className="modal-fila-btn" onClick={() => onUsar(e.id)}>
-                    <span style={{ flex: 1 }}>{etiquetaEquipoGuardado(e)}</span>
-                    <span className="texto-tenue">{e.jugadores_count}</span>
-                  </button>
-                </li>
-              ))}
-              {filtrados.length === 0 && <li className="texto-tenue">Ningún equipo guardado coincide con la búsqueda.</li>}
-            </ul>
+            <SelectorNomina equipos={disponibles} onElegir={(e) => onUsar(e.id)} />
 
             <button type="button" className="btn-secundario" style={{ width: '100%', marginTop: 12 }} onClick={() => setCreando(true)}>
               + Crear equipo nuevo
@@ -843,6 +791,9 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
   // real lo lleva el servidor (se apaga solo al arrancar el reloj), acá se
   // refleja lo que llega por socket.
   const [intertantoActivo, setIntertantoActivo] = useState(false);
+  // Aviso flotante de fin de cuarto: queda hasta responderlo, o se va solo al
+  // arrancar el reloj o cambiar de cuarto (igual que el Intertanto al aire).
+  const [finCuarto, setFinCuarto] = useState(null);
   // Marcador por cámara: estado del celular lector (latido + lecturas) y
   // el panel para activarlo / conectar con QR.
   const [lectorEstado, setLectorEstado] = useState(null);
@@ -899,17 +850,14 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
   // Al disparar Nómina/Estadísticas: si se tapa el marcador base mientras
   // esa capa está en pantalla, o se lo deja visible debajo (por defecto).
   const [ocultarMarcador, setOcultarMarcador] = useState(false);
-  // Presentación uno por uno del plantel titular (ver presentarJugador más
-  // abajo) — `equipo` es cuál lado se está presentando ahora, `ids` la
-  // lista acumulada de ya presentados para ESE equipo (se reinicia sola al
-  // cambiar de equipo, o a mano con "Reiniciar presentación").
-  const [presentacion, setPresentacion] = useState({ equipo: null, ids: [] });
+  // Presentación automática: al dar Play se presenta a cada jugador/a de a
+  // uno, del dorsal más bajo al más alto (`paso` de `total`).
   const [mostrarPresentacion, setMostrarPresentacion] = useState(false);
-  // Qué plantel se está MIRANDO en el panel — independiente de
-  // `presentacion.equipo` (lo que ya se mandó a la transmisión), para
-  // poder pasar a mirar el otro plantel sin perder/reiniciar la
-  // presentación en curso hasta que de verdad se toque a alguien de ahí.
-  const [equipoPresentVista, setEquipoPresentVista] = useState('local');
+  const [equipoPresentar, setEquipoPresentar] = useState('local');
+  const [segundosPresentacion, setSegundosPresentacion] = useState(4);
+  const [presentacionAuto, setPresentacionAuto] = useState(null);
+  const presentacionTimerRef = useRef(null);
+  useEffect(() => () => clearTimeout(presentacionTimerRef.current), []);
   // null = todavía no se sabe; 0+ = cuántas fuentes (OBS u otro navegador)
   // están mirando el enlace del marcador ahora mismo.
   const [viewersMarcador, setViewersMarcador] = useState(null);
@@ -1071,6 +1019,8 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
       // reenvía al conectarse — así dos Mesas abiertas (o una recargada)
       // muestran siempre el botón en el estado real.
       socket.on('intertanto', (d) => setIntertantoActivo(Boolean(d?.activo)));
+      // Fin de cuarto (reloj en 0:00): la Mesa pregunta si se muestra el Intertanto.
+      socket.on('fin_periodo', (d) => setFinCuarto({ periodo: Number(d?.periodo) || null, ts: d?.ts || Date.now() }));
       socket.on('lector_estado', (d) => setLectorEstado(d));
       socket.on('anotacion_pendiente', (d) => setAnotacionesPendientes((prev) => [...prev, d].slice(-6)));
       socket.on('marcador_visibilidad', ({ oculto }) => setMarcadorOculto(Boolean(oculto)));
@@ -1330,6 +1280,19 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
     return () => clearTimeout(t);
   }, [error, partido]);
 
+  // "En pantalla" abierto: tocar o hacer clic afuera de la caja la esconde.
+  useEffect(() => {
+    if (!aireAbierto) return undefined;
+    const alTocar = (ev) => { if (!ev.target.closest?.('.mv-aire')) setAireAbierto(false); };
+    document.addEventListener('pointerdown', alTocar);
+    return () => document.removeEventListener('pointerdown', alTocar);
+  }, [aireAbierto]);
+
+  // El aviso de fin de cuarto se va solo al arrancar el reloj o cambiar de cuarto.
+  useEffect(() => {
+    if (finCuarto && partido && (partido.relojCorriendo || (finCuarto.periodo && partido.periodo !== finCuarto.periodo))) setFinCuarto(null);
+  }, [finCuarto, partido]);
+
   if (!partido) {
     if (error) return <p className="mensaje-error">{error}</p>;
     return embebido ? <p className="texto-tenue">Cargando partido…</p> : <div className="pagina-centrada">Cargando partido…</div>;
@@ -1479,28 +1442,43 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
 
   const reproducirNomina = (modo) => emitirAccion('NOMINA_REPRODUCIR', { modo, ocultarMarcador });
   const dispararEstadisticas = (payload) => emitirAccion('ESTADISTICAS_MOSTRAR', { ...payload, ocultarMarcador });
-  // Presentación del plantel titular, uno por uno: cada toque en un jugador
-  // manda la lista COMPLETA de presentados hasta ahora (el backend no
-  // guarda ningún estado propio, solo reenvía — ver el comentario en
-  // socket/index.js). Cambiar de equipo arranca una lista nueva; volver a
-  // tocar un jugador ya presentado lo manda de nuevo al frente (repite su
-  // momento grande), coherente con lo que se ve en pantalla.
-  const presentarJugador = (jugadorId) => {
-    const equipo = equipoPresentVista;
-    const ids = presentacion.equipo === equipo
-      ? [...presentacion.ids.filter((id) => id !== jugadorId), jugadorId]
-      : [jugadorId];
-    setPresentacion({ equipo, ids });
-    emitirAccion('NOMINA_REPRODUCIR', { modo: 'presentacion', equipo, jugadorIds: ids, ocultarMarcador });
+  // Presentación automática por dorsal (menor a mayor). Cada paso manda la
+  // lista acumulada de ESE equipo: el último es quien entra en grande y el
+  // resto queda en la fila de abajo (ver VistaNomina, modo 'presentacion').
+  const ordenarPorDorsal = (roster) => [...roster].sort((a, b) => {
+    const da = Number.isFinite(Number(a.dorsal)) && a.dorsal !== null ? Number(a.dorsal) : 999;
+    const db = Number.isFinite(Number(b.dorsal)) && b.dorsal !== null ? Number(b.dorsal) : 999;
+    return da - db || (a.nombre || '').localeCompare(b.nombre || '');
+  });
+  const colaPresentacion = (cual) => [
+    ...(cual !== 'visita' ? ordenarPorDorsal(partido.equipoLocal.roster).map((j) => ({ equipo: 'local', jugador: j })) : []),
+    ...(cual !== 'local' ? ordenarPorDorsal(partido.equipoVisita.roster).map((j) => ({ equipo: 'visita', jugador: j })) : []),
+  ];
+  const detenerPresentacion = () => {
+    clearTimeout(presentacionTimerRef.current);
+    setPresentacionAuto(null);
   };
-  const reiniciarPresentacion = () => setPresentacion({ equipo: null, ids: [] });
+  const iniciarPresentacion = () => {
+    clearTimeout(presentacionTimerRef.current);
+    const cola = colaPresentacion(equipoPresentar);
+    if (!cola.length) return;
+    const espera = segundosPresentacion * 1000;
+    const paso = (k) => {
+      const actual = cola[k];
+      const ids = cola.slice(0, k + 1).filter((c) => c.equipo === actual.equipo).map((c) => c.jugador.id);
+      emitirAccion('NOMINA_REPRODUCIR', { modo: 'presentacion', equipo: actual.equipo, jugadorIds: ids, ocultarMarcador });
+      setPresentacionAuto({ paso: k + 1, total: cola.length, jugador: actual.jugador });
+      presentacionTimerRef.current = setTimeout(() => (k + 1 < cola.length ? paso(k + 1) : setPresentacionAuto(null)), espera);
+    };
+    paso(0);
+  };
   const jugadoresDeAmbos = [
     ...partido.equipoLocal.roster.map((j) => ({ ...j, equipoNombre: partido.equipoLocal.nombre })),
     ...partido.equipoVisita.roster.map((j) => ({ ...j, equipoNombre: partido.equipoVisita.nombre })),
   ];
 
   // Piezas que cada tipo de mesa ubica en otro lugar (mismos botones, mismas acciones).
-  const botonesPantallas = [['previa', '🎬 Previa'], ['final', '🏁 Final'], ['mvp', '⭐ Jugadora del partido'], ['tabla', '🏆 Tabla de posiciones']].map(([modo, etiqueta]) => (
+  const botonesPantallas = [['previa', '🎬 Previa'], ['final', '🏁 Final'], ['mvp', '⭐ Jugadora del partido']].map(([modo, etiqueta]) => (
     <button key={modo} className={pantallaEspecial === modo ? 'btn-peligro-suave' : 'btn-secundario'} onClick={() => mostrarPantalla(modo)} title="Se muestra en la transmisión; tocá de nuevo para sacarla">
       {pantallaEspecial === modo ? `✕ Quitar ${etiqueta.replace(/^\S+ /, '')}` : etiqueta}
     </button>
@@ -1604,6 +1582,32 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
 
       {partido.estado === 'en_curso' && (
         <div className={`mv-wrap mv-tipo-${tipoMesa} ${temaMesa !== 'original' ? `mt-tema mt-tema-${temaMesa}` : ''} ${modoApp ? 'mv-app' : ''} ${modoApp || enPantallaCompleta ? 'mv-pantalla-completa' : ''}`} ref={mesaEnVivoRef} style={{ '--mt-local': partido.equipoLocal.color || '#ff3b30', '--mt-visita': partido.equipoVisita.color || '#0a84ff' }}>
+          {finCuarto && (
+            <div className="mv-fin-cuarto" role="dialog" aria-label="Fin del cuarto">
+              <div className="mv-fin-cuarto-cabeza">
+                <span className="mv-fin-cuarto-icono" aria-hidden="true">⏱</span>
+                <div>
+                  <p className="mv-fin-cuarto-titulo">Terminó el {etiquetaPeriodo(finCuarto.periodo || partido.periodo)}</p>
+                  <p className="mv-fin-cuarto-texto">
+                    {intertantoActivo
+                      ? 'Intertanto en pantalla. Se quita solo al iniciar el próximo cuarto o al cambiar el período.'
+                      : '¿Mostrar el intertanto en la transmisión?'}
+                  </p>
+                </div>
+                <button type="button" className="mv-panel-cerrar" onClick={() => setFinCuarto(null)} title="Cerrar aviso">✕</button>
+              </div>
+              <div className="mv-fin-cuarto-botones">
+                {intertantoActivo ? (
+                  <button type="button" className="mv-pill mv-pill-alerta" onClick={alternarIntertanto}>■ Quitar intertanto</button>
+                ) : (
+                  <>
+                    <button type="button" className="mv-btn-electrico" onClick={alternarIntertanto}>📊 Mostrar intertanto</button>
+                    <button type="button" className="mv-pill" onClick={() => setFinCuarto(null)}>Ahora no</button>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
           {modoApp && mostrarGestionEscenas && (
             <div className="mv-panel-fondo mv-escenas-fondo" onClick={() => setMostrarGestionEscenas(false)}>
               <div className="mv-escenas-caja" onClick={(e) => e.stopPropagation()}>
@@ -1771,36 +1775,33 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
 
           {mostrarPresentacion && (
             <div className="mv-presentacion-panel">
-              <div className="mv-acciones-segmentado" style={{ marginBottom: 8 }}>
-                <button className={`mv-acciones-segmento ${equipoPresentVista === 'local' ? 'activo' : ''}`} onClick={() => setEquipoPresentVista('local')}>
-                  {partido.equipoLocal.nombre}
-                </button>
-                <button className={`mv-acciones-segmento ${equipoPresentVista === 'visita' ? 'activo' : ''}`} onClick={() => setEquipoPresentVista('visita')}>
-                  {partido.equipoVisita.nombre}
-                </button>
-              </div>
               <p className="mv-texto-tenue" style={{ margin: '0 0 8px' }}>
-                Tocá cada jugador/a en el orden en que se va a presentar — entra con foto y nombre en pantalla grande y
-                después queda en la lista acumulada. Volver a tocar a alguien repite su momento.
+                Al dar Play se presenta a cada jugador/a de a uno, del número más bajo al más alto, con foto y nombre en grande.
               </p>
-              <div className="mv-banco-grid">
-                {(equipoPresentVista === 'local' ? partido.equipoLocal.roster : partido.equipoVisita.roster).map((j) => (
-                  <BotonDorsal
-                    key={j.id}
-                    jugador={j}
-                    color={equipoPresentVista === 'local' ? partido.equipoLocal.color : partido.equipoVisita.color}
-                    variante="banco"
-                    interactivo
-                    seleccionado={presentacion.equipo === equipoPresentVista && presentacion.ids.includes(j.id)}
-                    onClick={() => presentarJugador(j.id)}
-                  />
+              <div className="mv-acciones-segmentado" style={{ marginBottom: 8 }}>
+                {[['local', partido.equipoLocal.nombre], ['visita', partido.equipoVisita.nombre], ['ambos', 'Ambos (local y después visita)']].map(([id, etiqueta]) => (
+                  <button key={id} className={`mv-acciones-segmento ${equipoPresentar === id ? 'activo' : ''}`} disabled={Boolean(presentacionAuto)} onClick={() => setEquipoPresentar(id)}>{etiqueta}</button>
                 ))}
               </div>
-              {presentacion.ids.length > 0 && (
-                <button type="button" className="mv-pill" style={{ marginTop: 8 }} onClick={reiniciarPresentacion}>
-                  🔄 Reiniciar presentación
-                </button>
-              )}
+              <p className="mv-presentacion-orden">
+                Orden: {colaPresentacion(equipoPresentar).map((c) => `#${c.jugador.dorsal ?? '–'}`).join(' · ') || 'sin jugadores cargados'}
+              </p>
+              <div className="mv-presentacion-control">
+                <label className="mv-check-detalle">
+                  Segundos por jugador
+                  <select className="mv-select mv-select-chico" value={segundosPresentacion} disabled={Boolean(presentacionAuto)} onChange={(e) => setSegundosPresentacion(Number(e.target.value))}>
+                    {[3, 4, 5, 6].map((n) => <option key={n} value={n}>{n} s</option>)}
+                  </select>
+                </label>
+                {presentacionAuto ? (
+                  <>
+                    <span className="mv-presentacion-estado">▶ {presentacionAuto.paso} de {presentacionAuto.total}: #{presentacionAuto.jugador.dorsal ?? '–'} {presentacionAuto.jugador.nombre}</span>
+                    <button type="button" className="mv-pill mv-pill-alerta" onClick={detenerPresentacion}>■ Detener</button>
+                  </>
+                ) : (
+                  <button type="button" className="mv-btn-electrico mv-presentacion-play" disabled={!colaPresentacion(equipoPresentar).length} onClick={iniciarPresentacion}>▶ Play</button>
+                )}
+              </div>
             </div>
           )}
 

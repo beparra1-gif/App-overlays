@@ -2783,7 +2783,9 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
                 resumen={`${OPCIONES_UBICACION_NOMINA.find((o) => o.id === (config.nominaPosicion || 'centro'))?.etiqueta || 'Centro'} · ${config.nominaPosicionVertical || 'arriba'} · ${Number.isFinite(config.nominaDuracionSeg) ? config.nominaDuracionSeg : 6}s`}
               >
                 <div className="fila-form">
-                  <SelectorUbicacion etiqueta="Costado" valor={config.nominaPosicion} onChange={(v) => cambiarConfig('nominaPosicion', v)} opciones={OPCIONES_UBICACION_NOMINA} />
+                  <SelectorUbicacion etiqueta="Ambos equipos" valor={config.nominaPosicion} onChange={(v) => cambiarConfig('nominaPosicion', v)} opciones={OPCIONES_UBICACION_NOMINA} />
+                  <SelectorUbicacion etiqueta="Solo Local" valor={config.nominaUbicacionLocal || 'izquierda'} onChange={(v) => cambiarConfig('nominaUbicacionLocal', v)} opciones={OPCIONES_UBICACION_NOMINA} />
+                  <SelectorUbicacion etiqueta="Solo Visita" valor={config.nominaUbicacionVisita || 'derecha'} onChange={(v) => cambiarConfig('nominaUbicacionVisita', v)} opciones={OPCIONES_UBICACION_NOMINA} />
                   <SelectorUbicacion etiqueta="Altura" valor={config.nominaPosicionVertical || 'arriba'} onChange={(v) => cambiarConfig('nominaPosicionVertical', v)} opciones={[{ id: 'arriba', etiqueta: 'Arriba' }, { id: 'centro', etiqueta: 'Centro' }, { id: 'abajo', etiqueta: 'Abajo' }]} />
                 </div>
                 <CampoRango etiqueta="Corrimiento vertical" valor={Number.isFinite(config.nominaOffsetY) ? config.nominaOffsetY : 0} unidad="px" min={-300} max={300} step={5} onChange={(v) => cambiarConfig('nominaOffsetY', v)} />
@@ -2925,9 +2927,9 @@ function FormularioDiseno({ inicial, onGuardar, onCancelar }) {
             <>
               <Bloque
                 id="cuando" {...bloque('intertanto')} icono="⏰" titulo="Cuándo aparece"
-                resumen={`${config.intertantoAuto !== false ? 'Solo, al llegar a 0:00' : 'Solo con el botón de la Mesa'} · ${Number.isFinite(config.intertantoDuracionSeg) && config.intertantoDuracionSeg > 0 ? `${config.intertantoDuracionSeg}s` : 'hasta que arranque el reloj'}`}
+                resumen={`${config.intertantoAuto !== false ? 'La Mesa pregunta al llegar a 0:00' : 'Solo con el botón de la Mesa'} · ${Number.isFinite(config.intertantoDuracionSeg) && config.intertantoDuracionSeg > 0 ? `${config.intertantoDuracionSeg}s` : 'hasta que arranque el reloj'}`}
               >
-                <Toggle etiqueta="Aparecer solo al terminar cada cuarto" checked={config.intertantoAuto !== false} onChange={(v) => cambiarConfig('intertantoAuto', v)} />
+                <Toggle etiqueta="Preguntar en la Mesa al terminar cada cuarto" checked={config.intertantoAuto !== false} onChange={(v) => cambiarConfig('intertantoAuto', v)} />
                 <Toggle etiqueta="Ocultar el marcador mientras se ve" checked={config.intertantoOcultarMarcador !== false} onChange={(v) => cambiarConfig('intertantoOcultarMarcador', v)} />
                 <CampoRango etiqueta="Segundos visible (0 = hasta que arranque el reloj)" valor={Number.isFinite(config.intertantoDuracionSeg) ? config.intertantoDuracionSeg : 0} unidad="s" min={0} max={120} step={5} onChange={(v) => cambiarConfig('intertantoDuracionSeg', v)} />
                 <CampoRango etiqueta="Corrimiento vertical" valor={Number.isFinite(config.intertantoOffsetY) ? config.intertantoOffsetY : 0} unidad="px" min={-300} max={300} step={5} onChange={(v) => cambiarConfig('intertantoOffsetY', v)} />

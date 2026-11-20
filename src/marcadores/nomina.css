@@ -67,11 +67,10 @@ html:has(.nomina-overlay) {
   object-fit: contain;
   flex-shrink: 0;
   opacity: 0;
-  animation: nomina-logo-entrada .4s cubic-bezier(.34, 1.56, .64, 1) .22s forwards;
+  animation: nomina-logo-entrada .7s cubic-bezier(.16, 1, .3, 1) .22s forwards;
 }
 @keyframes nomina-logo-entrada {
-  from { opacity: 0; transform: scale(.6); }
-  60% { opacity: var(--logo-opacidad-final, 1); transform: scale(1.08); }
+  from { opacity: 0; transform: scale(.82); }
   to { opacity: var(--logo-opacidad-final, 1); transform: scale(1); }
 }
 
@@ -107,7 +106,7 @@ html:has(.nomina-overlay) {
   pointer-events: none;
   z-index: 0;
   opacity: 0;
-  animation: nomina-logofondo-entrada .55s cubic-bezier(.34, 1.56, .64, 1) .22s forwards;
+  animation: nomina-logofondo-entrada .9s cubic-bezier(.16, 1, .3, 1) .22s forwards;
 }
 /* El `transform` de cada paso SIEMPRE incluye el translate de arriba (centrado
    + ajuste fino izq/der y arriba/abajo, ver nominaLogoFondoOffsetX/Y en
@@ -115,8 +114,7 @@ html:has(.nomina-overlay) {
    transform mientras dura la animación (y `forwards` lo dejaría perdido
    para siempre al terminar). */
 @keyframes nomina-logofondo-entrada {
-  from { opacity: 0; transform: translate(calc(-50% + var(--logofondo-offset-x, 0px)), var(--logofondo-offset-y, 0px)) scale(.7); }
-  60% { opacity: var(--logo-opacidad-final, 1); transform: translate(calc(-50% + var(--logofondo-offset-x, 0px)), var(--logofondo-offset-y, 0px)) scale(1.05); }
+  from { opacity: 0; transform: translate(calc(-50% + var(--logofondo-offset-x, 0px)), var(--logofondo-offset-y, 0px)) scale(.9); }
   to { opacity: var(--logo-opacidad-final, 1); transform: translate(calc(-50% + var(--logofondo-offset-x, 0px)), var(--logofondo-offset-y, 0px)) scale(1); }
 }
 
@@ -128,11 +126,11 @@ html:has(.nomina-overlay) {
   font-weight: var(--nomina-titulo-peso, 400);
   font-family: var(--nomina-titulo-fuente, inherit);
   opacity: 0;
-  animation: nomina-titulo-entrada .3s ease forwards;
+  animation: nomina-titulo-entrada .6s cubic-bezier(.16, 1, .3, 1) forwards;
 }
 @keyframes nomina-titulo-entrada {
-  from { opacity: 0; transform: translateY(-8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translate3d(0, -10px, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
 }
 
 /* Grilla fija por fila — mismo ancho de columna (dorsal/nombre/stats) en
@@ -150,8 +148,9 @@ html:has(.nomina-overlay) {
   padding: 8px 18px;
   width: 320px;
   opacity: 0;
-  transform: translateX(-40px);
-  animation: nomina-entrada 0.5s ease forwards;
+  transform: translate3d(-28px, 0, 0);
+  animation: nomina-entrada .65s cubic-bezier(.16, 1, .3, 1) forwards;
+  will-change: transform, opacity;
 }
 
 /* Insignia de "está en cancha" — la nómina ahora muestra el plantel
@@ -167,11 +166,11 @@ html:has(.nomina-overlay) {
 }
 
 .nomina-equipo.nomina-visita .nomina-jugador {
-  transform: translateX(40px);
+  transform: translate3d(28px, 0, 0);
 }
 
 @keyframes nomina-entrada {
-  to { opacity: 1; transform: translateX(0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
 }
 
 /* Antes de sacar la nómina del DOM (ver el temporizador en dos pasos de
@@ -182,7 +181,7 @@ html:has(.nomina-overlay) {
    .nomina-overlay, y una animación de `transform` acá lo pisaría durante
    estos últimos 450ms. */
 .nomina-overlay.nomina-saliendo {
-  animation: nomina-salida .45s ease forwards;
+  animation: nomina-salida .55s cubic-bezier(.4, 0, .2, 1) forwards;
 }
 @keyframes nomina-salida {
   from { opacity: 1; }
@@ -257,12 +256,12 @@ html:has(.nomina-overlay) {
   padding: 26px 46px 22px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, .55), 0 0 0 6px color-mix(in srgb, var(--color-equipo, #ffd60a) 18%, transparent);
   opacity: 0;
-  animation: np-tarjeta-entrada .55s cubic-bezier(.34, 1.56, .64, 1) forwards;
+  animation: np-tarjeta-entrada .75s cubic-bezier(.16, 1, .3, 1) forwards;
+  will-change: transform, opacity;
 }
 @keyframes np-tarjeta-entrada {
-  from { opacity: 0; transform: scale(.75) translateY(24px); }
-  60% { opacity: 1; transform: scale(1.04) translateY(0); }
-  to { opacity: 1; transform: scale(1) translateY(0); }
+  from { opacity: 0; transform: translate3d(0, 22px, 0) scale(.94); }
+  to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
 }
 .np-titulo-equipo { font-size: calc(15px * var(--nomina-escala-titulo, 1)); text-transform: uppercase; letter-spacing: 2px; color: var(--color-equipo, inherit); font-weight: 700; }
 .np-logo-equipo { object-fit: contain; margin-bottom: -4px; opacity: var(--pm-logo-opacidad, 1); }
@@ -296,7 +295,7 @@ html:has(.nomina-overlay) {
   border-radius: 999px;
   padding: 6px 16px 6px 6px;
   opacity: 0; transform: translateY(10px);
-  animation: nomina-entrada-chip .35s ease forwards;
+  animation: nomina-entrada-chip .55s cubic-bezier(.16, 1, .3, 1) forwards;
 }
 @keyframes nomina-entrada-chip { to { opacity: 1; transform: translateY(0); } }
 /* Tamaño configurable (nominaPresentacionChipFotoTamano, ver
@@ -365,3 +364,17 @@ html:has(.nomina-overlay) {
   font-family: 'Rajdhani', sans-serif;
 }
 .fam-tactico .nomina-dorsal { color: #c8d84a; }
+
+/* Volumen: la tarjeta central de presentación y las filas de la nómina con
+   luz y degradé del color del equipo, en vez de planos lisos. */
+.np-tarjeta {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, .10), transparent 35%),
+    radial-gradient(120% 80% at 50% 0%, color-mix(in srgb, var(--color-equipo, #ffd60a) 28%, transparent), transparent 65%),
+    var(--nomina-fondo, var(--pm-tablero, rgba(10, 12, 20, 0.94)));
+  box-shadow: 0 30px 70px rgba(0, 0, 0, .55), 0 0 0 6px color-mix(in srgb, var(--color-equipo, #ffd60a) 18%, transparent), inset 0 1px 0 rgba(255, 255, 255, .18);
+}
+.np-foto { box-shadow: 0 16px 34px rgba(0, 0, 0, .5), 0 0 40px color-mix(in srgb, var(--color-equipo, #ffd60a) 45%, transparent); }
+.np-foto-vacia { background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--color-equipo, #ffd60a) 70%, #fff), var(--color-equipo, #ffd60a) 55%, color-mix(in srgb, var(--color-equipo, #ffd60a) 55%, #000)); }
+.np-chip { box-shadow: 0 8px 18px rgba(0, 0, 0, .35), inset 0 1px 0 rgba(255, 255, 255, .14); }
+.nomina-jugador { box-shadow: 0 8px 20px rgba(0, 0, 0, .3), inset 0 1px 0 rgba(255, 255, 255, .10); background-image: linear-gradient(180deg, rgba(255, 255, 255, .06), transparent 60%); }

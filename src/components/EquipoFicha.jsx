@@ -2,6 +2,7 @@ import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 're
 import { api, urlLogo } from '../api/client';
 import SelectorLogo from './SelectorLogo';
 import EquipoRoster from './EquipoRoster';
+import SelectorNomina from './SelectorNomina';
 
 // Resuelve un nombre de equipo escrito a mano contra la biblioteca ya
 // guardada: si coincide EXACTO (sin importar mayúsculas) con un equipo que
@@ -146,6 +147,8 @@ const EquipoFicha = forwardRef(function EquipoFicha({ titulo, valorDefecto, equi
   // equipo guardado (otra categoría/rama del mismo club, por ejemplo) y no
   // tiene sentido volver a tipearlo.
   const [equipoOrigenId, setEquipoOrigenId] = useState('');
+  // Ventana grande para elegir: 'equipo' (equipo guardado) o 'nomina' (copiar su nómina).
+  const [selectorAbierto, setSelectorAbierto] = useState(null);
   const [copiandoNomina, setCopiandoNomina] = useState(false);
   // "Solo para este partido": los jugadores que se agreguen MIENTRAS este
   // toggle esté prendido no se guardan en el plantel reusable del equipo —
@@ -465,16 +468,32 @@ const EquipoFicha = forwardRef(function EquipoFicha({ titulo, valorDefecto, equi
       </h3>
       {error && <p className="mensaje-error">{error}</p>}
 
+      {selectorAbierto && (
+        <div className="modal-fondo" onClick={() => setSelectorAbierto(null)}>
+          <div className="modal-caja sn-modal" onClick={(ev) => ev.stopPropagation()}>
+            <div className="sn-modal-cabeza">
+              <h3>{selectorAbierto === 'equipo' ? `${titulo}: elegir equipo guardado` : `${titulo}: copiar nómina`}</h3>
+              <button type="button" className="sn-cerrar" onClick={() => setSelectorAbierto(null)} title="Cerrar">✕</button>
+            </div>
+            <SelectorNomina
+              equipos={selectorAbierto === 'equipo' ? equipos : equipos.filter((e) => e.id !== equipoId && e.jugadores_count > 0)}
+              elegidoId={selectorAbierto === 'nomina' ? Number(equipoOrigenId) || null : null}
+              onElegir={(e) => {
+                const modo = selectorAbierto;
+                setSelectorAbierto(null);
+                if (modo === 'equipo') elegirEquipoGuardado(String(e.id));
+                else copiarNominaDesde(String(e.id));
+              }}
+            />
+          </div>
+        </div>
+      )}
+
       {!equipoId && equipos.length > 0 && (
-        <label>
-          Elegir equipo guardado
-          <select value="" disabled={resolviendo} onChange={(e) => elegirEquipoGuardado(e.target.value)}>
-            <option value="">— O escribí un nombre nuevo abajo —</option>
-            {[...equipos].sort((a, b) => a.nombre.localeCompare(b.nombre)).map((e) => (
-              <option key={e.id} value={e.id}>{etiquetaEquipoGuardado(e)}{e.jugadores_count ? ` (${e.jugadores_count})` : ''}</option>
-            ))}
-          </select>
-        </label>
+        <div className="sn-abrir-fila">
+          <button type="button" className="btn-secundario" disabled={resolviendo} onClick={() => setSelectorAbierto('equipo')}>📋 Elegir equipo guardado ({equipos.length})</button>
+          <span className="texto-tenue" style={{ fontSize: 12 }}>o escribí un nombre nuevo abajo</span>
+        </div>
       )}
 
       <div className="fila-form" style={{ flexWrap: 'wrap' }}>
@@ -544,21 +563,14 @@ const EquipoFicha = forwardRef(function EquipoFicha({ titulo, valorDefecto, equi
       </div>
 
       {modoNomina === 'existente' && equipoId && (
-        <label>
-          Copiar la nómina de
-          <select value={equipoOrigenId} disabled={copiandoNomina} onChange={(e) => copiarNominaDesde(e.target.value)}>
-            <option value="">— Elegí un equipo guardado —</option>
-            {equipos
-              .filter((e) => e.id !== equipoId && e.jugadores_count > 0)
-              .sort((a, b) => a.nombre.localeCompare(b.nombre))
-              .map((e) => (
-                <option key={e.id} value={e.id}>{etiquetaEquipoGuardado(e)} ({e.jugadores_count})</option>
-              ))}
-          </select>
+        <div className="sn-abrir-fila">
+          <button type="button" className="btn-secundario" disabled={copiandoNomina} onClick={() => setSelectorAbierto('nomina')}>
+            📋 {equipoOrigenId ? `Nómina de: ${etiquetaEquipoGuardado(equipos.find((e) => e.id === Number(equipoOrigenId)) || { nombre: '…' })}` : 'Ver nóminas disponibles'}
+          </button>
           <span className="texto-tenue" style={{ fontSize: 12 }}>
             Elegir un equipo acá reemplaza la nómina de abajo por la suya — no se van sumando.
           </span>
-        </label>
+        </div>
       )}
 
       {modoNomina !== 'sin' && equipoId && (
