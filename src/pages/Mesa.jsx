@@ -499,7 +499,7 @@ function PerillaReloj({ onAjustar }) {
   );
 }
 
-function RuedaReloj({ segundos, corriendo, editando, minutosEdit, segundosEdit, onCambiarMinutos, onCambiarSegundos, onEmpezarEdicion, onConfirmarEdicion, onCancelarEdicion, onAjustar, onReiniciar, conPerilla = false }) {
+function RuedaReloj({ segundos, corriendo, editando, minutosEdit, segundosEdit, onCambiarMinutos, onCambiarSegundos, onEmpezarEdicion, onConfirmarEdicion, onCancelarEdicion, onAjustar, onReiniciar }) {
   const [pulsoBoton, setPulsoBoton] = useState(null);
   const acumuladoRuedaRef = useRef(0);
   const pulsoTimeoutRef = useRef(null);
@@ -581,7 +581,7 @@ function RuedaReloj({ segundos, corriendo, editando, minutosEdit, segundosEdit, 
           <button type="button" className={`mv-rueda-btn ${pulsoBoton === 'arriba' ? 'pulso' : ''}`} title="Mantener para subir rápido — un toque suma 5s" {...subir}>▲</button>
           <button type="button" className={`mv-rueda-btn ${pulsoBoton === 'abajo' ? 'pulso' : ''}`} title="Mantener para bajar rápido — un toque resta 5s" {...bajar}>▼</button>
         </div>
-        {conPerilla && <PerillaReloj onAjustar={onAjustar} />}
+        <PerillaReloj onAjustar={onAjustar} />
         <button type="button" className="mv-pill mv-pill-reloj" onClick={() => onAjustar(60)}>+1:00</button>
       </div>
 
@@ -1517,7 +1517,7 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
 
   const equipoActivoNombre = equipoActivo === 'local' ? partido.equipoLocal.nombre : partido.equipoVisita.nombre;
 
-  // Van debajo de todo (normal) o dentro de la columna derecha (ladoDerecho).
+  // Las últimas acciones van al pie de la columna de control (al centro o a la derecha).
   const bloqueJugadas = (
     <div className="mv-jugadas">
       <h6>Últimas acciones</h6>
@@ -1545,8 +1545,6 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
         onCancelar: cancelarCorreccionFaltas,
       }}
     />
-  ) : (tipoMesa === 'jugadora' && !ladoDerecho) ? (
-    <div className="mv-acciones-espera">Toca una jugadora en cancha para anotar sus acciones (o “Acciones Local/Visita” si el equipo juega sin nómina).</div>
   ) : null;
 
   const copiarLinkFooter = (token) => {
@@ -1675,7 +1673,7 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
           "en_curso" directo a la mesa en vivo. */}
 
       {partido.estado === 'en_curso' && (
-        <div className={`mv-wrap mv-tipo-${tipoMesa} ${temaMesa !== 'original' ? `mt-tema mt-tema-${temaMesa}` : ''} ${modoApp ? 'mv-app' : ''} ${ladoDerecho ? 'mv-diestro' : ''} ${modoApp || enPantallaCompleta ? 'mv-pantalla-completa' : ''}`} ref={mesaEnVivoRef} style={{ '--mt-local': partido.equipoLocal.color || '#ff3b30', '--mt-visita': partido.equipoVisita.color || '#0a84ff' }}>
+        <div className={`mv-wrap mv-tipo-${tipoMesa} ${temaMesa !== 'original' ? `mt-tema mt-tema-${temaMesa}` : ''} ${modoApp ? 'mv-app' : ''} mv-columna-control ${ladoDerecho ? '' : 'mv-control-centro'} ${modoApp || enPantallaCompleta ? 'mv-pantalla-completa' : ''}`} ref={mesaEnVivoRef} style={{ '--mt-local': partido.equipoLocal.color || '#ff3b30', '--mt-visita': partido.equipoVisita.color || '#0a84ff' }}>
           {finCuarto && (
             <div className="mv-fin-cuarto" role="dialog" aria-label="Fin del cuarto">
               <div className="mv-fin-cuarto-cabeza">
@@ -1755,7 +1753,7 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
             <button className={`mv-pill ${bocinaActiva ? 'activa' : ''}`} onClick={alternarBocina} title="Bocina al terminar cada cuarto">
               {bocinaActiva ? '🔔 Bocina' : '🔕 Bocina'}
             </button>
-            <button className={`mv-pill ${ladoDerecho ? 'activa' : ''}`} onClick={alternarLadoDerecho} title="Reloj, período y acciones en la columna derecha, para usar con una mano">
+            <button className={`mv-pill ${ladoDerecho ? 'activa' : ''}`} onClick={alternarLadoDerecho} title="Columna de reloj y período entre Local y Visita, o a la derecha para usar con una mano">
               ✋ {ladoDerecho ? 'Control a la derecha' : 'Control al centro'}
             </button>
             <button className={`mv-pill ${verAtajos ? 'activa' : ''}`} onClick={() => setVerAtajos((v) => !v)} title="Atajos de teclado">⌨️ Atajos</button>
@@ -2095,7 +2093,6 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
                 onCancelarEdicion={cancelarEdicionReloj}
                 onAjustar={(delta) => emitirAccion('RELOJ_AJUSTAR', { segundos: delta })}
                 onReiniciar={() => emitirAccion('RELOJ_REINICIAR')}
-                conPerilla={ladoDerecho}
               />
 
               {/* Reloj de posesión (FIBA): 24 al cambiar la posesión, 14 tras
@@ -2125,7 +2122,7 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
                   </button>
                 </div>
               )}
-              {ladoDerecho && bloqueJugadas}
+              {bloqueJugadas}
             </div>
 
             <div className="mv-zona mv-zona-visita">
@@ -2168,10 +2165,9 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
           </div>
 
 
-          {!ladoDerecho && bloqueJugadas}
-          {/* Con el control a la derecha las acciones son siempre ventana emergente:
-              el envoltorio evita la regla de "Por jugadora" que la fija en la grilla. */}
-          {ladoDerecho ? <div style={{ display: 'contents' }}>{bloqueAcciones}</div> : bloqueAcciones}
+          {/* Las acciones son siempre ventana emergente: el envoltorio evita la
+              regla de "Por jugadora" que la fijaba en la grilla. */}
+          <div style={{ display: 'contents' }}>{bloqueAcciones}</div>
 
         </div>
       )}
