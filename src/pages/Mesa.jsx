@@ -8,8 +8,8 @@ import TablaEstadisticas from '../components/TablaEstadisticas';
 import PanelMarcadorCamara from '../components/PanelMarcadorCamara';
 import { hayNominas, lideresPartido, tablaPorPeriodo, tituloIntertanto } from '../marcadores/intertanto';
 import { ATAJOS_MESA, sonarBocina, useAtajosMesa } from './mesaAyudas';
-import './mesaTipos.css';
 import './mesa.css';
+import './mesaTipos.css';
 
 // Los 4 tipos de falta del reglamento FIBA vigente (personal/técnica/
 // antideportiva/descalificante) + "Técnica banco/DT": no es un tipo FIBA
@@ -903,6 +903,9 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
   const [viewersMarcador, setViewersMarcador] = useState(null);
   const socketRef = useRef(null);
   const mesaEnVivoRef = useRef(null);
+  // Pantalla completa nativa sobre TODA la Mesa (no solo el tablero): así las
+  // ventanas (tiro libre, cambio, nómina, quinteto, resumen…) siguen a la vista.
+  const mesaRaizRef = useRef(null);
   const escenaMarcadorTokenRef = useRef(null);
   // A qué equipo apunta CADA lado ahora mismo — hace falta como ref (no
   // alcanza con leer `partido` en el closure de los listeners de abajo,
@@ -946,7 +949,7 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
     const activar = !enPantallaCompleta;
     setEnPantallaCompleta(activar);
     try {
-      if (activar) mesaEnVivoRef.current?.requestFullscreen?.().catch(() => {});
+      if (activar) (mesaRaizRef.current || mesaEnVivoRef.current)?.requestFullscreen?.().catch(() => {});
       else if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
     } catch {
       // Fullscreen API no disponible — no importa, el modo propio (CSS) ya
@@ -1122,7 +1125,8 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
     return `${que} ${equipo}${u.jugador ? ` (${u.jugador})` : ''}`;
   };
   // Teclado: solo con la Mesa en vivo a la vista (también embebida en "Juego en vivo").
-  useAtajosMesa(() => Boolean(partido?.estado === 'en_curso' && mesaEnVivoRef.current?.offsetParent), {
+  // getClientRects (no offsetParent): en pantalla completa el tablero es position:fixed y offsetParent da null.
+  useAtajosMesa(() => Boolean(partido?.estado === 'en_curso' && mesaEnVivoRef.current?.getClientRects().length), {
     reloj: () => emitirAccion(partido.relojCorriendo ? 'RELOJ_PAUSAR' : 'RELOJ_INICIAR'),
     puntos: (n) => emitirAccion('PUNTO', { equipo: equipoActivo, jugadorId: jugadorSeleccionadoId || null, puntos: n }),
     falta: () => emitirAccion('FALTA', { equipo: equipoActivo, jugadorId: jugadorSeleccionadoId || null, tipoFalta: 'personal' }),
@@ -1559,7 +1563,7 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
   );
 
   return (
-    <div className={embebido ? '' : 'pagina'}>
+    <div className={`${embebido ? '' : 'pagina'} ${enPantallaCompleta ? 'mv-raiz-completa' : ''}`} ref={mesaRaizRef}>
       {error && <p className="mensaje-error">{error}</p>}
 
       {partido.estado === 'en_curso' && (
@@ -1587,7 +1591,16 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
           "en_curso" directo a la mesa en vivo. */}
 
       {partido.estado === 'en_curso' && (
-        <div className={`mv-wrap mv-tipo-${tipoMesa} ${enPantallaCompleta ? 'mv-pantalla-completa' : ''}`} ref={mesaEnVivoRef}>
+        <div className={`mv-wrap mv-tipo-${tipoMesa} ${enPantallaCompleta ? 'mv-pantalla-completa' : ''}`} ref={mesaEnVivoRef} style={{ '--mt-local': partido.equipoLocal.color || '#ff3b30', '--mt-visita': partido.equipoVisita.color || '#0a84ff' }}>
+          {enPantallaCompleta && (
+            <div className="mv-fila-completa">
+              <div className="mt-tipo" role="group" aria-label="Tipo de mesa">
+                {TIPOS_MESA.map((t) => <button key={t.id} type="button" className={tipoMesa === t.id ? 'activo' : ''} onClick={() => elegirTipoMesa(t.id)}>{t.etiqueta}</button>)}
+              </div>
+              <button className="mv-pill" onClick={() => setMostrarResumen(true)}>📊 Resumen</button>
+              {clasica && botonesPantallas}
+            </div>
+          )}
           <div className="mv-topbar">
             {!embebido && <Link className="mv-pill" to={`/mesa/${id}/simple`}>📋 Mesa simple</Link>}
             {!embebido && escenaMarcadorActual?.diseno_id && <Link className="mv-pill" to={`/disenos?editar=${escenaMarcadorActual.diseno_id}`}>🎨 Personalizar</Link>}

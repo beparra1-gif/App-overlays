@@ -10,7 +10,7 @@
 .mt-tipo button.activo { background: #007aff; color: #fff; }
 
 /* Panel "En pantalla" (lo que sale al aire), común a los tres tipos nuevos */
-.mv-aire { background: #141519; border: 1px solid rgba(255,255,255,.12); border-radius: 14px; overflow: hidden; }
+.mv-aire { background: #141519; border: 1px solid rgba(255,255,255,.12); border-radius: 14px; overflow: clip; }
 .mv-aire-titulo { all: unset; box-sizing: border-box; cursor: pointer; display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 14px; font-weight: 800; font-size: 13px; letter-spacing: .04em; text-transform: uppercase; }
 .mv-aire-titulo:focus-visible { outline: 2px solid var(--mv-azul); outline-offset: -2px; }
 .mv-aire-resumen { flex: 1; min-width: 0; font-weight: 600; text-transform: none; letter-spacing: 0; color: var(--mv-texto-tenue); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -146,7 +146,7 @@
 .mv-tipo-jugadora > .mv-panel-fondo { position: static; inset: auto; z-index: auto; padding: 0; background: none; -webkit-backdrop-filter: none; backdrop-filter: none; animation: none; display: block; }
 .mv-tipo-jugadora .mv-panel-acciones { width: auto; max-height: none; overflow: visible; border-radius: 18px; animation: none; box-shadow: none; background: var(--mv-tarjeta); -webkit-backdrop-filter: none; backdrop-filter: none; }
 .mv-tipo-jugadora .mv-panel-fade { display: none; }
-.mv-tipo-jugadora .fiba-botones-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.mv-tipo-jugadora .fiba-botones-grid { grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); gap: 8px; }
 @media (max-width: 1000px) {
   .mv-tipo-jugadora { grid-template-columns: 1fr; grid-template-areas: "top" "aire" "extra" "score" "acciones" "centro" "local" "visita" "jugadas"; }
 }
@@ -170,7 +170,6 @@
   .mv-wrap .mv-zona-titulo { flex: 1 0 100%; }
   .mv-tipo-jugadora .mv-cancha-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .mv-tipo-jugadora .mv-banco-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .mv-tipo-jugadora .fiba-botones-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 @media (max-width: 900px) {
   .mv-wrap .mv-zona { min-width: 0; }
@@ -193,7 +192,7 @@
 }
 /* Botones de acción grandes: la palabra más larga ("Descalificante") entra sin salirse. */
 .mv-tipo-tablet .fiba-botones-grid { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
-.mv-tipo-tablet .btn-fiba, .mv-tipo-jugadora .btn-fiba { min-width: 0; padding-inline: 6px; overflow-wrap: anywhere; }
+.mv-tipo-tablet .btn-fiba, .mv-tipo-jugadora .btn-fiba { min-width: 0; padding-inline: 6px; }
 /* En la franja de controles: 24" y "Acciones Local/Visita" cada uno a lo ancho. */
 .mv-tipo-tablet .mv-zona-centro > .mv-acciones-segmentado { grid-column: 1 / -1; }
 @media (max-width: 1100px) {
@@ -202,3 +201,98 @@
 @media (max-width: 560px) {
   .mv-wrap:not(.mv-tipo-jugadora) .mv-zona-centro { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* ───────── Pantalla completa (todas las mesas): nada queda escondido. */
+.mv-raiz-completa { background: #000; }
+.mv-fila-completa { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 8px; }
+.mv-fila-completa .btn-secundario, .mv-fila-completa .btn-peligro-suave { min-height: 34px; padding: 6px 12px; border-radius: 10px; font-weight: 700; font-size: 12px; cursor: pointer; background: #23252c; color: #fff; border: 1px solid rgba(255,255,255,.14); }
+.mv-fila-completa .btn-peligro-suave { background: #5a1012; color: #ffd9d6; border-color: #ff3b30; }
+/* La barra de arriba se acomoda en varias líneas en vez de deslizarse: todos los botones a la vista. */
+.mv-wrap.mv-pantalla-completa .mv-topbar { flex-wrap: wrap; overflow-x: visible; }
+.mv-wrap.mv-pantalla-completa .mv-pill { font-size: 11px; }
+
+/* ═════════ IDENTIDAD DE CADA MESA ═════════ */
+
+/* CONSOLA — mezclador de transmisión: paneles grafito planos, cifras
+   monoespaciadas, rótulos en versalitas, teclas con "tapa" y luz de aire. */
+.mv-tipo-consola { font-family: 'Inter', 'Segoe UI', system-ui, sans-serif; background: #0b0c0f linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px) 0 0 / 100% 28px; }
+.mv-tipo-consola .mv-zona { background: #14161b; border: 1px solid #262931; border-radius: 6px; }
+.mv-tipo-consola .mv-zona-local { border-top: 3px solid var(--mt-local); }
+.mv-tipo-consola .mv-zona-visita { border-top: 3px solid var(--mt-visita); }
+.mv-tipo-consola .mv-zona-centro { border-top: 3px solid #f5a623; }
+.mv-tipo-consola .mv-zona-titulo, .mv-tipo-consola .mv-control-card h6, .mv-tipo-consola .mv-jugadas h6 { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: #9aa1ad; }
+.mv-tipo-consola .mv-oncourt-btn, .mv-tipo-consola .mv-banco-btn { border-radius: 5px; border-width: 1px; box-shadow: inset 0 -4px 0 rgba(0,0,0,.35), 0 1px 0 rgba(255,255,255,.08) inset; }
+.mv-tipo-consola .mv-oncourt-dorsal, .mv-tipo-consola .mv-banco-dorsal { font-family: 'JetBrains Mono', 'Consolas', monospace; font-weight: 800; }
+.mv-tipo-consola .mv-oncourt-btn.seleccionado { box-shadow: 0 0 0 2px #f5a623, 0 0 16px rgba(245,166,35,.45); }
+.mv-tipo-consola .mv-btn-electrico { background: #f5a623; color: #1a1205; border-radius: 5px; box-shadow: inset 0 -4px 0 rgba(0,0,0,.25); }
+.mv-tipo-consola .btn-fiba { border-radius: 5px; background: #1d2027 !important; border-left: 5px solid; box-shadow: inset 0 -3px 0 rgba(0,0,0,.35); color: #e9ecf1; text-transform: uppercase; letter-spacing: .04em; }
+.mv-tipo-consola .btn-fiba.tiro { border-left-color: #3b82f6; }
+.mv-tipo-consola .btn-fiba.juego { border-left-color: #14b8a6; }
+.mv-tipo-consola .btn-fiba.falta { border-left-color: #ef4444; }
+.mv-tipo-consola .mv-btn-cambio { border-radius: 5px; }
+.mv-tipo-consola .mv-rueda-valor, .mv-tipo-consola .mv-reloj-lectura { color: #f5a623; text-shadow: 0 0 12px rgba(245,166,35,.35); }
+.mv-tipo-consola .mv-jugadas { background: #101216; border: 1px solid #262931; border-radius: 6px; font-family: 'JetBrains Mono', 'Consolas', monospace; font-size: 12px; }
+.mv-tipo-consola .mv-aire { background: #101216; border-color: #262931; }
+
+/* TABLET — estilo app deportiva de iPad: fondo azul noche, tarjetas de
+   vidrio muy redondeadas, números redondeados y botones tipo cápsula. */
+.mv-tipo-tablet { font-family: -apple-system, 'SF Pro Rounded', ui-rounded, 'Segoe UI', system-ui, sans-serif; background: radial-gradient(120% 80% at 50% 0%, #16213d 0%, #0a0f1d 55%, #05070d 100%); }
+.mv-tipo-tablet .mv-zona, .mv-tipo-tablet .mv-scorebar, .mv-tipo-tablet .mv-jugadas, .mv-tipo-tablet .mv-aire { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.10); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
+.mv-tipo-tablet .mv-equipo-box:not(.visita) { background: linear-gradient(135deg, color-mix(in srgb, var(--mt-local) 45%, transparent), transparent) !important; border: 0 !important; }
+.mv-tipo-tablet .mv-equipo-box.visita { background: linear-gradient(225deg, color-mix(in srgb, var(--mt-visita) 45%, transparent), transparent) !important; border: 0 !important; }
+.mv-tipo-tablet .mv-equipo-pts, .mv-tipo-tablet .mv-reloj-lectura, .mv-tipo-tablet .mv-rueda-valor, .mv-tipo-tablet .mv-oncourt-dorsal, .mv-tipo-tablet .mv-banco-dorsal { font-family: -apple-system, 'SF Pro Rounded', ui-rounded, system-ui, sans-serif; font-weight: 800; font-variant-numeric: tabular-nums; }
+.mv-tipo-tablet .mv-oncourt-btn { border: 0; box-shadow: 0 10px 24px rgba(0,0,0,.35); }
+.mv-tipo-tablet .mv-oncourt-btn.seleccionado { box-shadow: 0 0 0 4px #fff, 0 14px 30px rgba(0,0,0,.45); transform: scale(1.04); }
+.mv-tipo-tablet .mv-btn-electrico { background: #30d158; color: #04220d; border-radius: 999px; box-shadow: 0 12px 26px rgba(48,209,88,.35); }
+.mv-tipo-tablet .mv-pill { border-radius: 999px; background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.14); }
+.mv-tipo-tablet .btn-fiba { border-radius: 22px; box-shadow: 0 8px 18px rgba(0,0,0,.3); }
+.mv-tipo-tablet .mv-zona-titulo { font-size: 17px; letter-spacing: 0; text-transform: none; }
+
+/* POR JUGADORA — planilla estadística: cada plantel es una "hoja" con
+   cabecera del color del equipo, dorsales en chips cuadrados en grilla y
+   el panel de acciones como teclado por categorías. */
+.mv-tipo-jugadora { font-family: 'Segoe UI', system-ui, sans-serif; background: #0e1319; }
+.mv-tipo-jugadora .mv-zona { background: #151b23; border: 1px solid #243040; border-radius: 10px; overflow: clip; }
+.mv-tipo-jugadora .mv-zona-titulo-fila { margin: -10px -10px 10px; padding: 8px 10px; border-bottom: 0; }
+.mv-tipo-jugadora .mv-zona-local .mv-zona-titulo-fila { background: var(--mt-local); }
+.mv-tipo-jugadora .mv-zona-visita .mv-zona-titulo-fila { background: var(--mt-visita); }
+.mv-tipo-jugadora .mv-zona-local .mv-zona-titulo, .mv-tipo-jugadora .mv-zona-visita .mv-zona-titulo { color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.5); letter-spacing: .06em; text-transform: uppercase; }
+.mv-tipo-jugadora .mv-zona-centro { background: #121820; }
+.mv-tipo-jugadora .mv-oncourt-btn, .mv-tipo-jugadora .mv-banco-btn { border-radius: 8px; border: 1px solid rgba(255,255,255,.18); box-shadow: none; }
+.mv-tipo-jugadora .mv-oncourt-dorsal { font-size: 1.6rem; font-variant-numeric: tabular-nums; }
+.mv-tipo-jugadora .mv-panel-acciones { border: 1px solid #243040; background: #151b23; }
+.mv-tipo-jugadora .mv-seccion-titulo { margin: 10px 0 4px; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: #8fa1b8; }
+.mv-tipo-jugadora .btn-fiba { aspect-ratio: auto; min-height: 58px; border-radius: 8px; box-shadow: none; font-size: 13px; }
+.mv-tipo-jugadora .btn-fiba.tiro { background: #1e5bd8; }
+.mv-tipo-jugadora .btn-fiba.juego { background: #0f766e; }
+.mv-tipo-jugadora .btn-fiba.falta { background: #b42318; }
+.mv-tipo-jugadora .mv-acciones-espera { border-color: #243040; background: #121820; }
+.mv-tipo-jugadora .mv-scorebar { background: #151b23; border: 1px solid #243040; }
+.mv-tipo-jugadora .mv-jugadas { background: #121820; border: 1px solid #243040; border-radius: 10px; }
+
+/* Tablet apaisado: control, reloj y 24" en UNA fila, para ver los planteles sin bajar. */
+@media (min-width: 1000px) {
+  .mv-tipo-tablet .mv-zona-centro { grid-template-columns: 1.1fr 1fr .9fr; }
+  .mv-tipo-tablet .mv-zona-centro > .mv-posesion24 { grid-column: auto; display: grid; grid-template-columns: 1fr 1fr; align-content: center; gap: 8px; }
+  .mv-tipo-tablet .mv-zona-centro > .mv-posesion24 .mv-posesion24-valor { grid-column: 1 / -1; text-align: center; font-size: 40px; }
+  .mv-tipo-tablet .mv-btn-electrico-grande { padding: 20px 10px; }
+  .mv-tipo-tablet .mv-rueda-reloj { padding: 8px; }
+}
+/* Consola: el título del plantel en su propia línea cuando la columna es angosta. */
+.mv-tipo-consola .mv-zona-titulo-fila { flex-wrap: wrap; }
+.mv-tipo-consola .mv-zona-titulo { flex: 1 0 100%; }
+
+/* Pantalla completa con grilla (Consola, Por jugadora): filas a su altura natural, sin aplastarse. */
+.mv-wrap.mv-pantalla-completa.mv-tipo-consola, .mv-wrap.mv-pantalla-completa.mv-tipo-jugadora { align-content: start; }
+.mv-wrap > .mv-fila-completa { grid-column: 1 / -1; }
+.mv-tipo-jugadora > .mv-fila-completa { grid-row: 1; }
+.mv-tipo-jugadora.mv-pantalla-completa { grid-template-areas: "fila fila fila" "top top top" "aire aire aire" "extra extra extra" "score score score" "local acciones visita" "local centro visita" "jugadas jugadas jugadas"; }
+.mv-tipo-jugadora.mv-pantalla-completa > .mv-fila-completa { grid-area: fila; }
+.mv-tipo-consola.mv-pantalla-completa > .mv-aire { grid-row: 3 / span 12; }
+@media (max-width: 1279px) { .mv-tipo-consola.mv-pantalla-completa > .mv-aire { grid-row: auto; } }
+@media (max-width: 1000px) {
+  .mv-tipo-jugadora.mv-pantalla-completa { grid-template-areas: "fila" "top" "aire" "extra" "score" "acciones" "centro" "local" "visita" "jugadas"; }
+}
+/* Consola: los tipos de falta largos ("Antideportiva", "Descalificante") sin salirse. */
+.mv-tipo-consola .btn-fiba { letter-spacing: 0; font-size: 12px; padding-inline: 6px; }
+.mv-tipo-consola .mv-posesion24 { flex-wrap: wrap; }
