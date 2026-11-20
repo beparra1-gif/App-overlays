@@ -48,16 +48,25 @@
 .mv-tipo-consola .btn-fiba.juego { background: #13737a; }
 .mv-tipo-consola .btn-fiba.falta { background: #b3261e; }
 .mv-tipo-consola .mv-panel-acciones { border-radius: 10px; }
-@media (max-width: 1100px) {
-  .mv-tipo-consola { grid-template-columns: 1fr; }
+.mv-tipo-consola .mv-layout-grid { grid-template-columns: minmax(0, 1fr) minmax(0, .9fr) minmax(0, 1fr); }
+/* Pantallas de menos de 1280 px (tablets apaisadas, notebooks): "En pantalla" pasa a ser una franja arriba. */
+@media (max-width: 1279px) {
+  .mv-tipo-consola { grid-template-columns: minmax(0, 1fr); }
   .mv-tipo-consola > .mv-aire { grid-column: 1; grid-row: auto; position: static; margin-bottom: 10px; }
+  .mv-tipo-consola .mv-aire-cuerpo { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: 14px; }
+  .mv-tipo-consola .mv-aire-cuerpo > .mv-aire-seccion { grid-row: 1; }
+  .mv-tipo-consola .mv-aire-cuerpo > :not(.mv-aire-seccion) { grid-row: 2; }
+}
+@media (max-width: 760px) {
+  .mv-tipo-consola .mv-aire-cuerpo { display: block; }
+  .mv-tipo-consola .mv-layout-grid { grid-template-columns: 1fr; }
 }
 
 /* ───────── TABLET · como los controladores de marcador para tablet (BT
    Basketball, Baseline, Daktronics): todo grande para el dedo, tarjetas
    redondeadas del color de cada equipo y los gráficos en un cajón plegable. */
 .mv-tipo-tablet { border-radius: 26px; padding: 16px; }
-.mv-tipo-tablet > .mv-topbar { flex-wrap: nowrap; overflow-x: auto; justify-content: flex-start; padding-bottom: 6px; scrollbar-width: thin; }
+.mv-tipo-tablet > .mv-topbar { justify-content: flex-start; gap: 8px; }
 .mv-tipo-tablet .mv-pill { min-height: 44px; padding: 8px 16px; font-size: 14px; border-radius: 14px; white-space: nowrap; }
 .mv-tipo-tablet > .mv-aire { margin-bottom: 12px; border-radius: 20px; }
 .mv-tipo-tablet .mv-aire-titulo { min-height: 56px; font-size: 15px; }
@@ -70,7 +79,12 @@
 .mv-tipo-tablet .mv-reloj-lectura { font-size: 56px; }
 .mv-tipo-tablet .mv-to-btn { min-width: 64px; min-height: 64px; border-radius: 16px; }
 .mv-tipo-tablet .mv-btn-posesion { min-width: 56px; min-height: 56px; font-size: 22px; border-radius: 16px; }
-.mv-tipo-tablet .mv-layout-grid { grid-template-columns: minmax(0, 1fr) minmax(320px, 1.05fr) minmax(0, 1fr); gap: 14px; }
+.mv-tipo-tablet .mv-layout-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
+/* Controles del juego en una franja horizontal arriba; los dos planteles a lo ancho debajo. */
+.mv-tipo-tablet .mv-zona-centro { grid-column: 1 / -1; order: -1; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px; align-items: stretch; }
+.mv-tipo-tablet .mv-zona-centro > * { margin: 0 !important; }
+.mv-tipo-tablet .mv-zona-local { order: 0; }
+.mv-tipo-tablet .mv-zona-visita { order: 1; }
 .mv-tipo-tablet .mv-zona { border-radius: 26px; padding: 16px; }
 .mv-tipo-tablet .mv-oncourt-btn { min-height: 96px; border-radius: 20px; }
 .mv-tipo-tablet .mv-oncourt-dorsal { font-size: 1.9rem; }
@@ -82,7 +96,7 @@
 .mv-tipo-tablet .btn-fiba { min-height: 76px; font-size: 18px; border-radius: 18px; }
 .mv-tipo-tablet .mv-btn-cambio { min-height: 60px; font-size: 18px; border-radius: 18px; }
 .mv-tipo-tablet .mv-panel-acciones { width: min(720px, 96vw); border-radius: 30px; }
-@media (max-width: 900px) {
+@media (max-width: 760px) {
   .mv-tipo-tablet .mv-layout-grid { grid-template-columns: 1fr; }
 }
 
@@ -91,7 +105,7 @@
    su lado y el panel de acciones fijo al centro (sin ventana flotante). */
 .mv-tipo-jugadora {
   display: grid;
-  grid-template-columns: minmax(230px, 1fr) minmax(0, 1.5fr) minmax(230px, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr) minmax(0, 1fr);
   grid-template-areas:
     "top top top"
     "aire aire aire"
@@ -115,7 +129,9 @@
 .mv-tipo-jugadora > .mv-jugadas { grid-area: jugadas; }
 .mv-tipo-jugadora > .mv-panel-fondo, .mv-tipo-jugadora > .mv-acciones-espera { grid-area: acciones; margin-bottom: 12px; }
 .mv-tipo-jugadora .mv-equipo-pts { font-size: 30px; }
-.mv-tipo-jugadora .mv-zona { padding: 10px; border-radius: 14px; }
+.mv-tipo-jugadora .mv-zona { padding: 10px; border-radius: 14px; min-width: 0; }
+.mv-tipo-jugadora .mv-zona-titulo-fila { flex-wrap: wrap; }
+.mv-tipo-jugadora .mv-zona-titulo { flex: 1 0 100%; }
 /* Plantel en columna: titulares grandes arriba, banca abajo. */
 .mv-tipo-jugadora .mv-split, .mv-tipo-jugadora .mv-split.local { grid-template-columns: 1fr; }
 .mv-tipo-jugadora .mv-split .mv-col.interior { order: -1; }
@@ -140,3 +156,41 @@
 .mv-aire .btn-secundario, .mv-aire .btn-peligro-suave { min-height: 36px; padding: 7px 12px; border-radius: 10px; font-weight: 700; font-size: 13px; cursor: pointer; }
 .mv-aire .btn-secundario { background: #23252c; color: #fff; border: 1px solid rgba(255,255,255,.14); }
 .mv-aire .btn-peligro-suave { background: #5a1012; color: #ffd9d6; border: 1px solid #ff3b30; }
+
+/* Tablets (iPad apaisado de 1024 y en vertical) y pantallas angostas, en todas
+   las mesas menos Por jugadora: controles arriba a lo ancho, planteles lado a lado. */
+@media (max-width: 1100px) {
+  .mv-wrap:not(.mv-tipo-jugadora) .mv-layout-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .mv-wrap:not(.mv-tipo-jugadora) .mv-zona-centro { grid-column: 1 / -1; order: -1; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px; align-items: stretch; }
+  .mv-wrap:not(.mv-tipo-jugadora) .mv-zona-centro > * { margin: 0 !important; }
+  .mv-wrap:not(.mv-tipo-jugadora) .mv-zona-centro > .mv-posesion24 { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; }
+  .mv-wrap:not(.mv-tipo-jugadora) .mv-zona-local { order: 0; }
+  .mv-wrap:not(.mv-tipo-jugadora) .mv-zona-visita { order: 1; }
+  .mv-wrap .mv-zona-titulo-fila { flex-wrap: wrap; }
+  .mv-wrap .mv-zona-titulo { flex: 1 0 100%; }
+  .mv-tipo-jugadora .mv-cancha-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .mv-tipo-jugadora .mv-banco-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .mv-tipo-jugadora .fiba-botones-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 900px) {
+  .mv-wrap .mv-zona { min-width: 0; }
+  .mv-tipo-tablet .mv-equipo-pts { font-size: 44px; }
+  .mv-tipo-tablet .mv-equipo-logo { height: 40px; }
+  .mv-tipo-tablet .mv-reloj-lectura { font-size: 40px; }
+  .mv-tipo-tablet .mv-to-btn { min-width: 52px; min-height: 52px; }
+  .mv-tipo-tablet .mv-scorebar { gap: 8px; padding: 10px; }
+  /* El nombre del equipo arriba en su propia línea, así no se corta a una letra. */
+  .mv-wrap .mv-equipo-fila { flex-wrap: wrap; }
+  .mv-wrap .mv-equipo-nombres { flex: 1 0 100%; order: -1; }
+  .mv-wrap .mv-zona-titulo-fila { flex-wrap: wrap; }
+  .mv-wrap .mv-zona-titulo { flex: 1 0 100%; }
+}
+/* Reloj de 24" a lo ancho de la franja de controles, con sus botones repartidos. */
+.mv-tipo-tablet .mv-zona-centro > .mv-posesion24 { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; }
+.mv-tipo-tablet .mv-zona-centro > .mv-posesion24 .mv-pill { flex: 1; justify-content: center; text-align: center; }
+@media (max-width: 560px) {
+  .mv-wrap:not(.mv-tipo-jugadora) .mv-layout-grid { grid-template-columns: minmax(0, 1fr); }
+}
+/* Botones de acción grandes: la palabra más larga ("Descalificante") entra sin salirse. */
+.mv-tipo-tablet .fiba-botones-grid { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.mv-tipo-tablet .btn-fiba, .mv-tipo-jugadora .btn-fiba { min-width: 0; padding-inline: 6px; overflow-wrap: anywhere; }
