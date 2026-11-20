@@ -8,7 +8,7 @@ import TablaEstadisticas from '../components/TablaEstadisticas';
 import PanelMarcadorCamara from '../components/PanelMarcadorCamara';
 import { hayNominas, lideresPartido, tablaPorPeriodo, tituloIntertanto } from '../marcadores/intertanto';
 import { ATAJOS_MESA, sonarBocina, useAtajosMesa } from './mesaAyudas';
-import MesaTipos, { TIPOS_MESA } from './MesaTipos';
+import './mesaTipos.css';
 import './mesa.css';
 
 // Los 4 tipos de falta del reglamento FIBA vigente (personal/técnica/
@@ -19,6 +19,14 @@ import './mesa.css';
 // solo para poder anotarla. `sinJugador` hace que, al dispararla, se mande
 // siempre jugadorId null sin importar qué jugador esté seleccionado en ese
 // momento (ver disparar() en PanelAcciones).
+// Tipos de mesa: mismas piezas y funciones, distinto orden y aspecto.
+const TIPOS_MESA = [
+  { id: 'clasica', etiqueta: 'Clásica' },
+  { id: 'consola', etiqueta: 'Consola' },
+  { id: 'tablet', etiqueta: 'Tablet' },
+  { id: 'jugadora', etiqueta: 'Por jugadora' },
+];
+
 const TIPOS_FALTA = [
   { id: 'personal', etiqueta: 'Personal' },
   { id: 'tecnica', etiqueta: 'Técnica' },
@@ -801,6 +809,8 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
   const [tipoMesa, setTipoMesa] = useState(() => { try { return localStorage.getItem('mesa_tipo') || 'clasica'; } catch { return 'clasica'; } });
   const elegirTipoMesa = (t) => { setTipoMesa(t); try { localStorage.setItem('mesa_tipo', t); } catch { /* opcional */ } };
   const clasica = tipoMesa === 'clasica';
+  // Cajón de gráficos (Tablet y Por jugadora lo pliegan; Consola lo deja fijo al costado).
+  const [aireAbierto, setAireAbierto] = useState(false);
   const [mostrarResumen, setMostrarResumen] = useState(false);
   const [enPantallaCompleta, setEnPantallaCompleta] = useState(false);
   // Interruptor manual, independiente de Nómina/Estadísticas — decide si el
@@ -1473,28 +1483,80 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
     ...partido.equipoVisita.roster.map((j) => ({ ...j, equipoNombre: partido.equipoVisita.nombre })),
   ];
 
-  // Lo que se puede poner al aire, para los tipos de mesa Consola/Tablet/Por jugadora.
-  const graficosMesa = [
-    { separador: 'Marcador' },
-    { id: 'marcador', etiqueta: 'Marcador', activo: !marcadorOculto, onClick: alternarVisibilidadMarcador },
-    { id: 'entretiempo', etiqueta: 'Entretiempo', activo: alertaMarcador?.texto === 'ENTRETIEMPO', onClick: () => dispararAlertaMarcador('ENTRETIEMPO') },
-    { separador: 'Nómina y estadísticas' },
-    { id: 'nom-l', etiqueta: 'Nómina local', onClick: () => reproducirNomina('local') },
-    { id: 'nom-v', etiqueta: 'Nómina visita', onClick: () => reproducirNomina('visita') },
-    { id: 'nom-a', etiqueta: 'Nómina ambos', onClick: () => reproducirNomina('ambos') },
-    { id: 'presentar', etiqueta: 'Presentar titulares', activo: mostrarPresentacion, onClick: () => setMostrarPresentacion((v) => !v) },
-    { id: 'est-l', etiqueta: 'Estadísticas local', onClick: () => dispararEstadisticas({ modo: 'equipo', equipo: 'local', detalle: detalleJugadores }) },
-    { id: 'est-v', etiqueta: 'Estadísticas visita', onClick: () => dispararEstadisticas({ modo: 'equipo', equipo: 'visita', detalle: detalleJugadores }) },
-    { id: 'est-a', etiqueta: 'Estadísticas ambos', onClick: () => dispararEstadisticas({ modo: 'ambos', detalle: detalleJugadores }) },
-    { id: 'detalle', etiqueta: detalleJugadores ? 'Con detalle por jugadora' : 'Sin detalle por jugadora', activo: false, onClick: () => setDetalleJugadores((v) => !v), ayuda: 'Incluir o no el detalle por jugadora en las estadísticas' },
-    { separador: 'Pantallas grandes' },
-    { id: 'intertanto', etiqueta: 'Intertanto', activo: intertantoActivo, onClick: alternarIntertanto },
-    { id: 'previa', etiqueta: 'Previa', activo: pantallaEspecial === 'previa', onClick: () => mostrarPantalla('previa') },
-    { id: 'final', etiqueta: 'Final', activo: pantallaEspecial === 'final', onClick: () => mostrarPantalla('final') },
-    { id: 'mvp', etiqueta: 'Jugadora del partido', activo: pantallaEspecial === 'mvp', onClick: () => mostrarPantalla('mvp') },
-    { id: 'tabla', etiqueta: 'Tabla de posiciones', activo: pantallaEspecial === 'tabla', onClick: () => mostrarPantalla('tabla') },
-    ...(escenaMarcadorActual ? [{ id: 'enlace', etiqueta: copiadoFooter === escenaMarcadorActual.public_token ? '✓ Enlace copiado' : '🔗 Copiar enlace', onClick: () => copiarLinkFooter(escenaMarcadorActual.public_token) }] : []),
-  ];
+  // Piezas que cada tipo de mesa ubica en otro lugar (mismos botones, mismas acciones).
+  const botonesPantallas = [['previa', '🎬 Previa'], ['final', '🏁 Final'], ['mvp', '⭐ Jugadora del partido'], ['tabla', '🏆 Tabla de posiciones']].map(([modo, etiqueta]) => (
+    <button key={modo} className={pantallaEspecial === modo ? 'btn-peligro-suave' : 'btn-secundario'} onClick={() => mostrarPantalla(modo)} title="Se muestra en la transmisión; tocá de nuevo para sacarla">
+      {pantallaEspecial === modo ? `✕ Quitar ${etiqueta.replace(/^\S+ /, '')}` : etiqueta}
+    </button>
+  ));
+  const botonesAire = (
+    <>
+      <button className={`mv-pill ${!marcadorOculto ? 'activa' : 'mv-pill-alerta'}`} onClick={alternarVisibilidadMarcador}>
+        {marcadorOculto ? '🚫 Marcador Oculto' : '🟢 Marcador Visible'}
+      </button>
+      <button
+        className={`mv-pill ${alertaMarcador?.texto === 'ENTRETIEMPO' ? 'mv-pill-alerta' : ''}`}
+        title="Oculta el marcador y muestra un cartel de ENTRETIEMPO del mismo tamaño, hasta volver a tocar el botón"
+        onClick={() => dispararAlertaMarcador('ENTRETIEMPO')}
+      >
+        {alertaMarcador?.texto === 'ENTRETIEMPO' ? '🚫 Quitar Entretiempo' : '⏸ Entretiempo'}
+      </button>
+      <button
+        className={`mv-pill ${intertantoActivo ? 'mv-pill-alerta' : 'mv-pill-destacada'}`}
+        title="Muestra en la transmisión el resumen entre cuartos: marcador, puntos por cuarto y, si hay nóminas, comparativa y líderes. Se quita solo al volver a arrancar el reloj."
+        onClick={alternarIntertanto}
+      >
+        {intertantoActivo ? '■ Quitar Intertanto' : '📊 Intertanto'}
+      </button>
+      {escenaMarcadorActual && (
+        <button className="mv-pill" onClick={() => copiarLinkFooter(escenaMarcadorActual.public_token)}>
+          {copiadoFooter === escenaMarcadorActual.public_token ? '✓ Enlace copiado' : '🔗 Copiar enlace del marcador'}
+        </button>
+      )}
+    </>
+  );
+  const disparadoresMesa = (
+    <div className="mv-disparadores mv-disparadores-compacto">
+      <div className="fila-form">
+        <span className="mv-disparadores-etiqueta" title="Nómina">👥</span>
+        <button className="mv-pill mv-pill-chico" title="Mostrar nómina — Local" onClick={() => reproducirNomina('local')}>Local</button>
+        <button className="mv-pill mv-pill-chico" title="Mostrar nómina — Visita" onClick={() => reproducirNomina('visita')}>Visita</button>
+        <button className="mv-pill mv-pill-chico" title="Mostrar nómina — Ambos" onClick={() => reproducirNomina('ambos')}>Ambos</button>
+        <button
+          className={`mv-pill mv-pill-chico ${mostrarPresentacion ? 'activo' : ''}`}
+          title="Presentar el plantel titular uno por uno, con foto y nombre"
+          onClick={() => setMostrarPresentacion((v) => !v)}
+        >
+          🎬 Presentar
+        </button>
+        <span className="mv-disparadores-sep" />
+        <span className="mv-disparadores-etiqueta" title="Estadísticas">📊</span>
+        <button className="mv-pill mv-pill-chico" title="Estadísticas — Equipo Local" onClick={() => dispararEstadisticas({ modo: 'equipo', equipo: 'local', detalle: detalleJugadores })}>Local</button>
+        <button className="mv-pill mv-pill-chico" title="Estadísticas — Equipo Visita" onClick={() => dispararEstadisticas({ modo: 'equipo', equipo: 'visita', detalle: detalleJugadores })}>Visita</button>
+        <button className="mv-pill mv-pill-chico" title="Estadísticas — Ambos Equipos" onClick={() => dispararEstadisticas({ modo: 'ambos', detalle: detalleJugadores })}>Ambos</button>
+        <select
+          className="mv-select mv-select-chico"
+          title="Estadísticas de un jugador puntual"
+          value=""
+          onChange={(ev) => { if (ev.target.value) dispararEstadisticas({ modo: 'jugador', jugadorId: Number(ev.target.value) }); }}
+        >
+          <option value="">Jugador…</option>
+          {jugadoresDeAmbos.map((j) => (
+            <option key={j.id} value={j.id}>{j.equipoNombre} — #{j.dorsal ?? '-'} {j.nombre}</option>
+          ))}
+        </select>
+        <span className="mv-disparadores-sep" />
+        <label className="mv-check-detalle" title="Incluir detalle por jugador en Equipo Local/Visita/Ambos">
+          <input type="checkbox" checked={detalleJugadores} onChange={(e) => setDetalleJugadores(e.target.checked)} />
+          Detalle x jugador
+        </label>
+        <label className="mv-check-detalle" title="Ocultar el marcador mientras se muestra Nómina/Estadísticas">
+          <input type="checkbox" checked={ocultarMarcador} onChange={(e) => setOcultarMarcador(e.target.checked)} />
+          Ocultar marcador
+        </label>
+      </div>
+    </div>
+  );
 
   return (
     <div className={embebido ? '' : 'pagina'}>
@@ -1510,11 +1572,7 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
       )}
       <div className="fila-form">
         <button className="btn-secundario" onClick={() => setMostrarResumen(true)}>📊 Resumen / intertanto</button>
-        {clasica && [['previa', '🎬 Previa'], ['final', '🏁 Final'], ['mvp', '⭐ Jugadora del partido'], ['tabla', '🏆 Tabla de posiciones']].map(([modo, etiqueta]) => (
-          <button key={modo} className={pantallaEspecial === modo ? 'btn-peligro-suave' : 'btn-secundario'} onClick={() => mostrarPantalla(modo)} title="Se muestra en la transmisión; tocá de nuevo para sacarla">
-            {pantallaEspecial === modo ? `✕ Quitar ${etiqueta.replace(/^\S+ /, '')}` : etiqueta}
-          </button>
-        ))}
+        {clasica && botonesPantallas}
         <button className="btn-secundario" onClick={() => setMostrarGestionEscenas((v) => !v)}>
           {mostrarGestionEscenas ? 'Ocultar gestión de escenas' : 'Gestión avanzada de escenas'}
         </button>
@@ -1529,7 +1587,7 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
           "en_curso" directo a la mesa en vivo. */}
 
       {partido.estado === 'en_curso' && (
-        <div className={`mv-wrap ${enPantallaCompleta ? 'mv-pantalla-completa' : ''}`} ref={mesaEnVivoRef}>
+        <div className={`mv-wrap mv-tipo-${tipoMesa} ${enPantallaCompleta ? 'mv-pantalla-completa' : ''}`} ref={mesaEnVivoRef}>
           <div className="mv-topbar">
             {!embebido && <Link className="mv-pill" to={`/mesa/${id}/simple`}>📋 Mesa simple</Link>}
             {!embebido && escenaMarcadorActual?.diseno_id && <Link className="mv-pill" to={`/disenos?editar=${escenaMarcadorActual.diseno_id}`}>🎨 Personalizar</Link>}
@@ -1566,30 +1624,7 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
             <button className="mv-pill" onClick={alternarPantallaCompleta}>
               {enPantallaCompleta ? '✕ Salir de Pantalla Completa' : '⛶ Pantalla Completa'}
             </button>
-            {clasica && <>
-            <button className={`mv-pill ${!marcadorOculto ? 'activa' : 'mv-pill-alerta'}`} onClick={alternarVisibilidadMarcador}>
-              {marcadorOculto ? '🚫 Marcador Oculto' : '🟢 Marcador Visible'}
-            </button>
-            <button
-              className={`mv-pill ${alertaMarcador?.texto === 'ENTRETIEMPO' ? 'mv-pill-alerta' : ''}`}
-              title="Oculta el marcador y muestra un cartel de ENTRETIEMPO del mismo tamaño, hasta volver a tocar el botón"
-              onClick={() => dispararAlertaMarcador('ENTRETIEMPO')}
-            >
-              {alertaMarcador?.texto === 'ENTRETIEMPO' ? '🚫 Quitar Entretiempo' : '⏸ Entretiempo'}
-            </button>
-            <button
-              className={`mv-pill ${intertantoActivo ? 'mv-pill-alerta' : 'mv-pill-destacada'}`}
-              title="Muestra en la transmisión el resumen entre cuartos: marcador, puntos por cuarto y, si hay nóminas, comparativa y líderes. Se quita solo al volver a arrancar el reloj."
-              onClick={alternarIntertanto}
-            >
-              {intertantoActivo ? '■ Quitar Intertanto' : '📊 Intertanto'}
-            </button>
-            {escenaMarcadorActual && (
-              <button className="mv-pill" onClick={() => copiarLinkFooter(escenaMarcadorActual.public_token)}>
-                {copiadoFooter === escenaMarcadorActual.public_token ? '✓ Enlace copiado' : '🔗 Copiar enlace del marcador'}
-              </button>
-            )}
-            </>}
+            {clasica && botonesAire}
             {escenaMarcadorActual && (
               <span
                 className={`mv-viewers ${viewersMarcador > 0 ? 'conectado' : 'desconectado'}`}
@@ -1607,62 +1642,23 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
             <button className="mv-pill mv-pill-peligro" title="El enlace de OBS sigue funcionando después de finalizar" onClick={finalizarPartido}>⏹ Finalizar Partido</button>
           </div>
 
-          {clasica && <div className="mv-disparadores mv-disparadores-compacto">
-            <div className="fila-form">
-              <span className="mv-disparadores-etiqueta" title="Nómina">👥</span>
-              <button className="mv-pill mv-pill-chico" title="Mostrar nómina — Local" onClick={() => reproducirNomina('local')}>Local</button>
-              <button className="mv-pill mv-pill-chico" title="Mostrar nómina — Visita" onClick={() => reproducirNomina('visita')}>Visita</button>
-              <button className="mv-pill mv-pill-chico" title="Mostrar nómina — Ambos" onClick={() => reproducirNomina('ambos')}>Ambos</button>
-              <button
-                className={`mv-pill mv-pill-chico ${mostrarPresentacion ? 'activo' : ''}`}
-                title="Presentar el plantel titular uno por uno, con foto y nombre"
-                onClick={() => setMostrarPresentacion((v) => !v)}
-              >
-                🎬 Presentar
-              </button>
-              <span className="mv-disparadores-sep" />
-              <span className="mv-disparadores-etiqueta" title="Estadísticas">📊</span>
-              <button className="mv-pill mv-pill-chico" title="Estadísticas — Equipo Local" onClick={() => dispararEstadisticas({ modo: 'equipo', equipo: 'local', detalle: detalleJugadores })}>Local</button>
-              <button className="mv-pill mv-pill-chico" title="Estadísticas — Equipo Visita" onClick={() => dispararEstadisticas({ modo: 'equipo', equipo: 'visita', detalle: detalleJugadores })}>Visita</button>
-              <button className="mv-pill mv-pill-chico" title="Estadísticas — Ambos Equipos" onClick={() => dispararEstadisticas({ modo: 'ambos', detalle: detalleJugadores })}>Ambos</button>
-              <select
-                className="mv-select mv-select-chico"
-                title="Estadísticas de un jugador puntual"
-                value=""
-                onChange={(ev) => { if (ev.target.value) dispararEstadisticas({ modo: 'jugador', jugadorId: Number(ev.target.value) }); }}
-              >
-                <option value="">Jugador…</option>
-                {jugadoresDeAmbos.map((j) => (
-                  <option key={j.id} value={j.id}>{j.equipoNombre} — #{j.dorsal ?? '-'} {j.nombre}</option>
-                ))}
-              </select>
-              <span className="mv-disparadores-sep" />
-              <label className="mv-check-detalle" title="Incluir detalle por jugador en Equipo Local/Visita/Ambos">
-                <input type="checkbox" checked={detalleJugadores} onChange={(e) => setDetalleJugadores(e.target.checked)} />
-                Detalle x jugador
-              </label>
-              <label className="mv-check-detalle" title="Ocultar el marcador mientras se muestra Nómina/Estadísticas">
-                <input type="checkbox" checked={ocultarMarcador} onChange={(e) => setOcultarMarcador(e.target.checked)} />
-                Ocultar marcador
-              </label>
-            </div>
-          </div>}
 
-          {!clasica && (
-            <div style={{ '--mt-local': partido.equipoLocal.color, '--mt-visita': partido.equipoVisita.color }}>
-              <MesaTipos
-                tipo={tipoMesa}
-                partido={partido}
-                reloj={relojVivo}
-                posesion={posesionViva}
-                emitir={emitirAccion}
-                pedirTiempo={solicitarTimeout}
-                enCancha={enCanchaDelEquipo}
-                banca={bancaDelEquipo}
-                pedirCambio={(equipo, jugadorId) => setAccionPendiente({ tipo: 'CAMBIO', equipo, jugadorId })}
-                graficos={graficosMesa}
-              />
-            </div>
+          {clasica ? disparadoresMesa : (
+            <aside className={`mv-aire ${aireAbierto ? 'abierto' : ''}`} aria-label="Gráficos en pantalla">
+              <button type="button" className="mv-aire-titulo" onClick={() => setAireAbierto((v) => !v)} aria-expanded={aireAbierto}>
+                <span>📺 En pantalla</span>
+                <span className="mv-aire-resumen">{[!marcadorOculto && 'Marcador', intertantoActivo && 'Intertanto', pantallaEspecial && ({ previa: 'Previa', final: 'Final', mvp: 'Jugadora del partido', tabla: 'Tabla' })[pantallaEspecial], alertaMarcador?.texto === 'ENTRETIEMPO' && 'Entretiempo'].filter(Boolean).join(' · ') || 'Nada al aire'}</span>
+                <span className="mv-aire-flecha">{aireAbierto ? '▴' : '▾'}</span>
+              </button>
+              <div className="mv-aire-cuerpo">
+                <p className="mv-aire-seccion">Marcador</p>
+                <div className="mv-aire-botones">{botonesAire}</div>
+                <p className="mv-aire-seccion">Pantallas grandes</p>
+                <div className="mv-aire-botones">{botonesPantallas}</div>
+                <p className="mv-aire-seccion">Nómina y estadísticas</p>
+                {disparadoresMesa}
+              </div>
+            </aside>
           )}
 
           {mostrarPresentacion && (
@@ -1717,7 +1713,6 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
               del partido completo (faltasLocal/Visita) sigue existiendo
               en el estado por si hace falta en otro lado, pero ya no se
               muestra como el contador de "F" en ningún lugar. */}
-          {clasica && <>
           <div className="mv-scorebar">
             <div className={`mv-equipo-box ${destacarTimeoutLocal ? 'mv-box-destacado' : ''}`} style={{ border: `1px solid ${partido.equipoLocal.color}88`, background: `${partido.equipoLocal.color}14` }}>
               <div className="mv-equipo-fila">
@@ -1936,7 +1931,6 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
             </div>
           </div>
 
-          </>}
 
           <div className="mv-jugadas">
             <h6>Últimas acciones</h6>
@@ -1946,7 +1940,10 @@ export default function Mesa({ partidoId, embebido = false, onPartidoCambio }) {
             </ul>
           </div>
 
-          {clasica && mostrarPanelAcciones && (
+          {tipoMesa === 'jugadora' && !mostrarPanelAcciones && (
+            <div className="mv-acciones-espera">Toca una jugadora en cancha para anotar sus acciones (o “Acciones Local/Visita” si el equipo juega sin nómina).</div>
+          )}
+          {mostrarPanelAcciones && (
             <PanelAcciones
               equipoNombre={equipoActivoNombre}
               equipoLogoUrl={equipoActivo === 'local' ? partido.equipoLocal.logo_url : partido.equipoVisita.logo_url}
